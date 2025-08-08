@@ -1,0 +1,150 @@
+[project]
+name = "labacc_copilot"
+version = "0.1.0"
+description = "AI-powered assistant for wet-lab biology experiments, analysis, and optimization"
+authors = [
+    {name = "LabAcc Team"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+
+dependencies = [
+    # Core LangChain ecosystem
+    "langchain>=0.3.26",
+    "langchain-core>=0.3.66", 
+    "langchain-openai>=0.3.24",
+    "langchain-community>=0.3.27",
+    "langgraph>=0.6.2",
+    
+    # Web search and research
+    "tavily-python>=0.7.10",
+    
+    # UI Framework
+    "chainlit>=1.0.0",
+    
+    # Data processing
+    "pandas>=2.0.0",
+    "openpyxl>=3.1.0",
+    "Pillow>=10.0.0",
+    
+    # Environment and configuration
+    "python-dotenv>=1.1.0",
+    "pydantic>=2.0.0",
+    
+    # CLI and output formatting  
+    "rich>=14.0.0",
+    
+    # File processing
+    "python-frontmatter>=1.0.0",
+]
+
+[project.optional-dependencies]
+# LLM Provider options (choose based on your preference)
+anthropic = ["langchain-anthropic>=0.1.0"]
+google = ["langchain-google-genai>=0.1.0"]
+
+# Alternative UI
+gradio = ["gradio>=4.0.0"]
+
+# Observability
+observability = ["langfuse<3"]
+
+# Development dependencies
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.12.0", 
+    "mypy>=1.5.0",
+    "bandit>=1.7.0",
+]
+
+# All optional dependencies combined
+all = [
+    "langchain-anthropic>=0.1.0",
+    "langchain-google-genai>=0.1.0",
+    "gradio>=4.0.0",
+    "langfuse<3",
+]
+
+[project.scripts]
+labacc = "src.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+# Ruff configuration for linting and formatting
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings  
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by formatter
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+# Per-module options
+[[tool.mypy.overrides]]
+module = [
+    "tavily.*",
+    "chainlit.*",
+    "langchain.*",
+    "langgraph.*",
+    "langfuse.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config", 
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ["B101", "B601"]  # Skip assert_used and paramiko_calls

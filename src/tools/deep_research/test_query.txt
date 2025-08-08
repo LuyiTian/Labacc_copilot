@@ -1,0 +1,25 @@
+https://chatgpt.com/share/688f8090-4728-8007-a78f-80ffe325bcf5
+
+I want to build a multi-agent tool for wet-lab biology, more specifically for omic-technology development and optimization. it will be logically similar to coding agent such as claude code and codex, just not for coding but for wet-lab biological experiment and technology. the experimental biologist will create a folder hosting a project, uploading new experiment result, consulting to the agentic tool for suggestions on optimizations in next round. so this agent tool should have ability to perform web search, store and analyse post experimental results in varius format, such as pictures and excel tables. it will be a "copilot" for the wet-lab biologist. please perform wide research on this topic, identify existing and similar project, looking for related liturature and possible development path. then give me a comprehensive report. it should be a general AI-agent, but yes we are interested at large-scale perturbation experiment, high-throughput single-cell assay, including RNAseq, ATACseq etc. lets start simple and just support basic format, such as text, csv, figure. more specific bio data format such as fastq will be analysed in advance and the result will be passed to the agent. in future we might add support to directly work on fastq file. yes I want this tool to continuesly take new information, remove past experimental detail and make recommendation, troubleshooting, just focus on open-source project. I am familar with python, hf, langchain and langgraph.
+
+--------------------------------
+https://chatgpt.com/share/688f7eb9-244c-8007-aafb-b741ed8c2bdd
+
+read the following paper:
+1.LARGE LANGUAGE MODEL IS SECRETLY A PROTEIN SEQUENCE OPTIMIZER
+2. Efficient evolution of human antibodies from general protein language models https://www.nature.com/articles/s41587-023-01763-2
+3. Rapid in silico directed evolution by a protein language model with EVOLVEpro (in Science, and also in https://www.biorxiv.org/content/10.1101/2024.07.17.604015v1)
+these are different study but they all use protein language model or large language model to explore the protein function space. I am interested at developing better antibody optimization methods that directly use the large amount of single-cell vdj sequencing data to build a powerful tool for antibofy design and optimization. 
+generating or optimizing a protein with given function, like high antibody affinity, has been discussed these papers. however, protein enginnering is not just about optimizting on one aspect, like having only one loss function for ML task. the generated protein need to have multiple properties, such as it should be able to be expressed in-vivo, solubility, thermal stability, reasonable structure. it is not just about optimization on one loss. please perform broader review on these aspect and looking for existing methods and tools and consider multiple aspect when performing AI-guided protein generation and optimization.  I am thinking about both multi-objective optimization/RL framework, and also multi-agent framework. 
+
+
+
+
+
+
+
+
+
+
+
+

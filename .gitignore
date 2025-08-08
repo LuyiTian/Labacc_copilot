@@ -205,3 +205,49 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# LabAcc Copilot specific
+# Generated reports and cached data
+src/tools/deep_research/generated_reports/*.md
+search_cache/
+
+# Application data directories (keep structure READMEs)
+data/experiments/*/  # Actual experiment data
+!data/experiments/README.md
+data/history/decisions/*.json  # Decision cards
+!data/history/README.md
+data/ref/protocols/*.md  # Actual protocols  
+data/ref/literature/  # Literature files
+!data/ref/README.md
+
+# Chainlit UI
+.chainlit/
+chainlit.md
+
+# Large data files (keep examples)
+*.csv
+*.xlsx
+*.png
+*.jpg
+*.jpeg
+*.pdf
+!example_*.csv
+!example_*.png
+
+# Model and cache files
+*.model
+*.weights
+*.h5
+*.pkl
+
+# Temporary and backup files
+temp/
+tmp/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# IDE specific
+.vscode/
+.idea/

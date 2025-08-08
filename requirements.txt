@@ -1,0 +1,49 @@
+# Core LangChain ecosystem
+langchain>=0.3.26
+langchain-core>=0.3.66
+langchain-openai>=0.3.24
+langchain-community>=0.3.27
+langgraph>=0.6.2
+
+# LLM Providers (choose based on your preference)
+langchain-anthropic>=0.1.0  # For Claude models
+langchain-google-genai>=0.1.0  # For Gemini models
+
+# Web search and research
+tavily-python>=0.7.10
+
+# UI Framework
+chainlit>=1.0.0
+
+# Alternative UI (optional)
+gradio>=4.0.0
+
+# Data processing
+pandas>=2.0.0
+openpyxl>=3.1.0  # For Excel file support
+Pillow>=10.0.0  # For image processing
+
+# Environment and configuration
+python-dotenv>=1.1.0
+pydantic>=2.0.0
+
+# Observability (optional)
+langfuse<3
+
+# CLI and output formatting
+rich>=14.0.0
+
+# Development and testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
+ruff>=0.12.0
+mypy>=1.5.0
+
+# Security
+bandit>=1.7.0
+
+# File processing
+python-frontmatter>=1.0.0  # For README front matter parsing
+
+# Database
+sqlite3  # Built-in, but listed for clarity
