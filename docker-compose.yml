@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # User Alice instance
+  labacc-alice:
+    build: .
+    container_name: labacc-alice
+    environment:
+      - LABACC_PROJECT_ROOT=/data/projects
+      - REMOTE_USER=alice
+      # API keys from host environment
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SILICONFLOW_API_KEY=${SILICONFLOW_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    volumes:
+      - /home/alice/experiments:/data/projects
+      - ./data/ref:/data/ref:ro  # Shared reference docs
+    ports:
+      - "8001:8000"
+    restart: unless-stopped
+
+  # User Bob instance
+  labacc-bob:
+    build: .
+    container_name: labacc-bob
+    environment:
+      - LABACC_PROJECT_ROOT=/data/projects
+      - REMOTE_USER=bob
+      # API keys from host environment
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SILICONFLOW_API_KEY=${SILICONFLOW_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    volumes:
+      - /home/bob/experiments:/data/projects
+      - ./data/ref:/data/ref:ro  # Shared reference docs
+    ports:
+      - "8002:8000"
+    restart: unless-stopped
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: labacc-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx-users.conf:/etc/nginx/users.conf:ro
+      - ./.htpasswd:/etc/nginx/.htpasswd:ro
+    depends_on:
+      - labacc-alice
+      - labacc-bob
+    restart: unless-stopped

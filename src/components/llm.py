@@ -24,7 +24,7 @@ def get_required_env(key: str, description: str = "") -> str:
     if not value:
         raise ValueError(
             f"Required environment variable '{key}' not found. "
-            f"{description}. Please set this in your .env file."
+            f"{description}"
         )
     return value
 

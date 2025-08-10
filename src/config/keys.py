@@ -1,110 +1,44 @@
 """
-Secure configuration file for API keys and configuration.
+Configuration for non-LLM API keys.
 
 All API keys must be set as environment variables - no hardcoded secrets allowed.
-Create a .env file or set environment variables with the required keys.
+Set environment variables in your .bashrc file.
 
 Usage:
-    from src.config.keys import API_KEYS
-    api_key = API_KEYS["service_name"]["api_key"]
+    from src.config.keys import get_tavily_api_key
+    api_key = get_tavily_api_key()
 """
 
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
-
-def get_required_env(key: str, description: str = "") -> str:
-    """Get a required environment variable or raise an error."""
-    value = os.environ.get(key)
+# Tavily API - Required for deep research functionality
+def get_tavily_api_key() -> str:
+    """Get Tavily API key from environment variable."""
+    value = os.environ.get("TAVILY_API_KEY")
     if not value:
         raise ValueError(
-            f"Required environment variable '{key}' not found. "
-            f"{description}. Please set this in your .env file or environment."
+            "Required environment variable 'TAVILY_API_KEY' not found. "
+            "Get your API key from https://tavily.com/"
         )
     return value
 
-def get_optional_env(key: str, default: str = "") -> str:
-    """Get an optional environment variable with a default value."""
-    return os.environ.get(key, default)
+# Langfuse observability (optional)
+def get_langfuse_config():
+    """Get Langfuse configuration if available."""
+    public_key = os.environ.get("LANGFUSE_PUBLIC_KEY")
+    secret_key = os.environ.get("LANGFUSE_SECRET_KEY")
+    
+    if public_key and secret_key:
+        return {
+            "public_key": public_key,
+            "secret_key": secret_key,
+            "host": os.environ.get("LANGFUSE_HOST", "https://us.cloud.langfuse.com")
+        }
+    return None
 
-# Build API configuration from environment variables only
-API_KEYS: dict = {
-    # OpenAI/Compatible API configuration
-    "openai": {
-        # Optional provider
-        "openai_api_key": get_optional_env("OPENAI_API_KEY"),
-        "openai_api_base": get_optional_env("OPENAI_BASE_URL", "https://api.openai.com/v1"),
-        "model": get_optional_env("OPENAI_MODEL", "gpt-4o"),
-        "temperature": float(get_optional_env("OPENAI_TEMPERATURE", "0.7")),
-    },
-    
-    # SiliconFlow API configuration
-    "siliconflow": {
-        # Optional provider
-        "openai_api_key": get_optional_env("SILICONFLOW_API_KEY"),
-        "openai_api_base": get_optional_env("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1"),
-        "model": get_optional_env("SILICONFLOW_MODEL", "Qwen/Qwen3-235B-A22B-Instruct-2507"),
-        "temperature": float(get_optional_env("SILICONFLOW_TEMPERATURE", "1.0")),
-    },
-    
-    "siliconflow-Qwen3-30B-A3B": {
-        # Optional provider
-        "openai_api_key": get_optional_env("SILICONFLOW_API_KEY"),
-        "openai_api_base": get_optional_env("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1"),
-        "model": get_optional_env("SILICONFLOW_MODEL_30B", "Qwen/Qwen3-30B-A3B-Instruct-2507"),
-        "temperature": float(get_optional_env("SILICONFLOW_TEMPERATURE", "0.7")),
-        "extra_body": {"enable_thinking": False},
-    },
-    
-    "siliconflow-Qwen3-8B": {
-        # Optional provider
-        "openai_api_key": get_optional_env("SILICONFLOW_API_KEY"),
-        "openai_api_base": get_optional_env("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1"),
-        "model": get_optional_env("SILICONFLOW_MODEL_8B", "Qwen/Qwen3-8B"),
-        "temperature": float(get_optional_env("SILICONFLOW_TEMPERATURE", "0.7")),
-        "extra_body": {"enable_thinking": False},
-    },
-    
-    # Anthropic API configuration
-    "anthropic": {
-        "anthropic_api_key": get_optional_env("ANTHROPIC_API_KEY"),
-        "model": get_optional_env("ANTHROPIC_MODEL", "claude-3-sonnet-20240229"),
-        "temperature": float(get_optional_env("ANTHROPIC_TEMPERATURE", "0.7")),
-    },
-    
-    # Google API configuration
-    "google": {
-        "google_api_key": get_optional_env("GOOGLE_API_KEY"),
-        "model": get_optional_env("GOOGLE_MODEL", "gemini-pro"),
-        "temperature": float(get_optional_env("GOOGLE_TEMPERATURE", "0.7")),
-    },
-    
-    # Langfuse observability platform configuration
-    "langfuse": {
-        "public_key": get_optional_env("LANGFUSE_PUBLIC_KEY"),
-        "secret_key": get_optional_env("LANGFUSE_SECRET_KEY"), 
-        "host": get_optional_env("LANGFUSE_HOST", "https://us.cloud.langfuse.com"),
-    },
-    
-    # Tavily search API configuration
+# For backward compatibility with existing code that imports API_KEYS
+API_KEYS = {
     "tavily": {
-        "api_key": get_required_env("TAVILY_API_KEY", "Get from https://tavily.com/")
-    },
+        "api_key": get_tavily_api_key()
+    }
 }
-
-# Validate that required services have keys
-def validate_configuration():
-    """Validate that required API keys are present."""
-    required_services = ["tavily"]  # Add more as needed
-    
-    for service in required_services:
-        if service not in API_KEYS:
-            raise ValueError(f"Configuration for required service '{service}' not found")
-        
-        service_config = API_KEYS[service]
-        if "api_key" in service_config and not service_config["api_key"]:
-            raise ValueError(f"API key for required service '{service}' is empty")
-
-# Run validation on import
-validate_configuration()

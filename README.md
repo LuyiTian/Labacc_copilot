@@ -45,29 +45,51 @@ LabAcc Copilot is an AI-powered assistant designed specifically for wet-lab biol
 
 ## Setup & Configuration
 
-1. **Environment Setup**:
+1. **Environment Variables**:
+   Set API keys in your `.bashrc` file:
    ```bash
-   cp .env.example .env
-   # Edit .env with your API keys (Tavily required, LLM provider of choice)
+   export TAVILY_API_KEY="your-key-here"  # Required for web search
+   # Choose one or more LLM providers:
+   export OPENAI_API_KEY="your-key-here"
+   export SILICONFLOW_API_KEY="your-key-here"
+   export ANTHROPIC_API_KEY="your-key-here"
+   export GOOGLE_API_KEY="your-key-here"
    ```
 
-2. **Dependencies**:
+2. **Dependencies (using uv)**:
    ```bash
-   # Option A: pip
-   pip install -r requirements.txt
-
-   # Option B: uv (recommended for fast, reproducible dev)
-   # Install uv: https://github.com/astral-sh/uv
-   uv venv
+   # Install uv if not already installed:
+   # curl -LsSf https://astral.sh/uv/install.sh | sh
+   
+   # Install dependencies:
    uv pip install -r requirements.txt
+   
+   # Run commands with uv:
+   uv run python src/ui/app.py
+   uv run pytest tests/
+   uv run ruff check src/
    ```
 
 3. **Run the Application**:
    ```bash
-   chainlit run src/ui/app.py
+   uv run chainlit run src/ui/app.py
    ```
 
-4. **Deep Research (as a function or LangChain Tool)**:
+4. **UI Commands (MVP)**:
+   - Set project root (optional):
+     ```bash
+     export LABACC_PROJECT_ROOT=/absolute/path/to/your/project
+     ```
+   - In chat, you can manage files under the project root with slash commands:
+     - `/pwd` — show project root
+     - `/ls [rel]` — list directory
+     - `/cat <rel>` — preview file (text or hex head for binary)
+     - `/save [dest_dir]` — save uploaded files to dest_dir (default `.`)
+     - `/rm <rel>` — delete path
+     - `/mv <src> <dst>` — move/rename
+     - `/help` — show help
+
+5. **Deep Research (as a function or LangChain Tool)**:
    - Programmatic API:
      ```python
      from src.tools.deep_research import run_deep_research
@@ -82,19 +104,44 @@ LabAcc Copilot is an AI-powered assistant designed specifically for wet-lab biol
    - Configure required key:
      - Set `TAVILY_API_KEY` in `.env`. LLM providers are optional; if configured, they will be used via `src/components/llm.py`.
 
-5. **LLM Config Overrides**:
+6. **LLM Config Overrides**:
    - You can override model mappings and assignments with `src/config/llm_config.json` (optional). This mirrors successful patterns from AutoCell.
+
+## Developer Notes (for AI Coding Agents)
+
+### Using uv for all Python operations:
+```bash
+# Install/update dependencies:
+uv pip install -r requirements.txt
+
+# Run any Python script:
+uv run python <script.py>
+
+# Run the application:
+uv run chainlit run src/ui/app.py
+
+# Run tests:
+uv run pytest tests/ -v
+
+# Code quality checks:
+uv run ruff check src/       # Linting
+uv run ruff format src/      # Formatting
+uv run mypy src/             # Type checking
+```
+
+**Important**: Always use `uv run` prefix for Python commands to ensure correct environment.
+
 
 ## API Keys Required
 
 - **Tavily**: For web search and literature research (required)
-- **LLM Provider**: Optional, choose one:
+- **LLM Provider**: Choose one or more:
   - OpenAI (GPT-4o recommended)
   - SiliconFlow (Qwen models)
   - Anthropic Claude
   - Google Gemini
 
-See `.env.example` for configuration details.
+All keys should be set as environment variables in your `.bashrc`.
 
 ## Resources & References
 
