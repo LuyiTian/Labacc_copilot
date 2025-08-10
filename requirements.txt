@@ -44,6 +44,3 @@ bandit>=1.7.0
 
 # File processing
 python-frontmatter>=1.0.0  # For README front matter parsing
-
-# Database
-sqlite3  # Built-in, but listed for clarity

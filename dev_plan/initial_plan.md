@@ -1,4 +1,6 @@
-# Wet-Lab Omics Copilot — **Finalized MVP plan** (updated to your constraints)
+# Wet-Lab Omics Copilot — **Finalized MVP plan (v1)**
+
+Version: v1
 
 ## What changed vs last draft
 
@@ -24,6 +26,7 @@
 * **Short-term**: conversation state as part of the graph state (multi-turn).
 * **Long-term**: append DecisionCards & session summaries to `/todo_history` and index them; retrieve for future rounds.
 * **Persistence**: **SQLite checkpointer** (local, robust on intranet) to resume threads and approve gated steps (HITL). ([LangChain Blog][3], [LangChain AI][6])
+* **Per-user threads**: `thread_id = f"{user_id}:{session_uuid}"` to namespace histories and prevent cross-user leakage.
 
 ---
 
@@ -43,7 +46,14 @@
 ### 3) External research tool (your DeepResearch)
 
 * Expose as a LangChain Tool: `deep_research(query) -> list[{title, url, snippet}]`.
+* Implementation note: under the hood, call a function API to run the deep-research graph and extract citations into `{title,url,snippet}` entries.
 * Writer cites URLs from this tool; no internal web pipeline required.
+
+### 3.1) Folder/file visualization & management (server-side)
+
+* Scope all file operations to a per-user project root.
+* List directories and files with basic metadata (size, mtime); provide actions: open (preview or download), rename/move, delete.
+* Guardrails: normalize all paths, deny traversal outside root, optionally deny following symlinks that resolve outside root, log mutations to `/data/history/`.
 
 ### 4) Multimodal **ImageReader** (no CV stack)
 
@@ -117,6 +127,14 @@ class DecisionCard(BaseModel):
 * Purpose-built chat UI; pip-install; trivial to deploy on your intranet server; supports file uploads, session state, subpath deploy (`--root-path`). ([docs.chainlit.io][4])
 * Many tutorials show end-to-end chat apps with LangChain/LangGraph. ([DataCamp][8])
 
+### Deployment & auth (v1, Option B)
+
+* Single Chainlit instance behind Nginx with Basic Auth (few users, simple ops):
+  - Nginx `auth_basic` with `htpasswd`; Nginx forwards authenticated username as `$remote_user` header to Chainlit.
+  - App maintains a static mapping `{username -> project_root}` and restricts all file ops under that root.
+  - Persist LangGraph state with `thread_id = f"{username}:{session_uuid}"`.
+* Upgrade path: swap Basic Auth for OAuth2/OpenID via OAuth2-Proxy/Authentik/Keycloak without changing app logic.
+
 **Alternative:** **Gradio ChatInterface**
 
 * One-file app; pass `multimodal=True` to accept images/files in chat; easy local hosting. ([gradio.app][5])
@@ -154,7 +172,8 @@ checkpointer = SqliteSaver("copilot.sqlite")
 graph = StateGraph(State)  # add planner, retriever, analyst, critic, writer
 # ... add nodes & edges ...
 app = graph.compile(checkpointer=checkpointer)
-# route chat turns by thread_id to persist multi-turn context
+# route chat turns by thread_id to persist multi-turn context, namespaced per user
+# thread_id = f"{username}:{uuid4()}"
 ```
 
 ([LangChain Blog][3], [LangChain AI][6])

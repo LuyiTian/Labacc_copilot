@@ -1,0 +1,63 @@
+{
+  "model_configs": {
+    "gpt-4o": {
+      "api_key_env": "OPENAI_API_KEY",
+      "base_url": "https://api.openai.com/v1",
+      "model_name": "gpt-4o",
+      "recommended_temperature": 0.7,
+      "description": "OpenAI GPT-4o"
+    },
+    "gpt-4o-mini": {
+      "api_key_env": "OPENAI_API_KEY",
+      "base_url": "https://api.openai.com/v1",
+      "model_name": "gpt-4o-mini",
+      "recommended_temperature": 0.7,
+      "description": "OpenAI GPT-4o-mini"
+    },
+    "siliconflow-qwen": {
+      "api_key_env": "SILICONFLOW_API_KEY",
+      "base_url": "https://api.siliconflow.cn/v1",
+      "model_name": "Qwen/Qwen3-235B-A22B-Instruct-2507",
+      "recommended_temperature": 0.7,
+      "description": "SiliconFlow Qwen 235B"
+    },
+    "siliconflow-qwen-30b": {
+      "api_key_env": "SILICONFLOW_API_KEY",
+      "base_url": "https://api.siliconflow.cn/v1",
+      "model_name": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+      "recommended_temperature": 0.7,
+      "description": "SiliconFlow Qwen 30B"
+    },
+    "siliconflow-qwen-8b": {
+      "api_key_env": "SILICONFLOW_API_KEY",
+      "base_url": "https://api.siliconflow.cn/v1",
+      "model_name": "Qwen/Qwen3-8B",
+      "recommended_temperature": 0.7,
+      "description": "SiliconFlow Qwen 8B"
+    },
+    "claude-sonnet": {
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "base_url": null,
+      "model_name": "claude-3-sonnet-20240229",
+      "recommended_temperature": 0.7,
+      "description": "Anthropic Claude Sonnet"
+    },
+    "gemini-pro": {
+      "api_key_env": "GOOGLE_API_KEY",
+      "base_url": null,
+      "model_name": "gemini-pro",
+      "recommended_temperature": 0.8,
+      "description": "Google Gemini Pro"
+    }
+  },
+  "agent_model_assignments": {
+    "query_writer": "siliconflow-qwen-30b",
+    "web_searcher": "siliconflow-qwen-8b",
+    "analyst": "siliconflow-qwen-30b",
+    "critic": "siliconflow-qwen-30b",
+    "writer": "siliconflow-qwen",
+    "planner": "siliconflow-qwen-30b",
+    "default": "siliconflow-qwen-30b"
+  }
+}
+

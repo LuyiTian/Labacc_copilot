@@ -53,7 +53,13 @@ LabAcc Copilot is an AI-powered assistant designed specifically for wet-lab biol
 
 2. **Dependencies**:
    ```bash
+   # Option A: pip
    pip install -r requirements.txt
+
+   # Option B: uv (recommended for fast, reproducible dev)
+   # Install uv: https://github.com/astral-sh/uv
+   uv venv
+   uv pip install -r requirements.txt
    ```
 
 3. **Run the Application**:
@@ -61,10 +67,28 @@ LabAcc Copilot is an AI-powered assistant designed specifically for wet-lab biol
    chainlit run src/ui/app.py
    ```
 
+4. **Deep Research (as a function or LangChain Tool)**:
+   - Programmatic API:
+     ```python
+     from src.tools.deep_research import run_deep_research
+     result = run_deep_research("How to optimize PCR annealing temperature for GC-rich templates?", max_research_loops=3)
+     print(result["final_text"])  # Markdown report
+     ```
+   - As a tool in ReAct agents:
+     ```python
+     from src.tools.deep_research.tools import deep_research_tool
+     tools = [deep_research_tool]
+     ```
+   - Configure required key:
+     - Set `TAVILY_API_KEY` in `.env`. LLM providers are optional; if configured, they will be used via `src/components/llm.py`.
+
+5. **LLM Config Overrides**:
+   - You can override model mappings and assignments with `src/config/llm_config.json` (optional). This mirrors successful patterns from AutoCell.
+
 ## API Keys Required
 
 - **Tavily**: For web search and literature research (required)
-- **LLM Provider**: Choose one:
+- **LLM Provider**: Optional, choose one:
   - OpenAI (GPT-4o recommended)
   - SiliconFlow (Qwen models)
   - Anthropic Claude

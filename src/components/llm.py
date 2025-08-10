@@ -11,6 +11,7 @@ Design Principles:
 """
 
 import os
+import json
 import logging
 from typing import Optional, Dict, Any
 from langchain_openai import ChatOpenAI
@@ -41,11 +42,26 @@ try:
     else:
         logger.info("ℹ️  Langfuse keys not found - LLM interactions will not be logged")
 except ImportError:
-    logger.warning("⚠️  Langfuse not installed - skipping observability setup")
+    # Optional dependency
+    logger.info("Langfuse not installed - skipping observability setup")
 except Exception as e:
     logger.error(f"❌ Failed to initialize Langfuse: {e}")
 
 # Model configurations for different providers
+# Optional external overrides loaded from JSON config (if present)
+_EXTERNAL_CONFIG: Dict[str, Any] = {}
+_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "llm_config.json")
+try:
+    with open(os.path.abspath(_CONFIG_PATH), "r", encoding="utf-8") as f:
+        _EXTERNAL_CONFIG = json.load(f)
+        logger.info("🔧 Loaded external LLM config overrides from src/config/llm_config.json")
+except FileNotFoundError:
+    # It's optional; continue with defaults
+    pass
+except Exception as e:
+    logger.warning(f"Failed to load external LLM config: {e}")
+
+
 MODEL_CONFIGS = {
     # OpenAI models
     "gpt-4o": {
@@ -105,15 +121,22 @@ MODEL_CONFIGS = {
     },
 }
 
+# Apply external overrides if any
+MODEL_CONFIGS = _EXTERNAL_CONFIG.get("model_configs", MODEL_CONFIGS)
+AGENT_MODEL_ASSIGNMENTS = _EXTERNAL_CONFIG.get("agent_model_assignments", {}) or {}
+
 # Role-based model assignments for different agent tasks
 AGENT_MODEL_ASSIGNMENTS = {
-    "query_writer": get_optional_env("QUERY_WRITER_MODEL", "siliconflow-qwen-30b"),
-    "web_searcher": get_optional_env("WEB_SEARCHER_MODEL", "siliconflow-qwen-8b"),
-    "analyst": get_optional_env("ANALYST_MODEL", "siliconflow-qwen-30b"), 
-    "critic": get_optional_env("CRITIC_MODEL", "siliconflow-qwen-30b"),
-    "writer": get_optional_env("WRITER_MODEL", "siliconflow-qwen"),
-    "planner": get_optional_env("PLANNER_MODEL", "siliconflow-qwen-30b"),
-    "default": get_optional_env("DEFAULT_MODEL", "siliconflow-qwen-30b"),
+    **{
+        "query_writer": get_optional_env("QUERY_WRITER_MODEL", "siliconflow-qwen-30b"),
+        "web_searcher": get_optional_env("WEB_SEARCHER_MODEL", "siliconflow-qwen-8b"),
+        "analyst": get_optional_env("ANALYST_MODEL", "siliconflow-qwen-30b"),
+        "critic": get_optional_env("CRITIC_MODEL", "siliconflow-qwen-30b"),
+        "writer": get_optional_env("WRITER_MODEL", "siliconflow-qwen"),
+        "planner": get_optional_env("PLANNER_MODEL", "siliconflow-qwen-30b"),
+        "default": get_optional_env("DEFAULT_MODEL", "siliconflow-qwen-30b"),
+    },
+    **AGENT_MODEL_ASSIGNMENTS,
 }
 
 def get_available_models() -> Dict[str, str]:

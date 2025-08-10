@@ -32,7 +32,8 @@ def get_optional_env(key: str, default: str = "") -> str:
 API_KEYS: dict = {
     # OpenAI/Compatible API configuration
     "openai": {
-        "openai_api_key": get_required_env("OPENAI_API_KEY", "Get from https://platform.openai.com/api-keys"),
+        # Optional provider
+        "openai_api_key": get_optional_env("OPENAI_API_KEY"),
         "openai_api_base": get_optional_env("OPENAI_BASE_URL", "https://api.openai.com/v1"),
         "model": get_optional_env("OPENAI_MODEL", "gpt-4o"),
         "temperature": float(get_optional_env("OPENAI_TEMPERATURE", "0.7")),
@@ -40,14 +41,16 @@ API_KEYS: dict = {
     
     # SiliconFlow API configuration
     "siliconflow": {
-        "openai_api_key": get_required_env("SILICONFLOW_API_KEY", "Get from SiliconFlow provider"),
+        # Optional provider
+        "openai_api_key": get_optional_env("SILICONFLOW_API_KEY"),
         "openai_api_base": get_optional_env("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1"),
         "model": get_optional_env("SILICONFLOW_MODEL", "Qwen/Qwen3-235B-A22B-Instruct-2507"),
         "temperature": float(get_optional_env("SILICONFLOW_TEMPERATURE", "1.0")),
     },
     
     "siliconflow-Qwen3-30B-A3B": {
-        "openai_api_key": get_required_env("SILICONFLOW_API_KEY", "Get from SiliconFlow provider"),
+        # Optional provider
+        "openai_api_key": get_optional_env("SILICONFLOW_API_KEY"),
         "openai_api_base": get_optional_env("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1"),
         "model": get_optional_env("SILICONFLOW_MODEL_30B", "Qwen/Qwen3-30B-A3B-Instruct-2507"),
         "temperature": float(get_optional_env("SILICONFLOW_TEMPERATURE", "0.7")),
@@ -55,7 +58,8 @@ API_KEYS: dict = {
     },
     
     "siliconflow-Qwen3-8B": {
-        "openai_api_key": get_required_env("SILICONFLOW_API_KEY", "Get from SiliconFlow provider"),
+        # Optional provider
+        "openai_api_key": get_optional_env("SILICONFLOW_API_KEY"),
         "openai_api_base": get_optional_env("SILICONFLOW_BASE_URL", "https://api.siliconflow.cn/v1"),
         "model": get_optional_env("SILICONFLOW_MODEL_8B", "Qwen/Qwen3-8B"),
         "temperature": float(get_optional_env("SILICONFLOW_TEMPERATURE", "0.7")),

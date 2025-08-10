@@ -284,12 +284,16 @@ def finalize_answer(state: OverallState):
     
     # write the final message to a proper markdown
     title, markdown_content = harvest_markdown(result.content)
-    print(f"[bold green]Final Answer Saved.[/bold green]")
-    with open(f"deep_research/generated_reports/DeepResearch_{title}.md", "w", encoding="utf-8") as f:
+    # decide output directory
+    base_dir = state.get("output_dir") or "deep_research/generated_reports"
+    os.makedirs(base_dir, exist_ok=True)
+    saved_path = os.path.join(base_dir, f"DeepResearch_{title}.md")
+    with open(saved_path, "w", encoding="utf-8") as f:
         f.write(markdown_content)
+    print(f"[bold green]Final Answer Saved at {saved_path}.[/bold green]")
     return {
         "messages": [AIMessage(content=result.content)],
-        # "sources_gathered": unique_sources,
+        "saved_path": saved_path,
     }
 
 def harvest_markdown(response: str) -> Tuple[str, str]:
