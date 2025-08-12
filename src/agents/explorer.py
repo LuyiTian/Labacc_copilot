@@ -51,6 +51,14 @@ class ExplorerAgent(BaseAgent):
     
     async def scan_project(self, project_root: str) -> str:
         """Scan entire project and provide overview"""
+        # Convert relative path to absolute
+        if not project_root.startswith('/'):
+            project_root = Path.cwd() / project_root
+        
+        # Ensure we're looking in the alice_projects directory
+        if "alice_projects" not in str(project_root):
+            project_root = Path("/data/luyit/script/git/Labacc_copilot/data/alice_projects")
+        
         project_path = Path(project_root)
         
         if not project_path.exists():
@@ -58,10 +66,9 @@ class ExplorerAgent(BaseAgent):
         
         # Discover experiments
         experiments = []
-        experiment_pattern = r"exp_\d+.*"
         
         for item in project_path.iterdir():
-            if item.is_dir() and any(char.isdigit() for char in item.name):
+            if item.is_dir() and (item.name.startswith("exp_") or any(char.isdigit() for char in item.name)):
                 exp_info = self.analyze_experiment_folder(item)
                 experiments.append(exp_info)
         

@@ -56,7 +56,12 @@ class ResearcherAgent(BaseAgent):
             loop = asyncio.get_event_loop()
             research_result = await loop.run_in_executor(
                 None, 
-                lambda: run_deep_research(research_query, max_research_loops=2)
+                lambda: run_deep_research(
+                    research_query, 
+                    initial_search_query_count=3,  # Reduced from 10 for faster testing
+                    max_research_loops=1,  # Reduced from 2 for faster testing
+                    verbose=False  # Less console output
+                )
             )
             
             if research_result and 'final_text' in research_result:
