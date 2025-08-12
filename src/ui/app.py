@@ -15,6 +15,7 @@ from src.tools.files import (
     delete_path as delete_path_safe,
     move_path as move_path_safe,
 )
+from src.ui.file_manager import render_file_manager, handle_file_action
 import shutil
 
 
@@ -32,7 +33,17 @@ async def on_chat_start():
     session_id = cl.user_session.get("id")
     thread_id = f"{username}:{session_id}"
     cl.user_session.set("thread_id", thread_id)
-    await cl.Message(content=f"Session started. thread_id={thread_id}").send()
+    
+    # Get project root
+    project_root = os.environ.get("LABACC_PROJECT_ROOT", os.getcwd())
+    cl.user_session.set("project_root", project_root)
+    
+    # Render file manager actions
+    file_actions = await render_file_manager(project_root)
+    await cl.Message(
+        content=f"Welcome to LabAcc Copilot!\n🔬 Project: {os.path.basename(project_root)}",
+        actions=file_actions
+    ).send()
 
 
 @cl.on_message
@@ -116,12 +127,22 @@ async def _handle_command(content: str, project_root: str, attachments: list[str
                 saved.append(rel_path)
             return "Saved files:\n" + "\n".join(saved)
 
+        if content.startswith("/files"):
+            # Show file browser actions
+            file_actions = await render_file_manager(project_root)
+            await cl.Message(
+                content="📁 Browse your project files:",
+                actions=file_actions
+            ).send()
+            return "Use buttons above to browse files"
+
         if content.startswith("/help"):
             return (
                 "Commands:\n"
                 "/pwd — show project root\n"
                 "/ls [rel] — list directory\n"
                 "/cat <rel> — show file contents\n"
+                "/files — show file browser buttons\n"
                 "/save [dest_dir] — save uploaded files to dest_dir (default .)\n"
                 "/rm <rel> — delete path\n"
                 "/mv <src> <dst> — move/rename\n"
@@ -139,5 +160,31 @@ def _split_once(content: str, default: Optional[str] = None) -> Tuple[str, str]:
             raise ValueError("Missing argument")
         return parts[0], default
     return parts[0], parts[1]
+
+
+@cl.action_callback("file_preview")
+async def on_file_preview(action: cl.Action):
+    """Handle file preview action"""
+    file_path = action.payload.get("path", "")
+    project_root = cl.user_session.get("project_root")
+    
+    if file_path and project_root:
+        result = await handle_file_action("preview", file_path, project_root)
+        await cl.Message(content=result).send()
+
+
+@cl.action_callback("folder_browse") 
+async def on_folder_browse(action: cl.Action):
+    """Handle folder browse action"""
+    folder_path = action.payload.get("path", "")
+    project_root = cl.user_session.get("project_root")
+    
+    if project_root:
+        # Update file manager with new folder
+        file_actions = await render_file_manager(project_root, folder_path)
+        await cl.Message(
+            content=f"📁 Browsing: {folder_path or '/'}",
+            actions=file_actions
+        ).send()
 
 
