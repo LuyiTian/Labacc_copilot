@@ -32,6 +32,14 @@ from src.memory.memory_tools import (
     create_experiment
 )
 
+# Setup logging configuration
+try:
+    from src.config.logging_config import setup_logging, log_conversation
+    setup_logging()
+except ImportError:
+    # Fallback if logging config not available
+    pass
+
 logger = logging.getLogger(__name__)
 
 # ============= Analysis Tools (with automatic memory updates) =============
@@ -82,17 +90,47 @@ async def list_folder_contents(folder_path: str) -> str:
         folder_path: Path to the folder (e.g., 'exp_001_pcr' or full path)
     """
     try:
-        # Resolve path
-        if not Path(folder_path).is_absolute():
-            if folder_path.startswith("exp_"):
-                full_path = Path("data/alice_projects") / folder_path
+        # Resolve path - handle project-relative paths
+        if folder_path.startswith("/"):
+            # Remove leading slash for project-relative paths
+            folder_path = folder_path.lstrip("/")
+        
+        # Check if it's in bob_projects or alice_projects
+        if folder_path.startswith("bob_projects"):
+            # Look in data/bob_projects
+            relative_path = folder_path.replace("bob_projects/", "").replace("bob_projects", "")
+            if relative_path:
+                full_path = Path("data/bob_projects") / relative_path
             else:
-                full_path = Path("data/alice_projects") / folder_path
+                full_path = Path("data/bob_projects")
+        elif folder_path.startswith("alice_projects"):
+            # Look in data/alice_projects
+            relative_path = folder_path.replace("alice_projects/", "").replace("alice_projects", "")
+            if relative_path:
+                full_path = Path("data/alice_projects") / relative_path
+            else:
+                full_path = Path("data/alice_projects")
+        elif folder_path.startswith("exp_"):
+            # Experiment folder - check both locations
+            alice_path = Path("data/alice_projects") / folder_path
+            bob_path = Path("data/bob_projects") / folder_path
+            if alice_path.exists():
+                full_path = alice_path
+            elif bob_path.exists():
+                full_path = bob_path
+            else:
+                full_path = alice_path  # Default to alice
         else:
-            full_path = Path(folder_path)
+            # Default to alice_projects for other paths
+            full_path = Path("data/alice_projects") / folder_path
         
         if not full_path.exists():
-            return f"Folder not found: {folder_path}"
+            # Try bob_projects as fallback
+            bob_path = Path("data/bob_projects") / folder_path
+            if bob_path.exists():
+                full_path = bob_path
+            else:
+                return f"Folder not found: {folder_path}"
         
         if not full_path.is_dir():
             return f"Not a folder: {folder_path}"
@@ -150,11 +188,30 @@ async def analyze_data(file_path: str) -> str:
         llm = get_llm_instance()
         analyzer = QuickFileAnalyzer(llm)
         
-        # Resolve path
-        if not Path(file_path).is_absolute():
-            full_path = Path("data/alice_projects") / file_path
-        else:
+        # Resolve path - handle project-relative paths like /bob_projects/README.md
+        if file_path.startswith("/"):
+            # Remove leading slash
+            file_path = file_path.lstrip("/")
+        
+        # Check if it's in bob_projects or alice_projects
+        if file_path.startswith("bob_projects/"):
+            relative_path = file_path.replace("bob_projects/", "")
+            full_path = Path("data/bob_projects") / relative_path
+        elif file_path.startswith("alice_projects/"):
+            relative_path = file_path.replace("alice_projects/", "")
+            full_path = Path("data/alice_projects") / relative_path
+        elif Path(file_path).is_absolute():
             full_path = Path(file_path)
+        else:
+            # Try both locations
+            alice_path = Path("data/alice_projects") / file_path
+            bob_path = Path("data/bob_projects") / file_path
+            if alice_path.exists():
+                full_path = alice_path
+            elif bob_path.exists():
+                full_path = bob_path
+            else:
+                full_path = alice_path  # Default
         
         if not full_path.exists():
             return f"File not found: {file_path}"
@@ -209,7 +266,7 @@ async def analyze_data(file_path: str) -> str:
                                 "summary": context_summary  # Use the context-aware summary
                             })
                             
-                            if analysis.confidence > 0.7:
+                            if analysis.analysis_confidence > 0.7:
                                 await append_insight.ainvoke({
                                     "experiment_id": experiment_id,
                                     "insight": f"Analyzed {analysis.file_name}: {analysis.content_summary}",
@@ -420,14 +477,25 @@ async def handle_message(
         # Create agent
         agent = create_memory_agent()
         
-        # Process message with higher recursion limit
-        result = agent.invoke(
+        # Process message with higher recursion limit - USE ASYNC!
+        result = await agent.ainvoke(
             {"messages": [HumanMessage(content=enriched_message)]},
             config={"recursion_limit": 50}  # Increase from default 25
         )
         
-        # Extract response
+        # Extract response and log tool calls
         if result and "messages" in result:
+            # Log tool interactions for debugging
+            tool_calls_made = []
+            for msg in result["messages"]:
+                if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                    for tool_call in msg.tool_calls:
+                        tool_name = tool_call.get('name', tool_call.get('function', {}).get('name', 'unknown'))
+                        tool_args = tool_call.get('arguments', tool_call.get('function', {}).get('arguments', '{}'))
+                        tool_calls_made.append(f"{tool_name}({tool_args})")
+                        logger.debug(f"Tool call: {tool_name} with args: {tool_args}")
+            
+            # Get the final response
             for msg in reversed(result["messages"]):
                 if isinstance(msg, AIMessage):
                     response = msg.content
@@ -451,13 +519,29 @@ async def handle_message(
                         # Fire and forget - don't wait
                         asyncio.create_task(update_memory_from_conversation())
                     
+                    # Enhanced conversation logging with tool calls
+                    try:
+                        if tool_calls_made:
+                            logger.info(f"Tools used: {', '.join(tool_calls_made)}")
+                        log_conversation(message, response, session_id)
+                    except:
+                        pass  # Don't fail if logging fails
+                    
                     return response
         
         return "No response generated."
         
     except Exception as e:
         logger.error(f"Error handling message: {e}")
-        return f"Error: {str(e)}"
+        error_msg = f"Error: {str(e)}"
+        
+        # Log error conversation
+        try:
+            log_conversation(message, error_msg, session_id)
+        except:
+            pass
+        
+        return error_msg
 
 
 # ============= Test Function =============

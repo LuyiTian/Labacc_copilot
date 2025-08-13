@@ -85,7 +85,7 @@ def validate_path(path: str, project_root: str) -> Path:
 
 def get_project_root() -> str:
     """Get the project root directory from environment or default"""
-    default_root = os.path.join(os.getcwd(), "data", "alice_projects")
+    default_root = os.path.join(os.getcwd(), "data")
     return os.environ.get("LABACC_PROJECT_ROOT", default_root)
 
 

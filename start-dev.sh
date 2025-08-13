@@ -5,8 +5,8 @@
 # Activate virtual environment
 source .venv/bin/activate 2>/dev/null || uv venv
 
-# Set project root to user's project folder
-export LABACC_PROJECT_ROOT="$(pwd)/data/alice_projects"
+# Set project root to data directory for access to all projects
+export LABACC_PROJECT_ROOT="$(pwd)/data"
 
 echo "Starting LabAcc Copilot Development Environment..."
 echo "Project root: $LABACC_PROJECT_ROOT"
