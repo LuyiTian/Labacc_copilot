@@ -29,6 +29,11 @@ from src.api.react_bridge import router as chat_router
 
 app.include_router(chat_router)
 
+# Mount debug routes (development only)
+from src.api.debug_routes import router as debug_router
+
+app.include_router(debug_router)
+
 # Health check endpoint
 @app.get("/health")
 async def health_check():

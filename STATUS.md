@@ -1,8 +1,8 @@
 # LabAcc Copilot - System Status
 
-**Version**: 2.1.0  
-**Last Updated**: 2025-01-12  
-**Status**: ✅ Operational with Simplified React Agent
+**Version**: 2.2.0  
+**Last Updated**: 2025-01-13  
+**Status**: ✅ Operational with Memory-Enhanced React Agent
 
 ## 🚦 Service Status
 
@@ -17,44 +17,69 @@
 
 | Component | Status | Response Time | Description |
 |-----------|--------|---------------|-------------|
-| **React Agent** | ✅ Active | 2-3s | Single agent with natural language understanding |
-| **Tool: scan_project** | ✅ Active | <1s | Lists all experiments |
-| **Tool: analyze_experiment** | ✅ Active | 2-3s | Analyzes specific folders |
-| **Tool: research_literature** | ✅ Active | 10-30s | Literature search via Tavily |
-| **Tool: optimize_protocol** | ✅ Active | 2-3s | Optimization suggestions |
-| **Tool: manage_files** | ✅ Active | <1s | File operations |
+| **React Agent** | ✅ Active | 2-3s | Enhanced with README memory system |
+| **Memory System** | ✅ Active | <1s | README-based memory per experiment |
+| **Context Manager** | ✅ Active | <1s | Rich context from memories |
+| **Tool: read_memory** | ✅ Active | <1s | Read experiment READMEs |
+| **Tool: write_memory** | ✅ Active | <1s | Update README sections |
+| **Tool: search_memories** | ✅ Active | <2s | Search across all experiments |
+| **Tool: append_insight** | ✅ Active | <1s | Add timestamped insights |
+| **Tool: update_file_registry** | ✅ Active | <1s | Track analyzed files |
+| **Tool: compare_experiments** | ✅ Active | 2-3s | Cross-experiment analysis |
+| **Tool: create_experiment** | ✅ Active | <1s | Initialize new experiments |
+| **Tool: get_project_insights** | ✅ Active | 2-3s | Extract patterns |
+| **Tool: scan_project** | ✅ Active | <1s | Lists all experiments with status |
+| **Tool: analyze_data** | ✅ Active | 3-5s | Analyze with context |
+| **Tool: diagnose_issue** | ✅ Active | 2-3s | LLM reasoning (no patterns!) |
+| **Tool: suggest_optimization** | ✅ Active | 3-5s | Learn from successes |
 
 ## ✅ Working Features
+
+**🧠 README Memory System** ✨ NEW
+- Each experiment has README.md as persistent memory
+- Simple markdown format (NO YAML - won't break!)
+- Human-editable and git-friendly
+- Automatic updates when files analyzed
+- Insights tracked with timestamps
+- Change log for all modifications
 
 **🎨 Unified Interface**
 - React frontend with embedded AI chat (localhost:5173)
 - 40% file manager + 60% chat layout (VS Code style)
 - Toggle to hide/show file panel
 
-**🤖 Simplified React Agent**  
-- Single LangGraph React agent (70% less code than v2.0)
+**🤖 Memory-Enhanced React Agent** ✨ UPDATED
+- Single LangGraph React agent with 12+ tools
+- README memory integration for context
 - Natural language understanding in any language
-- No manual intent detection or keyword matching
-- Automatic tool selection based on user intent
-- Context-aware chat (knows current folder and selected files)
+- No patterns - pure LLM reasoning
+- Learns from experiment patterns
+- Context-aware (knows current folder, files, and experiment history)
 
 **📁 Smart File Management**
 - Visual file browser with experiment discovery
 - Intelligent experiment organization
 - Multi-file selection with Ctrl+Click
 - Project root at `data/alice_projects/`
+- Automatic README creation for new experiments
 
 ## 📊 System Architecture
 
 ```
-User Query → LangGraph React Agent → Tool Selection → Response
-                    │
-                    ├─→ scan_project (list experiments)
-                    ├─→ analyze_experiment (analyze folder)
-                    ├─→ research_literature (Tavily search)
-                    ├─→ optimize_protocol (suggestions)
-                    └─→ manage_files (file operations)
+User Query → Context Builder → React Agent → Tool Selection → Memory Update → Response
+                    │                              │
+                    ├─ Reads README memories       ├─→ Memory Tools (read, write, search)
+                    ├─ Builds rich context         ├─→ Analysis Tools (analyze, diagnose)
+                    └─ Adds session state          ├─→ Comparison Tools (compare, insights)
+                                                   └─→ Management Tools (create, update)
 ```
+
+### Data Flow
+1. **Input**: User message with optional folder/file context
+2. **Context**: Load relevant README memories
+3. **Processing**: React agent selects and executes tools
+4. **Memory**: Update README with findings
+5. **Output**: Response with insights
 
 ## 📈 Performance Metrics
 
@@ -72,6 +97,16 @@ User Query → LangGraph React Agent → Tool Selection → Response
 - **Monthly estimate**: <$10 for typical usage
 
 ## 📝 Recent Changes
+
+### v2.2.0 (2025-01-13) - Memory System Implementation ✨ NEW
+- ✅ **Implemented README-based memory system** (no YAML!)
+- ✅ **Added 8 memory tools** for React agent
+- ✅ **Built context management** system
+- ✅ **Enhanced React agent** with memory integration
+- ✅ **Centralized LLM config** (uses GPT-OSS 120B)
+- ✅ **Created test suite** and documentation
+- ✅ **Pattern learning** from experiments
+- ✅ **Automatic memory updates** when files analyzed
 
 ### v2.1.0 (2025-01-12) - Major Refactor
 - ✅ **Simplified to single React agent** (removed orchestrators)
@@ -96,7 +131,16 @@ User Query → LangGraph React Agent → Tool Selection → Response
 
 ## 🎯 Immediate Testing
 
-1. **Start System**: 
+1. **Quick Test**:
+   ```bash
+   # Check configuration
+   uv run python check_config.py
+   
+   # Run test suite
+   uv run python test_system.py
+   ```
+
+2. **Start Full System**: 
    ```bash
    # Terminal 1: Backend
    uv run uvicorn src.api.app:app --port 8002 --reload
@@ -105,14 +149,17 @@ User Query → LangGraph React Agent → Tool Selection → Response
    cd frontend && npm run dev
    ```
 
-2. **Open**: http://localhost:5173
+3. **Open**: http://localhost:5173
 
-3. **Test Examples**:
-   - "Hello" - Basic greeting
-   - "Scan my experiments" - Lists all experiments
-   - "Analyze exp_001_pcr_optimization" - Analyzes specific folder
-   - "Help me optimize my PCR" - Gets optimization suggestions
-   - "Search literature on GC-rich PCR" - Deep research with Tavily
+4. **Test Memory Features** ✨ NEW:
+   - "Create experiment for PCR optimization" - Creates folder with README
+   - "Scan my experiments" - Lists all with status from READMEs
+   - "Read overview of exp_001" - Shows experiment motivation
+   - "Add insight: Temperature 62°C is optimal" - Updates README
+   - "Compare all PCR experiments" - Finds patterns
+   - "What are the project insights?" - Shows learnings
+   - "Analyze data.csv in exp_001" - Analyzes with context
+   - "Why did my PCR fail?" - LLM reasoning (no patterns!)
 
 ## 🔧 Adding New Capabilities
 
@@ -129,21 +176,21 @@ def your_new_tool(param: str) -> str:
 # Add to tools list in react_agent.py - that's it!
 ```
 
-## 🔮 Next Phase: v2.2 - Background Processing
+## 🔮 Next Phase: v2.3 - Background Processing
 
-**Vision**: Add proactive capabilities while keeping simplicity
+**Vision**: Add proactive capabilities on top of memory system
 
 **Planned Features**:
-- Background monitoring of experiments
-- Proactive insights and alerts
-- Pattern recognition across experiments
-- Scheduled literature updates
-- Automated report generation
+- Background file monitoring with auto-README updates
+- Proactive insights when patterns detected
+- Scheduled cross-experiment analysis
+- Literature updates for active experiments
+- Automated weekly reports from READMEs
 
-**Key Principle**: Keep the simple React agent architecture, add capabilities through new tools and background tasks.
+**Key Principle**: Build on the memory foundation - READMEs enable all intelligence.
 
 ---
 
-**Status**: ✅ v2.1 Simplified and Operational  
-**Architecture**: Single React agent with tools (LangGraph)  
-**Focus**: Maintainable, extensible, naturally multilingual
+**Status**: ✅ v2.2 Memory-Enhanced and Operational  
+**Architecture**: React agent + README memory system  
+**Focus**: Transparent memory, continuous learning, pattern recognition

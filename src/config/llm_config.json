@@ -36,6 +36,7 @@
     "critic": "openrouter-gpt-oss-120b",
     "writer": "openrouter-gpt-oss-120b",
     "planner": "openrouter-gpt-oss-120b",
+    "react_agent": "openrouter-gpt-oss-120b",
     "default": "openrouter-gpt-oss-120b"
   }
 }

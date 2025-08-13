@@ -1,11 +1,51 @@
 # LabAcc Copilot - Development Guidelines
 
-AI-powered autonomous laboratory assistant for wet-lab biologists to analyze experimental data, diagnose issues, and suggest optimizations.
+**🌍 MULTI-LANGUAGE AI ASSISTANT BY DESIGN 🌍**
+
+AI-powered autonomous laboratory assistant for wet-lab biologists to analyze experimental data, diagnose issues, and suggest optimizations. Works in ALL languages - English, Chinese, Spanish, Arabic, Japanese, and more!
 
 No Fallback, this is a project in early development stage so DO NOT consider aspect in real projection stage, such as fallback, security, high parallel etc. just quick dev and quick fail and move on fast.
 
-No keyword matching for intent detection. This is a multi-language agent which might receive all languages as input. so NO keyword matching for pattern detection and user intent analysis.
-It is always important in the agent design that we focus on the data flow, context management and routing logic.
+## 🚫 ABSOLUTELY NO PATTERN MATCHING - EVER! 🚫
+
+**THIS IS THE #1 RULE - VIOLATING THIS IS UNACCEPTABLE**
+
+### ❌ NEVER DO THIS (WRONG):
+```python
+# THESE ARE ALL BANNED - DO NOT WRITE CODE LIKE THIS:
+if "folder" in message.lower():  # ❌ WRONG! What about "文件夹", "carpeta", "папка"?
+if message.startswith("analyze"):  # ❌ WRONG! What about "分析", "analizar", "تحليل"?
+vague_commands = ["check", "look at"]  # ❌ WRONG! What about "检查", "ver", "見る"?
+if any(cmd in message for cmd in commands):  # ❌ WRONG! ENGLISH KEYWORDS WILL NEVER WORK!
+
+# MATCHING ENGLISH KEYWORDS = BROKEN FOR 95% OF THE WORLD!
+```
+
+### ✅ ALWAYS DO THIS (CORRECT):
+```python
+# Just provide context, let LLM understand naturally:
+context = f"User is in folder: {current_folder}"
+context += f"User selected: {selected_files}"
+# Send to LLM with context - it understands ALL languages!
+```
+
+### WHY THIS MATTERS:
+1. **Multi-language**: Users speak Chinese, Spanish, Arabic, Japanese, etc.
+2. **Natural understanding**: LLMs understand intent, not patterns
+3. **Future-proof**: Works with any language, any phrasing
+4. **No maintenance**: No need to update pattern lists
+
+### EXAMPLES THAT MUST WORK:
+- 🇬🇧 "What's in this folder?"
+- 🇨🇳 "这个文件夹里有什么？"
+- 🇪🇸 "¿Qué hay aquí?"
+- 🇦🇪 "ما هذا؟"
+- 🇯🇵 "これは何ですか？"
+- 🇷🇺 "Что в этой папке?"
+
+**If you write pattern matching code, you have failed. The LLM is smart - trust it!**
+
+It is always important in the agent design that we focus on the data flow, context management and routing logic - NOT pattern matching!
 
 ## 📍 Current Status: v2.1 - Simplified React Agent
 
@@ -79,22 +119,30 @@ data/alice_projects/
 
 ### ⚠️ ALWAYS Follow These Guidelines
 
-**1. Read Specifications First**
+**1. Single Source of Truth - NO VERSIONING**
+- **NO backup files, NO fallback versions, NO v2/v3/v4 files**
+- Keep exactly ONE version of each component
+- Quick development, quick fail, move fast
+- Delete old code instead of keeping backups
+- Use git for version history, not file versioning
+
+**2. Read Specifications First**
 - Check `/spec/` directory for component specifications
 - Update specs when making architectural changes
 - Write specs for new features before implementation
 
-**2. File-Based Memory Priority**
+**3. File-Based Memory Priority**
 - Use README files as primary context source
 - Store insights in human-readable markdown
 - Avoid vector databases and embeddings
 - Make AI reasoning transparent and auditable
 
-**3. React Agent Development (v2.1+)**
+**4. React Agent Development**
 - Use LangGraph's create_react_agent() pattern
 - Add new capabilities with @tool decorator
 - Keep tools simple and focused
 - Let LLM handle intent understanding naturally
+- Memory updates happen automatically in background
 
 ## 🛠️ Technical Implementation
 

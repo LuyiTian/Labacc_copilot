@@ -9,11 +9,19 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+import asyncio
+import logging
 
 import aiofiles
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+
+# Import memory tools for auto-updating README
+from src.memory.memory_tools import update_file_registry, append_insight
+from src.memory.file_summarizer import summarize_uploaded_file
+
+logger = logging.getLogger(__name__)
 
 # Create API router
 router = APIRouter(prefix="/api/files", tags=["files"])
@@ -175,6 +183,97 @@ async def upload_files(
                 "path": str(file_path.relative_to(project_root)),
                 "size": len(content)
             })
+        
+        # Auto-update README if uploading to an experiment folder
+        try:
+            # Check if this is an experiment folder
+            relative_path = str(dest_dir.relative_to(project_root))
+            path_parts = relative_path.split('/')
+            
+            # Find experiment folder (starts with exp_)
+            experiment_id = None
+            for part in path_parts:
+                if part.startswith('exp_'):
+                    experiment_id = part
+                    break
+            
+            if experiment_id:
+                # Update README in background
+                async def update_readme_background():
+                    try:
+                        for file_info in uploaded_files:
+                            filename = file_info["name"]
+                            size = file_info["size"]
+                            
+                            # Determine file type
+                            file_ext = Path(filename).suffix.lower()
+                            if file_ext in ['.csv', '.tsv', '.txt']:
+                                file_type = "Data"
+                            elif file_ext in ['.png', '.jpg', '.jpeg', '.gif', '.svg']:
+                                file_type = "Image"
+                            elif file_ext in ['.pdf', '.doc', '.docx', '.md']:
+                                file_type = "Document"
+                            elif file_ext in ['.py', '.ipynb']:
+                                file_type = "Code"
+                            elif file_ext in ['.json', '.yaml', '.yml']:
+                                file_type = "Config"
+                            else:
+                                file_type = "File"
+                            
+                            # Use LLM to generate context-aware summary
+                            # Build correct file path based on upload location
+                            if "/" in file_info["path"]:
+                                # File is in a subfolder
+                                file_full_path = Path(project_root) / file_info["path"]
+                            else:
+                                # File is in experiment root
+                                file_full_path = Path(f"data/alice_projects/{experiment_id}/{filename}")
+                            
+                            # Get intelligent summary with experiment context
+                            try:
+                                summary = await summarize_uploaded_file(
+                                    str(file_full_path),
+                                    experiment_id
+                                )
+                                logger.info(f"Generated LLM summary for {filename}: {summary[:50]}...")
+                            except Exception as e:
+                                logger.error(f"Failed to generate LLM summary: {e}")
+                                # Fallback to simple summary
+                                summary = f"Uploaded {file_type.lower()} file"
+                            
+                            # Update file registry
+                            await update_file_registry.ainvoke({
+                                "experiment_id": experiment_id,
+                                "file_name": filename,
+                                "file_type": file_type,
+                                "file_size": f"{size} bytes",
+                                "summary": summary
+                            })
+                        
+                        # Add insight about new files
+                        if len(uploaded_files) == 1:
+                            await append_insight.ainvoke({
+                                "experiment_id": experiment_id,
+                                "insight": f"Added {uploaded_files[0]['name']} to experiment",
+                                "source": "file_upload"
+                            })
+                        else:
+                            await append_insight.ainvoke({
+                                "experiment_id": experiment_id,
+                                "insight": f"Added {len(uploaded_files)} new files to experiment",
+                                "source": "file_upload"
+                            })
+                        
+                        logger.info(f"Updated README for {experiment_id} after file upload")
+                    except Exception as e:
+                        logger.error(f"Failed to update README for {experiment_id}: {e}")
+                
+                # Run the update in background (don't wait for it)
+                asyncio.create_task(update_readme_background())
+                
+        except Exception as e:
+            # Don't fail the upload if README update fails
+            logger.error(f"Error in README auto-update: {e}")
 
         return {
             "success": True,
@@ -212,6 +311,36 @@ async def create_folder(
             raise HTTPException(status_code=409, detail="Folder already exists")
 
         new_folder.mkdir(parents=True, exist_ok=True)
+        
+        # If creating an experiment folder, initialize README
+        try:
+            if folder_name.startswith('exp_'):
+                from src.memory.memory_tools import create_experiment
+                
+                async def init_experiment_readme():
+                    try:
+                        # Extract experiment name from folder name
+                        # exp_001_pcr_optimization -> PCR optimization
+                        parts = folder_name.split('_', 2)  # Split on first 2 underscores
+                        if len(parts) >= 3:
+                            exp_name = parts[2].replace('_', ' ').title()
+                        else:
+                            exp_name = folder_name
+                        
+                        await create_experiment.ainvoke({
+                            "experiment_name": exp_name,
+                            "motivation": "Created via web interface",
+                            "key_question": "To be defined"
+                        })
+                        logger.info(f"Initialized README for new experiment: {folder_name}")
+                    except Exception as e:
+                        logger.error(f"Failed to initialize README for {folder_name}: {e}")
+                
+                # Run in background
+                asyncio.create_task(init_experiment_readme())
+                
+        except Exception as e:
+            logger.error(f"Error initializing experiment: {e}")
 
         return {
             "success": True,

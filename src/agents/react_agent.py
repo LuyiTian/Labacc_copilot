@@ -1,156 +1,493 @@
 """
-Simplified React Agent for LabAcc Copilot using LangGraph
-Ultra-simple implementation following LangGraph best practices
+React Agent for LabAcc Copilot - With Automatic Background Memory Management
+
+This module implements a React agent using LangGraph that can:
+1. Handle user queries with automatic context awareness
+2. Automatically update README memories from conversations
+3. Analyze experimental data with background memory updates
+4. Search scientific literature
+5. Suggest optimizations based on patterns
+
+Memory is handled AUTOMATICALLY - no explicit memory tools needed!
 """
 
 import os
 from pathlib import Path
-from typing import Dict, Any, List
-from datetime import datetime
+from typing import List, Optional
 import asyncio
+import logging
 
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.prebuilt import create_react_agent
 from src.components.llm import get_llm_instance
+from src.components.file_analyzer import QuickFileAnalyzer
 
+# Import memory functions for AUTOMATIC use (not as tools!)
+from src.memory.memory_tools import (
+    read_memory,
+    append_insight,
+    update_file_registry,
+    get_project_insights,
+    create_experiment
+)
 
-# ============= Simple Tool Definitions =============
+logger = logging.getLogger(__name__)
+
+# ============= Analysis Tools (with automatic memory updates) =============
 
 @tool
-def scan_project() -> str:
-    """Scan all experiments in the project. Lists experiment folders with details."""
-    project_root = "data/alice_projects"
+async def scan_project() -> str:
+    """Scan all experiments in the project and show their current status."""
+    project_root = Path("data/alice_projects")
     
-    if not os.path.exists(project_root):
+    if not project_root.exists():
         return "No experiments found. Project folder doesn't exist yet."
     
     experiments = []
-    for folder in sorted(os.listdir(project_root)):
-        if os.path.isdir(os.path.join(project_root, folder)) and folder.startswith("exp_"):
-            experiments.append(folder)
+    experiment_details = []
+    
+    for folder in sorted(project_root.iterdir()):
+        if folder.is_dir() and folder.name.startswith("exp_"):
+            experiments.append(folder.name)
+            # Try to read status from README automatically
+            try:
+                readme_path = folder / "README.md"
+                if readme_path.exists():
+                    with open(readme_path, 'r') as f:
+                        first_lines = f.read(500)  # Quick read
+                        status = "Active" if "Active" in first_lines else "Unknown"
+                        experiment_details.append(f"- {folder.name}: {status}")
+                else:
+                    experiment_details.append(f"- {folder.name}: No README")
+            except:
+                experiment_details.append(f"- {folder.name}: Cannot read")
     
     if not experiments:
-        return "No experiments found."
+        return "No experiments found. Create a new experiment folder starting with 'exp_'"
     
-    return f"Found {len(experiments)} experiments: " + ", ".join(experiments)
-
-
-@tool
-def analyze_experiment(folder_name: str) -> str:
-    """Analyze a specific experiment folder.
+    result = f"Found {len(experiments)} experiments:\n"
+    result += "\n".join(experiment_details[:20])
+    if len(experiment_details) > 20:
+        result += f"\n... and {len(experiment_details) - 20} more"
     
-    Args:
-        folder_name: Name of experiment folder like 'exp_001_pcr'
-    """
-    project_root = "data/alice_projects"
-    folder_path = os.path.join(project_root, folder_name)
-    
-    if not os.path.exists(folder_path):
-        return f"Folder '{folder_name}' not found."
-    
-    files = os.listdir(folder_path)
-    response = f"Analysis of {folder_name}: Found {len(files)} files. "
-    
-    if "pcr" in folder_name.lower():
-        response += "PCR experiment detected. Check annealing temp and primer concentration."
-    
-    return response
+    return result
 
 
 @tool  
-def research_literature(query: str) -> str:
-    """Search scientific literature.
+async def list_folder_contents(folder_path: str) -> str:
+    """List files and subfolders in a specified folder.
     
     Args:
-        query: Research topic or question
+        folder_path: Path to the folder (e.g., 'exp_001_pcr' or full path)
     """
-    return f"Literature search for '{query}': Would search PubMed, protocols.io, etc. Deep research available via Tavily API."
+    try:
+        # Resolve path
+        if not Path(folder_path).is_absolute():
+            if folder_path.startswith("exp_"):
+                full_path = Path("data/alice_projects") / folder_path
+            else:
+                full_path = Path("data/alice_projects") / folder_path
+        else:
+            full_path = Path(folder_path)
+        
+        if not full_path.exists():
+            return f"Folder not found: {folder_path}"
+        
+        if not full_path.is_dir():
+            return f"Not a folder: {folder_path}"
+        
+        # List contents
+        contents = []
+        files = []
+        folders = []
+        
+        for item in sorted(full_path.iterdir()):
+            if item.is_dir():
+                folders.append(f"📁 {item.name}/")
+            else:
+                size = item.stat().st_size
+                if size < 1024:
+                    size_str = f"{size}B"
+                elif size < 1024*1024:
+                    size_str = f"{size/1024:.1f}KB"
+                else:
+                    size_str = f"{size/(1024*1024):.1f}MB"
+                files.append(f"📄 {item.name} ({size_str})")
+        
+        result = f"Contents of {folder_path}:\n\n"
+        
+        if folders:
+            result += "Folders:\n" + "\n".join(folders) + "\n\n"
+        
+        if files:
+            result += "Files:\n" + "\n".join(files)
+        
+        if not folders and not files:
+            result = f"Folder {folder_path} is empty"
+        
+        # If it's an experiment folder with README, add a note
+        readme_path = full_path / "README.md"
+        if readme_path.exists():
+            result += "\n\n📝 Note: This experiment has a README.md with memory/context"
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error listing folder: {e}")
+        return f"Error listing folder: {str(e)}"
 
 
 @tool
-def optimize_protocol(experiment_type: str, issue: str = "") -> str:
-    """Get optimization suggestions.
+async def analyze_data(file_path: str) -> str:
+    """Analyze experimental data file. Context is automatically loaded if in an experiment folder.
     
     Args:
-        experiment_type: Type like 'PCR', 'Western blot'
-        issue: Current problem (optional)
+        file_path: Path to the data file (relative or absolute)
     """
-    suggestions = f"Optimizing {experiment_type}. "
-    
-    if "pcr" in experiment_type.lower():
-        suggestions += "Try: gradient PCR, add DMSO for GC-rich, check Mg2+ concentration."
-    
-    if issue:
-        suggestions += f" For '{issue}': check reagents, verify template quality."
-    
-    return suggestions
+    try:
+        # Use file analyzer
+        llm = get_llm_instance()
+        analyzer = QuickFileAnalyzer(llm)
+        
+        # Resolve path
+        if not Path(file_path).is_absolute():
+            full_path = Path("data/alice_projects") / file_path
+        else:
+            full_path = Path(file_path)
+        
+        if not full_path.exists():
+            return f"File not found: {file_path}"
+        
+        # Analyze file
+        analysis = await analyzer.analyze_file(str(full_path))
+        
+        # For better summaries, also use our context-aware summarizer
+        from src.memory.file_summarizer import summarize_uploaded_file
+        
+        # Detect experiment ID for context
+        experiment_id = None
+        path_str = str(full_path)
+        if "/exp_" in path_str:
+            parts = path_str.split("/")
+            for part in parts:
+                if part.startswith("exp_"):
+                    experiment_id = part
+                    break
+        
+        # Get context-aware summary
+        try:
+            context_summary = await summarize_uploaded_file(str(full_path), experiment_id)
+        except:
+            context_summary = analysis.content_summary
+        
+        result = f"File Analysis for {analysis.file_name}:\n"
+        result += f"- Type: {analysis.file_type}\n"
+        result += f"- Size: {analysis.size_bytes} bytes\n"
+        result += f"- Summary: {context_summary}\n"
+        
+        if analysis.data_points:
+            result += f"- Data points: {analysis.data_points}\n"
+        
+        # AUTOMATIC MEMORY UPDATE - happens in background!
+        async def update_memory_background():
+            try:
+                # Detect if this is in an experiment folder
+                path_str = str(full_path)
+                if "/exp_" in path_str:
+                    # Extract experiment ID
+                    parts = path_str.split("/")
+                    for part in parts:
+                        if part.startswith("exp_"):
+                            experiment_id = part
+                            # Update README automatically with context-aware summary
+                            await update_file_registry.ainvoke({
+                                "experiment_id": experiment_id,
+                                "file_name": analysis.file_name,
+                                "file_type": analysis.file_type,
+                                "file_size": f"{analysis.size_bytes} bytes",
+                                "summary": context_summary  # Use the context-aware summary
+                            })
+                            
+                            if analysis.confidence > 0.7:
+                                await append_insight.ainvoke({
+                                    "experiment_id": experiment_id,
+                                    "insight": f"Analyzed {analysis.file_name}: {analysis.content_summary}",
+                                    "source": "analysis"
+                                })
+                            logger.info(f"Auto-updated README for {experiment_id}")
+                            break
+            except Exception as e:
+                logger.error(f"Background memory update failed: {e}")
+        
+        # Fire and forget - don't wait
+        asyncio.create_task(update_memory_background())
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error analyzing file: {e}")
+        return f"Error analyzing file: {str(e)}"
 
 
-# ============= Create Agent =============
+@tool
+async def diagnose_issue(problem: str) -> str:
+    """Diagnose experimental issues using scientific reasoning.
+    Context from current experiment is automatically included.
+    
+    Args:
+        problem: Description of the problem
+    """
+    try:
+        # Use LLM for diagnosis
+        llm = get_llm_instance()
+        
+        # Get project-wide insights automatically
+        insights = ""
+        try:
+            insights = await get_project_insights.ainvoke({})
+            insights = f"\n\nRelevant patterns from other experiments:\n{insights}\n"
+        except:
+            pass
+        
+        prompt = f"""Problem reported: {problem}
+{insights}
+Based on scientific knowledge and any relevant patterns, diagnose the likely causes and suggest solutions.
+Focus on practical, actionable advice. Reason from first principles."""
+        
+        response = llm.invoke([HumanMessage(content=prompt)])
+        diagnosis = response.content
+        
+        return diagnosis
+        
+    except Exception as e:
+        logger.error(f"Error diagnosing issue: {e}")
+        return f"Error diagnosing issue: {str(e)}"
 
-def create_simple_agent():
-    """Create a simple React agent."""
+
+@tool
+async def suggest_optimization(aspect: str) -> str:
+    """Suggest optimizations based on successful patterns.
+    Automatically uses context from current experiment and project insights.
     
-    # Get LLM - using GPT-OSS 120B via OpenRouter
-    llm = get_llm_instance("openrouter-gpt-oss-120b")
+    Args:
+        aspect: What to optimize (e.g., "PCR conditions", "yield", "purity")
+    """
+    try:
+        # Get project insights automatically
+        insights = await get_project_insights.ainvoke({})
+        
+        # Use LLM to suggest optimizations
+        llm = get_llm_instance()
+        prompt = f"""Optimization requested for: {aspect}
+
+Based on successful experiments and patterns:
+{insights}
+
+Suggest 3-5 specific optimizations that have worked well in similar cases.
+Be specific with parameters and conditions."""
+        
+        response = llm.invoke([HumanMessage(content=prompt)])
+        suggestions = response.content
+        
+        return suggestions
+        
+    except Exception as e:
+        logger.error(f"Error suggesting optimizations: {e}")
+        return f"Error suggesting optimizations: {str(e)}"
+
+
+@tool
+async def run_deep_research(query: str) -> str:
+    """Search scientific literature and web for relevant information.
     
-    # Tools
+    Args:
+        query: Research query
+    """
+    try:
+        from src.tools.deep_research import run_deep_research as deep_research
+        result = await deep_research(query, max_loops=1)
+        return f"Research Results:\n{result}"
+    except Exception as e:
+        return f"Research unavailable: {str(e)}"
+
+
+@tool
+async def create_new_experiment(name: str, motivation: str, key_question: str) -> str:
+    """Create a new experiment with initial README memory.
+    
+    Args:
+        name: Experiment name
+        motivation: Why this experiment
+        key_question: Main research question
+    """
+    try:
+        result = await create_experiment.ainvoke({
+            "experiment_name": name,
+            "motivation": motivation,
+            "key_question": key_question
+        })
+        return result
+    except Exception as e:
+        return f"Error creating experiment: {str(e)}"
+
+
+# ============= Create Agent (without explicit memory tools!) =============
+
+def create_memory_agent():
+    """Create a React agent without explicit memory tools."""
+    
+    # Get LLM configuration
+    from src.components.llm import AGENT_MODEL_ASSIGNMENTS
+    model_name = AGENT_MODEL_ASSIGNMENTS.get("react_agent", 
+                                              AGENT_MODEL_ASSIGNMENTS.get("default"))
+    
+    llm = get_llm_instance(model_name)
+    logger.info(f"React agent using model: {model_name}")
+    
+    # Only functional tools, no memory management tools!
     tools = [
         scan_project,
-        analyze_experiment,
-        research_literature,
-        optimize_protocol
+        list_folder_contents,
+        analyze_data,
+        diagnose_issue,
+        suggest_optimization,
+        run_deep_research,
+        create_new_experiment
     ]
     
-    # Create agent - simple, no extra parameters
+    # Create agent
     agent = create_react_agent(llm, tools)
     
     return agent
 
 
-# ============= Message Handler =============
+# ============= Message Handler with Automatic Memory =============
 
-async def handle_message(message: str, session_id: str = "default") -> str:
-    """Handle a user message."""
+async def handle_message(
+    message: str, 
+    session_id: str = "default",
+    current_folder: Optional[str] = None,
+    selected_files: Optional[List[str]] = None
+) -> str:
+    """Handle a user message with automatic memory management."""
     
     try:
-        # Create agent
-        agent = create_simple_agent()
+        # AUTOMATIC CONTEXT INJECTION
+        context_parts = []
         
-        # Invoke with message
-        result = agent.invoke({
-            "messages": [HumanMessage(content=message)]
-        })
+        # 1. Load experiment context automatically if in experiment folder
+        if current_folder and current_folder.startswith("exp_"):
+            try:
+                # Read README automatically (not as a tool!)
+                readme_content = await read_memory.ainvoke({
+                    "experiment_id": current_folder
+                })
+                
+                # Extract key information
+                if "Overview" in readme_content:
+                    context_parts.append(f"Current Experiment Context:\n{readme_content[:1000]}")
+            except:
+                pass
+        
+        # 2. Add context about current folder and files
+        # NO PATTERN MATCHING - just provide context, let LLM understand
+        if current_folder:
+            context_parts.append(f"User is currently in folder: {current_folder}")
+        
+        if selected_files:
+            # Build full paths for clarity
+            if current_folder:
+                file_paths = [f"{current_folder}/{f}" for f in selected_files]
+            else:
+                file_paths = selected_files
+            context_parts.append(f"User has selected these files: {', '.join(file_paths)}")
+        
+        # 3. Build final message with automatic context and instructions
+        system_hint = ""
+        if current_folder and selected_files:
+            system_hint = f"\n\n[System: User is looking at folder '{current_folder}' with files {selected_files} selected. When they say 'this folder' or 'this file', use list_folder_contents for folders and analyze_data for files.]"
+        elif current_folder:
+            system_hint = f"\n\n[System: User is looking at folder '{current_folder}'. When they ask about 'this folder', use list_folder_contents tool with folder_path='{current_folder}'.]"
+        elif selected_files:
+            system_hint = f"\n\n[System: User has selected files {selected_files}. When they ask about 'this file', use analyze_data tool.]"
+        
+        if context_parts:
+            enriched_message = message + "\n\n" + "\n".join(context_parts) + system_hint
+        else:
+            enriched_message = message
+        
+        # Create agent
+        agent = create_memory_agent()
+        
+        # Process message with higher recursion limit
+        result = agent.invoke(
+            {"messages": [HumanMessage(content=enriched_message)]},
+            config={"recursion_limit": 50}  # Increase from default 25
+        )
         
         # Extract response
         if result and "messages" in result:
-            # Get last AI message
             for msg in reversed(result["messages"]):
                 if isinstance(msg, AIMessage):
-                    return msg.content
+                    response = msg.content
+                    
+                    # AUTOMATIC MEMORY EXTRACTION AND UPDATE
+                    if current_folder and current_folder.startswith("exp_"):
+                        # Use the smart memory updater to extract and apply updates
+                        from src.memory.auto_memory_updater import auto_update_memory
+                        
+                        async def update_memory_from_conversation():
+                            try:
+                                result = await auto_update_memory(
+                                    user_message=message,
+                                    agent_response=response,
+                                    experiment_id=current_folder
+                                )
+                                logger.info(f"Memory update result: {result}")
+                            except Exception as e:
+                                logger.error(f"Failed to auto-update memory: {e}")
+                        
+                        # Fire and forget - don't wait
+                        asyncio.create_task(update_memory_from_conversation())
+                    
+                    return response
         
         return "No response generated."
         
     except Exception as e:
+        logger.error(f"Error handling message: {e}")
         return f"Error: {str(e)}"
 
 
 # ============= Test Function =============
 
 async def test():
-    """Test the agent."""
+    """Test the React agent with automatic memory."""
+    
+    print("Testing LabAcc Copilot React Agent (Automatic Memory)...")
+    print("=" * 50)
+    
+    # Test queries
     queries = [
-        "Hello",
-        "Scan my experiments",
-        "Help optimize PCR"
+        ("Scan my experiments", None, None),
+        ("Analyze data.csv", "exp_001_pcr", ["data.csv"]),
+        ("What's wrong with my PCR?", "exp_001_pcr", None),
+        ("How can I improve yield?", "exp_001_pcr", None),
     ]
     
-    for q in queries:
-        print(f"Q: {q}")
-        response = await handle_message(q)
-        print(f"A: {response}\n")
+    for q, folder, files in queries:
+        print(f"\nQ: {q}")
+        if folder:
+            print(f"   (in folder: {folder})")
+        response = await handle_message(q, current_folder=folder, selected_files=files)
+        print(f"A: {response[:300]}...")
+    
+    print("\n" + "=" * 50)
+    print("Memory updates happened automatically in background!")
+    print("Check README files to see automatic updates.")
 
 
 if __name__ == "__main__":
+    import asyncio
     asyncio.run(test())

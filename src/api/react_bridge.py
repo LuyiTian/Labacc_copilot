@@ -85,18 +85,29 @@ async def send_message(request: MessageRequest):
     session["message_history"].append(user_message)
 
     try:
-        # Add context to message if needed
-        full_message = request.message
-        if request.currentFolder:
-            full_message += f"\n[Current folder: {request.currentFolder}]"
-        if request.selectedFiles:
-            full_message += f"\n[Selected files: {', '.join(request.selectedFiles)}]"
-        
-        # Process with the simplified React agent
+        # Process with the enhanced React agent
         ai_response = await handle_user_message(
-            message=full_message,
-            session_id=request.sessionId
+            message=request.message,
+            session_id=request.sessionId,
+            current_folder=request.currentFolder,
+            selected_files=request.selectedFiles
         )
+        
+        # Log for debugging (in development)
+        try:
+            from src.api.debug_routes import debug_history
+            debug_entry = {
+                "timestamp": datetime.now().isoformat(),
+                "user_message": request.message,
+                "current_folder": request.currentFolder,
+                "selected_files": request.selectedFiles,
+                "agent_response": ai_response
+            }
+            debug_history.append(debug_entry)
+            if len(debug_history) > 100:
+                debug_history.pop(0)
+        except:
+            pass  # Don't fail if debug logging fails
 
         # Add AI response to history
         ai_message = {
