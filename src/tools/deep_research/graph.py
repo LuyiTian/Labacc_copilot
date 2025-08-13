@@ -1,31 +1,29 @@
 import os
+import re
 
 from langchain_core.messages import AIMessage
+from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
-from langgraph.graph import StateGraph
-from langgraph.graph import START, END
-from langchain_core.runnables import RunnableConfig
-from .tools_and_schemas import SearchQueryList, Reflection, search_with_tavily
-import re
+from rich import print
+
+from src.components.llm import LLM_QUERY_WRITER, LLM_SMALL, LLM_TRIAGE
+
+from .config import FAN_OUT_QUERIES, MAX_RESEARCH_LOOPS, SEARCH_RESULTS_PER_QUERY
+from .prompts import (
+    answer_instructions,
+    get_current_date,
+    query_writer_instructions,
+    reflection_instructions,
+    web_searcher_instructions,
+)
 from .state import (
     OverallState,
     QueryGenerationState,
     ReflectionState,
     WebSearchState,
 )
-from .prompts import (
-    get_current_date,
-    query_writer_instructions,
-    web_searcher_instructions,
-    reflection_instructions,
-    answer_instructions,
-)
-from .utils import get_citations, get_research_topic, insert_citation_markers
-
-from src.components.llm import LLM_QUERY_WRITER, LLM_TRIAGE, LLM_SMALL
-from typing import Tuple
-from .config import MAX_RESEARCH_LOOPS, FAN_OUT_QUERIES, SEARCH_RESULTS_PER_QUERY
-from rich import print
+from .tools_and_schemas import Reflection, SearchQueryList, search_with_tavily
+from .utils import get_research_topic
 
 
 # Nodes
@@ -116,7 +114,7 @@ def web_research(state: WebSearchState) -> OverallState:
 
     # send this to the LLM TRIAGE
     if state.get("verbose", False):
-        print(f"[bold blue]Reading Tavily[/bold blue]")
+        print("[bold blue]Reading Tavily[/bold blue]")
     llm_response = LLM_SMALL.invoke(web_search_prompt)
     content = llm_response.content
     if not content:
@@ -171,7 +169,7 @@ def reflection(state: OverallState) -> ReflectionState:
     Returns:
         Dictionary with state update, including search_query key containing the generated follow-up query
     """
-    print(f"[bold red]Reflection started[/bold red]")
+    print("[bold red]Reflection started[/bold red]")
     # Increment the research loop count and get the reasoning model
     state["research_loop_count"] = state.get("research_loop_count", 0) + 1
     reasoning_model = LLM_TRIAGE
@@ -261,7 +259,7 @@ def finalize_answer(state: OverallState):
     Returns:
         Dictionary with state update, including running_summary key containing the formatted final summary with sources
     """
-    print(f"[bold green]Finalizing answer[/bold green]")
+    print("[bold green]Finalizing answer[/bold green]")
     reasoning_model = LLM_TRIAGE
 
     # Format the prompt
@@ -280,7 +278,7 @@ def finalize_answer(state: OverallState):
     # for source in state["sources_gathered"]:
     #     if source["value"] in result.content:
     #         unique_sources.append(source)
-    
+
     # write the final message to a proper markdown
     title, markdown_content = harvest_markdown(result.content)
     # decide output directory
@@ -295,7 +293,7 @@ def finalize_answer(state: OverallState):
         "saved_path": saved_path,
     }
 
-def harvest_markdown(response: str) -> Tuple[str, str]:
+def harvest_markdown(response: str) -> tuple[str, str]:
     """Extract the markdown content that is wrapped in a code block, and also recognize the title string for saving files."""
     # Use regex to find the markdown content wrapped in code blocks
     match = re.search(r"```markdown\n(.*?)\n```", response, re.DOTALL)

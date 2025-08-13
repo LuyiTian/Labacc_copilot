@@ -1,11 +1,12 @@
-from typing import List
+import hashlib
+import os
+import pickle
+from functools import wraps
+
 from pydantic import BaseModel, Field
 from tavily import TavilyClient
+
 from src.config.keys import API_KEYS
-import hashlib
-import pickle
-import os
-from functools import wraps
 
 client = TavilyClient(API_KEYS["tavily"]["api_key"])
 
@@ -14,7 +15,7 @@ class SearchQueryList(BaseModel):
     rationale: str = Field(
         description="A brief explanation of why these queries are relevant to the research topic."
     )
-    query: List[str] = Field(
+    query: list[str] = Field(
         description="A list of search queries to be used for web research."
     )
     response_language: str = Field(
@@ -32,7 +33,7 @@ class Reflection(BaseModel):
     useful_expansion: str = Field(
         description="A description of what information would be useful to expand the understanding of the topic."
     )
-    follow_up_queries: List[str] = Field(
+    follow_up_queries: list[str] = Field(
         description="A list of follow-up search queries to address the knowledge gap and useful expansion."
     )
 
@@ -65,7 +66,7 @@ class SearchCache:
 
 
 @SearchCache()
-def search_with_tavily(query: str, count: int = 10) -> List[str]:
+def search_with_tavily(query: str, count: int = 10) -> list[str]:
     """
     Perform a web search using the Tavily API and return a list of URLs.
 
@@ -79,7 +80,7 @@ def search_with_tavily(query: str, count: int = 10) -> List[str]:
     # Truncate query to 400 characters if too long
     if len(query) > 400:
         query = query[:397] + "..."
-    
+
     response = client.search(
         query=query,
         max_results=count,

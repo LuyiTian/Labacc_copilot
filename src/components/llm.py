@@ -10,10 +10,11 @@ Design Principles:
 - Integrate with observability tools (Langfuse)
 """
 
-import os
 import json
 import logging
-from typing import Optional, Dict, Any
+import os
+from typing import Any
+
 from langchain_openai import ChatOpenAI
 
 logger = logging.getLogger(__name__)
@@ -49,10 +50,10 @@ except Exception as e:
 
 # Model configurations for different providers
 # Optional external overrides loaded from JSON config (if present)
-_EXTERNAL_CONFIG: Dict[str, Any] = {}
+_EXTERNAL_CONFIG: dict[str, Any] = {}
 _CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "llm_config.json")
 try:
-    with open(os.path.abspath(_CONFIG_PATH), "r", encoding="utf-8") as f:
+    with open(os.path.abspath(_CONFIG_PATH), encoding="utf-8") as f:
         _EXTERNAL_CONFIG = json.load(f)
         logger.info("🔧 Loaded external LLM config overrides from src/config/llm_config.json")
 except FileNotFoundError:
@@ -63,26 +64,10 @@ except Exception as e:
 
 
 MODEL_CONFIGS = {
-    # OpenAI models
-    "gpt-4o": {
-        "api_key_env": "OPENAI_API_KEY",
-        "base_url": "https://api.openai.com/v1",
-        "model_name": "gpt-4o",
-        "recommended_temperature": 0.7,
-        "description": "OpenAI's most capable multimodal model, good for complex analysis",
-    },
-    "gpt-4o-mini": {
-        "api_key_env": "OPENAI_API_KEY", 
-        "base_url": "https://api.openai.com/v1",
-        "model_name": "gpt-4o-mini",
-        "recommended_temperature": 0.7,
-        "description": "Faster, cheaper OpenAI model for simpler tasks",
-    },
-    
-    # SiliconFlow models
+    # SiliconFlow models (actively used)
     "siliconflow-qwen": {
         "api_key_env": "SILICONFLOW_API_KEY",
-        "base_url": "https://api.siliconflow.cn/v1", 
+        "base_url": "https://api.siliconflow.cn/v1",
         "model_name": "Qwen/Qwen3-235B-A22B-Instruct-2507",
         "recommended_temperature": 0.7,
         "description": "Large Qwen model via SiliconFlow, good for complex reasoning",
@@ -90,7 +75,7 @@ MODEL_CONFIGS = {
     "siliconflow-qwen-30b": {
         "api_key_env": "SILICONFLOW_API_KEY",
         "base_url": "https://api.siliconflow.cn/v1",
-        "model_name": "Qwen/Qwen3-30B-A3B-Instruct-2507", 
+        "model_name": "Qwen/Qwen3-30B-A3B-Instruct-2507",
         "recommended_temperature": 0.7,
         "description": "Medium Qwen model, good balance of speed and capability",
     },
@@ -101,23 +86,14 @@ MODEL_CONFIGS = {
         "recommended_temperature": 0.7,
         "description": "Fast smaller model for simple tasks",
     },
-    
-    # Anthropic Claude models
-    "claude-sonnet": {
-        "api_key_env": "ANTHROPIC_API_KEY",
-        "base_url": None,  # Uses default Anthropic endpoint
-        "model_name": "claude-3-sonnet-20240229",
-        "recommended_temperature": 0.7,
-        "description": "Claude Sonnet, excellent for reasoning and analysis",
-    },
-    
-    # Google Gemini models
-    "gemini-pro": {
-        "api_key_env": "GOOGLE_API_KEY", 
-        "base_url": None,  # Uses default Google endpoint
-        "model_name": "gemini-pro",
+
+    # OpenRouter models
+    "openrouter-gpt-oss-120b": {
+        "api_key_env": "OPENROUTER_API_KEY",
+        "base_url": "https://openrouter.ai/api/v1",
+        "model_name": "openai/gpt-oss-120b",
         "recommended_temperature": 0.8,
-        "description": "Google's multimodal model, good for diverse tasks",
+        "description": "GPT OSS 120B via OpenRouter, powerful open-source model",
     },
 }
 
@@ -139,7 +115,7 @@ AGENT_MODEL_ASSIGNMENTS = {
     **AGENT_MODEL_ASSIGNMENTS,
 }
 
-def get_available_models() -> Dict[str, str]:
+def get_available_models() -> dict[str, str]:
     """Get list of available models with descriptions."""
     available = {}
     for model_name, config in MODEL_CONFIGS.items():
@@ -153,9 +129,9 @@ def get_available_models() -> Dict[str, str]:
     return available
 
 def get_llm_instance(
-    model_name: Optional[str] = None,
-    temperature: Optional[float] = None,
-    max_tokens: Optional[int] = None,
+    model_name: str | None = None,
+    temperature: float | None = None,
+    max_tokens: int | None = None,
     timeout: int = 600,
     streaming: bool = False,
 ) -> ChatOpenAI:
@@ -175,7 +151,7 @@ def get_llm_instance(
     # Use default model if none specified
     if model_name is None:
         model_name = AGENT_MODEL_ASSIGNMENTS["default"]
-    
+
     # Get model configuration
     config = MODEL_CONFIGS.get(model_name)
     if not config:
@@ -183,18 +159,18 @@ def get_llm_instance(
         raise ValueError(
             f"Model '{model_name}' not found. Available models: {available_models}"
         )
-    
+
     # Get API key
     try:
         api_key = get_required_env(config["api_key_env"])
     except ValueError as e:
         logger.error(f"Cannot create LLM instance for {model_name}: {e}")
         raise
-    
+
     # Use model's recommended temperature if not specified
     if temperature is None:
         temperature = config["recommended_temperature"]
-    
+
     # Build LLM configuration
     llm_config = {
         "model": config["model_name"],
@@ -203,28 +179,28 @@ def get_llm_instance(
         "timeout": timeout,
         "streaming": streaming,
     }
-    
+
     # Add base URL if specified
     if config["base_url"]:
         llm_config["openai_api_base"] = config["base_url"]
-    
+
     # Add max_tokens if specified
     if max_tokens:
         llm_config["max_tokens"] = max_tokens
-    
+
     # Create ChatOpenAI instance
     llm = ChatOpenAI(**llm_config)
-    
+
     # Add Langfuse callback if available
     if _langfuse_handler:
         llm = llm.with_config(callbacks=[_langfuse_handler])
-    
+
     logger.info(f"✅ Created LLM instance: {model_name} (temp={temperature})")
     return llm
 
 def get_structured_llm(
-    model_name: Optional[str] = None,
-    temperature: Optional[float] = None,
+    model_name: str | None = None,
+    temperature: float | None = None,
     **kwargs
 ) -> ChatOpenAI:
     """
@@ -241,13 +217,13 @@ def get_structured_llm(
     # Use lower temperature for structured outputs if not specified
     if temperature is None:
         temperature = 0.1
-        
+
     llm = get_llm_instance(
         model_name=model_name,
         temperature=temperature,
         **kwargs
     )
-    
+
     # Configure for JSON output
     llm = llm.bind(response_format={"type": "json_object"})
     return llm
@@ -255,32 +231,32 @@ def get_structured_llm(
 # Pre-configured LLM instances for different agent roles
 class LLMFactory:
     """Factory class for creating role-specific LLM instances."""
-    
+
     @staticmethod
     def get_query_writer() -> ChatOpenAI:
         """LLM for generating search queries."""
         return get_llm_instance(AGENT_MODEL_ASSIGNMENTS["query_writer"])
-    
-    @staticmethod 
+
+    @staticmethod
     def get_web_searcher() -> ChatOpenAI:
         """LLM for processing web search results."""
         return get_llm_instance(AGENT_MODEL_ASSIGNMENTS["web_searcher"])
-    
+
     @staticmethod
     def get_analyst() -> ChatOpenAI:
         """LLM for analyzing experimental data and images."""
         return get_llm_instance(AGENT_MODEL_ASSIGNMENTS["analyst"])
-    
+
     @staticmethod
     def get_critic() -> ChatOpenAI:
         """LLM for evaluating results and suggesting improvements."""
         return get_llm_instance(AGENT_MODEL_ASSIGNMENTS["critic"])
-    
+
     @staticmethod
     def get_writer() -> ChatOpenAI:
         """LLM for writing final decision cards and reports."""
         return get_llm_instance(AGENT_MODEL_ASSIGNMENTS["writer"])
-    
+
     @staticmethod
     def get_planner() -> ChatOpenAI:
         """LLM for planning experiment analysis workflow."""
@@ -301,12 +277,10 @@ def validate_llm_configuration():
     if not available_models:
         raise ValueError(
             "No LLM providers configured. Please set API keys for at least one provider:\n"
-            "- OpenAI: OPENAI_API_KEY\n"
             "- SiliconFlow: SILICONFLOW_API_KEY\n"
-            "- Anthropic: ANTHROPIC_API_KEY\n"
-            "- Google: GOOGLE_API_KEY"
+            "- OpenRouter: OPENROUTER_API_KEY"
         )
-    
+
     logger.info(f"✅ Available LLM models: {list(available_models.keys())}")
     return available_models
 

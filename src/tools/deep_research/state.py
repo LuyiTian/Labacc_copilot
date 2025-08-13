@@ -1,13 +1,10 @@
 from __future__ import annotations
 
+import operator
 from dataclasses import dataclass, field
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from langgraph.graph import add_messages
-from typing_extensions import Annotated
-
-
-import operator
 
 
 class OverallState(TypedDict):

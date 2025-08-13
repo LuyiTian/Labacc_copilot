@@ -1,10 +1,7 @@
-from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
-from langchain_core.runnables import RunnablePassthrough
-from langchain_core.prompts import PromptTemplate
-
 from datetime import datetime
-import os
 from pathlib import Path
+
+from langchain_core.prompts import PromptTemplate
 
 
 # Get current date in a readable format
@@ -16,7 +13,7 @@ def read_file(file_path):
     # Get the directory where this file is located
     current_dir = Path(__file__).parent
     full_path = current_dir / file_path
-    with open(full_path, 'r', encoding='utf-8') as file:
+    with open(full_path, encoding='utf-8') as file:
         return file.read()
 
 query_writer_instructions = PromptTemplate.from_template(read_file("prompts/query_writer_instructions.md"), template_format="jinja2")

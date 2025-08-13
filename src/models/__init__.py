@@ -1,8 +1,8 @@
 from .decision_card import (
     DecisionCard,
     Finding,
-    ProposedChange,
     NextRoundDesign,
+    ProposedChange,
 )
 
 __all__ = [

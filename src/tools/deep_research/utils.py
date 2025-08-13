@@ -1,8 +1,7 @@
-from typing import Any, Dict, List
-from langchain_core.messages import AnyMessage, AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, AnyMessage, HumanMessage
 
 
-def get_research_topic(messages: List[AnyMessage]) -> str:
+def get_research_topic(messages: list[AnyMessage]) -> str:
     """
     Get the research topic from the messages.
     """

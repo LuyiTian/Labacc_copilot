@@ -5,7 +5,7 @@ Provides a simple function for agents/workflows to invoke deep research
 and get back a final markdown report string (and raw AI message content).
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from langchain_core.messages import HumanMessage
 
@@ -18,9 +18,9 @@ def run_deep_research(
     initial_search_query_count: int = 10,
     max_research_loops: int = 5,
     verbose: bool = True,
-    response_language: Optional[str] = None,
-    output_dir: Optional[str] = None,
-) -> Dict[str, Any]:
+    response_language: str | None = None,
+    output_dir: str | None = None,
+) -> dict[str, Any]:
     """
     Execute the deep research workflow and return the final result.
 
@@ -37,7 +37,7 @@ def run_deep_research(
             - final_text: Raw text content from the final AI message
     """
 
-    state: Dict[str, Any] = {
+    state: dict[str, Any] = {
         "messages": [HumanMessage(content=query)],
         "initial_search_query_count": int(initial_search_query_count),
         "max_research_loops": int(max_research_loops),

@@ -2,7 +2,7 @@
 LangChain Tool wrappers for deep_research so ReAct-style agents can call it.
 """
 
-from typing import Optional
+
 from langchain_core.tools import tool
 
 from .api import run_deep_research
@@ -13,8 +13,8 @@ def deep_research_tool(
     query: str,
     initial_search_query_count: int = 10,
     max_research_loops: int = 5,
-    response_language: Optional[str] = None,
-    output_dir: Optional[str] = None,
+    response_language: str | None = None,
+    output_dir: str | None = None,
 ) -> str:
     """Conduct deep literature/web research and return a markdown report.
 

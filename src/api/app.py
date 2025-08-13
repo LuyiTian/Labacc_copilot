@@ -13,7 +13,7 @@ app = FastAPI(title="LabAcc Copilot API", version="1.0.0")
 # Configure CORS for React frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # React dev servers
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],  # React dev servers
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -21,10 +21,12 @@ app.add_middleware(
 
 # Mount file management routes
 from src.api import file_router
+
 app.include_router(file_router)
 
 # Mount React-Chainlit bridge routes
 from src.api.react_bridge import router as chat_router
+
 app.include_router(chat_router)
 
 # Health check endpoint

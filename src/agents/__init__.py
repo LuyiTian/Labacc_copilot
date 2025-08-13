@@ -1,1 +1,0 @@
-# Multi-agent system for LabAcc Copilot v2.0

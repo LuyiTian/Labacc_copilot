@@ -1,3 +1,0 @@
-# Chainlit UI package
-
-

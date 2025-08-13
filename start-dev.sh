@@ -11,14 +11,11 @@ export LABACC_PROJECT_ROOT="$(pwd)/data/alice_projects"
 echo "Starting LabAcc Copilot Development Environment..."
 echo "Project root: $LABACC_PROJECT_ROOT"
 
-# Start Chainlit backend
-echo "Starting Chainlit on http://localhost:8000..."
-uv run chainlit run src/ui/app.py --host 0.0.0.0 --port 8000 &
-CHAINLIT_PID=$!
+# Chainlit backend removed - using React agent only
 
-# Start FastAPI REST API
-echo "Starting REST API on http://localhost:8001..."
-uv run uvicorn src.api.app:app --host 0.0.0.0 --port 8001 --reload &
+# Start FastAPI REST API with React agent
+echo "Starting REST API on http://localhost:8002..."
+uv run uvicorn src.api.app:app --host 0.0.0.0 --port 8002 --reload &
 API_PID=$!
 
 # Start React frontend

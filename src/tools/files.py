@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import shutil
 from dataclasses import dataclass
-from typing import List, Optional
 
 
 @dataclass
@@ -27,9 +26,9 @@ def _ensure_within_root(root: str, target_path: str) -> str:
     return resolved
 
 
-def list_dir(root: str, rel_path: str = ".") -> List[FileInfo]:
+def list_dir(root: str, rel_path: str = ".") -> list[FileInfo]:
     base = _ensure_within_root(root, os.path.join(root, rel_path))
-    entries: List[FileInfo] = []
+    entries: list[FileInfo] = []
     with os.scandir(base) as it:
         for entry in it:
             if entry.name.startswith("."):

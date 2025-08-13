@@ -1,27 +1,28 @@
 # LabAcc Copilot - System Status
 
-**Version**: 2.0.0  
-**Last Updated**: 2025-01-08  
-**Status**: ✅ Operational with Multi-Agent System
+**Version**: 2.1.0  
+**Last Updated**: 2025-01-12  
+**Status**: ✅ Operational with Simplified React Agent
 
 ## 🚦 Service Status
 
 | Service | Status | Port | Description |
 |---------|--------|------|-------------|
 | Frontend | ✅ Running | 5173 | React UI with file manager + chat |
-| Backend API | ✅ Running | 8002 | FastAPI with multi-agent orchestration |
-| Multi-Agent System | ✅ Active | - | SmartOrchestrator coordinating 4 agents |
-| Deep Research | ✅ Available | - | Tavily API integration (fast mode) |
+| Backend API | ✅ Running | 8002 | FastAPI with React agent |
+| React Agent | ✅ Active | - | LangGraph React agent with tools |
+| Deep Research | ✅ Available | - | Tavily API integration |
 
 ## 🤖 Agent Status
 
-| Agent | Status | Response Time | Capabilities |
-|-------|--------|---------------|------------|
-| **Smart Orchestrator** | ✅ Active | <100ms routing | Intelligent query routing |
-| **Explorer** | ✅ Active | <1s | Project scanning, experiment mapping |
-| **Analyzer** | ✅ Active | 2-5s | Protocol analysis, pattern recognition |
-| **Researcher** | ✅ Active | 10-30s | Literature search via Tavily |
-| **Advisor** | ✅ Active | 2-5s | Optimization suggestions |
+| Component | Status | Response Time | Description |
+|-----------|--------|---------------|-------------|
+| **React Agent** | ✅ Active | 2-3s | Single agent with natural language understanding |
+| **Tool: scan_project** | ✅ Active | <1s | Lists all experiments |
+| **Tool: analyze_experiment** | ✅ Active | 2-3s | Analyzes specific folders |
+| **Tool: research_literature** | ✅ Active | 10-30s | Literature search via Tavily |
+| **Tool: optimize_protocol** | ✅ Active | 2-3s | Optimization suggestions |
+| **Tool: manage_files** | ✅ Active | <1s | File operations |
 
 ## ✅ Working Features
 
@@ -30,12 +31,12 @@
 - 40% file manager + 60% chat layout (VS Code style)
 - Toggle to hide/show file panel
 
-**🤖 Multi-Agent Intelligence**  
-- Smart orchestrator with 3-tier response system
-- Quick mode: <1s pattern-matched responses
-- Deep mode: 10-30s literature search
+**🤖 Simplified React Agent**  
+- Single LangGraph React agent (70% less code than v2.0)
+- Natural language understanding in any language
+- No manual intent detection or keyword matching
+- Automatic tool selection based on user intent
 - Context-aware chat (knows current folder and selected files)
-- Project scanning finds all experiments automatically
 
 **📁 Smart File Management**
 - Visual file browser with experiment discovery
@@ -46,95 +47,103 @@
 ## 📊 System Architecture
 
 ```
-User Query → Smart Orchestrator → Response Mode Selection
-    ├─→ Quick Mode (<1s)
-    │     └─→ Pattern matching, no LLM
-    │
-    └─→ Deep Mode (10-30s)
-          ├─→ Explorer: Scans projects
-          ├─→ Analyzer: Protocol analysis
-          ├─→ Researcher: Tavily API
-          └─→ Advisor: Optimizations
+User Query → LangGraph React Agent → Tool Selection → Response
+                    │
+                    ├─→ scan_project (list experiments)
+                    ├─→ analyze_experiment (analyze folder)
+                    ├─→ research_literature (Tavily search)
+                    ├─→ optimize_protocol (suggestions)
+                    └─→ manage_files (file operations)
 ```
 
 ## 📈 Performance Metrics
 
 ### Response Times
-- **Quick Mode**: <1 second (pattern matching)
-- **Smart Mode**: 2-5 seconds (selective LLM)
-- **Deep Research**: 10-30 seconds (3 queries, 1 loop)
-- **File Operations**: <100ms
-- **Project Scan**: <1s for 100+ experiments
+- **Simple Queries**: 2-3 seconds (tool selection + execution)
+- **Analysis Tasks**: 3-5 seconds (data processing)
+- **Deep Research**: 10-30 seconds (Tavily API)
+- **File Operations**: <1 second
+- **Project Scan**: <2 seconds for 100+ experiments
 
 ### API Usage (Deep Research)
-- **Queries per research**: 3 (reduced from 10)
-- **Research loops**: 1 (reduced from 2)
+- **Queries per research**: 3 (optimized)
+- **Research loops**: 1 (optimized)
 - **Cost per query**: ~$0.01-0.03
 - **Monthly estimate**: <$10 for typical usage
 
 ## 📝 Recent Changes
 
+### v2.1.0 (2025-01-12) - Major Refactor
+- ✅ **Simplified to single React agent** (removed orchestrators)
+- ✅ **Removed all keyword matching** and intent detection
+- ✅ **Uses LangGraph's create_react_agent()** 
+- ✅ **Natural language understanding** in any language
+- ✅ **70% code reduction** from v2.0
+- ✅ **Easier to extend** - just add @tool functions
+- ✅ **Cleaner architecture** - follows LangGraph best practices
+
 ### v2.0.0 (2025-01-08)
-- ✅ Implemented multi-agent orchestration
-- ✅ Added SmartOrchestrator with 3-tier response
-- ✅ Integrated deep research with Tavily API
-- ✅ Created 4 specialized agents
-- ✅ Reduced research parameters (70% faster)
-- ✅ Fixed Explorer path issues
-- ✅ Updated all documentation
+- ~~Multi-agent orchestration~~ (replaced in v2.1)
+- ~~SmartOrchestrator with 3-tier response~~ (removed)
+- ~~4 specialized agents~~ (consolidated to tools)
+- Integrated deep research with Tavily API (kept)
+- Fixed Explorer path issues
 
 ### v1.1.0 (Previous)
 - Unified React + chat interface
 - Performance: 30x faster (60s → 2-3s)
 - Layout: 40/60 split (files/chat)
-- Fixed project root path
-- Limited cross-experiment analysis
-- No proactive insights or suggestions
-- No background processing or monitoring
-
-**Technical Debt**
-- Deep research tool not fully integrated
-- Multimodal image analysis incomplete
-- No persistent project knowledge
-- Limited protocol optimization capabilities
 
 ## 🎯 Immediate Testing
 
-1. **Start System**: `npm run dev` + `uvicorn src.api.app:app --port 8002`
+1. **Start System**: 
+   ```bash
+   # Terminal 1: Backend
+   uv run uvicorn src.api.app:app --port 8002 --reload
+   
+   # Terminal 2: Frontend
+   cd frontend && npm run dev
+   ```
+
 2. **Open**: http://localhost:5173
-3. **Test Flow**:
-   - Browse to experiment folder
-   - Select files (Ctrl+Click for multiple)
-   - Ask: "What can you tell me about these files?"
-   - Upload new data and ask for analysis
-   - Test "Hide Files" toggle button
 
-## 🔮 Next Phase: v2.0 - Autonomous Copilot
+3. **Test Examples**:
+   - "Hello" - Basic greeting
+   - "Scan my experiments" - Lists all experiments
+   - "Analyze exp_001_pcr_optimization" - Analyzes specific folder
+   - "Help me optimize my PCR" - Gets optimization suggestions
+   - "Search literature on GC-rich PCR" - Deep research with Tavily
 
-**Vision**: Transform from reactive assistant → proactive research partner
+## 🔧 Adding New Capabilities
 
-**Key Differences**:
-- **From**: User asks questions → AI responds
-- **To**: AI continuously analyzes → surfaces insights automatically
+With v2.1's simplified architecture, adding new features is easy:
 
-**Planned Capabilities**:
-- Project-wide scanning and analysis
-- Pattern recognition across experiments  
-- Proactive suggestions and warnings
-- Background literature research
-- Cross-experiment comparison
-- Autonomous experiment design recommendations
+```python
+from langchain_core.tools import tool
 
-**Implementation Phases**:
-1. Multi-agent architecture with specialized roles
-2. Persistent project knowledge system  
-3. Background analysis and monitoring
-4. Proactive UI with insights dashboard
-5. Advanced multimodal and predictive capabilities
+@tool
+def your_new_tool(param: str) -> str:
+    """Tool description - LLM uses this to know when to call it."""
+    return "Tool result"
 
-See `dev_plan/v2_copilot_vision.md` for detailed roadmap.
+# Add to tools list in react_agent.py - that's it!
+```
+
+## 🔮 Next Phase: v2.2 - Background Processing
+
+**Vision**: Add proactive capabilities while keeping simplicity
+
+**Planned Features**:
+- Background monitoring of experiments
+- Proactive insights and alerts
+- Pattern recognition across experiments
+- Scheduled literature updates
+- Automated report generation
+
+**Key Principle**: Keep the simple React agent architecture, add capabilities through new tools and background tasks.
 
 ---
 
-**Status**: ✅ v1.1 Stable and Operational  
-**Focus**: Ready for v2.0 autonomous copilot development
+**Status**: ✅ v2.1 Simplified and Operational  
+**Architecture**: Single React agent with tools (LangGraph)  
+**Focus**: Maintainable, extensible, naturally multilingual

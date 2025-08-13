@@ -11,6 +11,7 @@ Usage:
 
 import os
 
+
 # Tavily API - Required for deep research functionality
 def get_tavily_api_key() -> str:
     """Get Tavily API key from environment variable."""
@@ -27,7 +28,7 @@ def get_langfuse_config():
     """Get Langfuse configuration if available."""
     public_key = os.environ.get("LANGFUSE_PUBLIC_KEY")
     secret_key = os.environ.get("LANGFUSE_SECRET_KEY")
-    
+
     if public_key and secret_key:
         return {
             "public_key": public_key,
