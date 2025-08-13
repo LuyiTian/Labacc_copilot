@@ -5,6 +5,7 @@ AI-powered autonomous laboratory assistant for wet-lab biologists to analyze exp
 No Fallback, this is a project in early development stage so DO NOT consider aspect in real projection stage, such as fallback, security, high parallel etc. just quick dev and quick fail and move on fast.
 
 No keyword matching for intent detection. This is a multi-language agent which might receive all languages as input. so NO keyword matching for pattern detection and user intent analysis.
+It is always important in the agent design that we focus on the data flow, context management and routing logic.
 
 ## 📍 Current Status: v2.1 - Simplified React Agent
 
