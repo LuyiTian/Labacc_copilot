@@ -208,6 +208,157 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* Tool Call Indicator Styles */
+.tool-call-indicator {
+  margin: 0 1rem;
+  margin-bottom: 0.5rem;
+  background: #f0f7ff;
+  border: 1px solid #b3d9ff;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tool-calls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: #e6f3ff;
+  border-bottom: 1px solid #b3d9ff;
+  font-weight: 500;
+  color: #0066cc;
+}
+
+.tool-calls-title {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tool-calls-count {
+  background: #0066cc;
+  color: white;
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.tool-calls-list {
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.tool-call-item {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e6f3ff;
+  transition: background-color 0.2s ease;
+}
+
+.tool-call-item:last-child {
+  border-bottom: none;
+}
+
+.tool-call-item.running {
+  background: #fff7e6;
+  border-left: 3px solid #ff9500;
+}
+
+.tool-call-item.completed {
+  background: #f0fff4;
+  border-left: 3px solid #28a745;
+  animation: fadeOut 0.3s ease-in 4.7s forwards;
+}
+
+.tool-call-item.error {
+  background: #fff5f5;
+  border-left: 3px solid #dc3545;
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    height: 0;
+    padding: 0;
+    border: none;
+  }
+}
+
+.tool-call-main {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.tool-icon {
+  font-size: 0.9rem;
+}
+
+.tool-name {
+  font-weight: 500;
+  color: #333;
+  flex: 1;
+}
+
+.tool-status {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 8px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.tool-call-item.running .tool-status {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.tool-call-item.completed .tool-status {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.tool-call-item.error .tool-status {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.tool-args {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.25rem;
+}
+
+.tool-arg {
+  background: rgba(255, 255, 255, 0.7);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  color: #666;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.tool-timestamp {
+  font-size: 0.65rem;
+  color: #888;
+  text-align: right;
+}
+
 .message-content pre {
   margin: 0.5rem 0;
   border-radius: 4px;

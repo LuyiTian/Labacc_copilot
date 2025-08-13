@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from src.components.llm import get_llm_instance
+from src.components.llm import get_evaluation_model_name
 
 
 class TestCategory(Enum):
@@ -74,8 +75,9 @@ class EvaluationResult:
 class AgentEvaluator:
     """Advanced LLM-based evaluator for agent responses"""
     
-    def __init__(self, model_name: str = "gpt-4o"):
-        self.llm = get_llm_instance(model_name)
+    def __init__(self, model_name: Optional[str] = None):
+        resolved = model_name or get_evaluation_model_name()
+        self.llm = get_llm_instance(resolved)
         
     def create_evaluation_prompt(self, test_case: TestCase, agent_response: str) -> str:
         """Create detailed evaluation prompt for LLM judge"""

@@ -319,7 +319,7 @@ cat tests/reports/failed_tests_*.json
 
 **Too Slow**:
 - Increase `--parallel` (but watch API rate limits)
-- Use faster evaluator model (e.g., `gpt-4o-mini`)
+- Use faster evaluator model (e.g., `siliconflow-qwen-30b`) or set `EVALUATOR_MODEL` env var
 - Filter to specific categories for development
 
 **Too Expensive**:

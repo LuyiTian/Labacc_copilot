@@ -99,7 +99,7 @@ class ComprehensiveTestSummary:
 class EnhancedAgentTestRunner:
     """Test runner with comprehensive trajectory evaluation"""
     
-    def __init__(self, evaluator_model: str = "gpt-4o", max_parallel: int = 3):
+    def __init__(self, evaluator_model: Optional[str] = None, max_parallel: int = 3):
         self.comprehensive_evaluator = ComprehensiveAgentEvaluator(evaluator_model)
         self.max_parallel = max_parallel
         self.test_results: List[TrajectoryTestResult] = []

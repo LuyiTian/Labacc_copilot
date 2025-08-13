@@ -9,7 +9,6 @@ def test_llm_instance_creation():
     """Test creating LLM instances with different providers."""
     # Mock environment variables
     env_vars = {
-        "OPENAI_API_KEY": "test-openai-key",
         "SILICONFLOW_API_KEY": "test-siliconflow-key",
         "TAVILY_API_KEY": "test-tavily-key"
     }
@@ -17,14 +16,11 @@ def test_llm_instance_creation():
     with patch.dict(os.environ, env_vars):
         from src.components.llm import get_llm_instance
         
-        # Test OpenAI instance
-        llm = get_llm_instance(model_name="gpt-4o")
-        assert llm is not None
-        assert llm.model == "gpt-4o"
-        
         # Test SiliconFlow instance
-        llm = get_llm_instance(model_name="siliconflow-qwen")
+        llm = get_llm_instance(model_name="siliconflow-qwen-30b")
         assert llm is not None
+        # Ensure instance is created and callable for chat
+        assert hasattr(llm, "invoke")
 
 
 def test_missing_api_key_error():
@@ -32,21 +28,21 @@ def test_missing_api_key_error():
     with patch.dict(os.environ, {"TAVILY_API_KEY": "test"}, clear=True):
         from src.components.llm import get_llm_instance
         
-        with pytest.raises(ValueError, match="OPENAI_API_KEY"):
-            get_llm_instance(model_name="gpt-4o")
+        with pytest.raises(ValueError, match="SILICONFLOW_API_KEY"):
+            get_llm_instance(model_name="siliconflow-qwen-30b")
 
 
 def test_structured_llm():
     """Test structured LLM creation for JSON outputs."""
     env_vars = {
-        "OPENAI_API_KEY": "test-key",
+        "SILICONFLOW_API_KEY": "test-key",
         "TAVILY_API_KEY": "test-tavily-key"
     }
     
     with patch.dict(os.environ, env_vars):
         from src.components.llm import get_structured_llm
         
-        llm = get_structured_llm(model_name="gpt-4o")
+        llm = get_structured_llm(model_name="siliconflow-qwen-30b")
         assert llm is not None
         # Temperature should be lower for structured outputs
         assert llm.temperature == 0.1

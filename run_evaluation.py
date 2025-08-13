@@ -161,7 +161,8 @@ async def run_quick_test(args):
             result = await quick_test(
                 query=query,
                 current_folder=folder, 
-                language=language
+                language=language,
+                evaluator_model=args.evaluator_model
             )
             
             if result:
@@ -485,8 +486,8 @@ Examples:
                        help='Output file for generated tests')
     
     # Evaluation configuration
-    parser.add_argument('--evaluator-model', type=str, default='gpt-4o',
-                       help='LLM model for evaluation (default: gpt-4o)')
+    parser.add_argument('--evaluator-model', type=str, default=None,
+                       help='LLM model for evaluation. If omitted, resolves via EVALUATOR_MODEL env or config default')
     
     parser.add_argument('--parallel', type=int, default=3,
                        help='Max parallel test execution (default: 3)')

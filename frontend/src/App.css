@@ -351,6 +351,111 @@
   margin-bottom: 0;
 }
 
+/* Markdown table styling */
+.markdown-table-wrapper {
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.markdown-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5rem 0;
+}
+
+.markdown-table th,
+.markdown-table td {
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.markdown-table th {
+  background-color: #f7fafc;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.markdown-table tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+.markdown-table tr:hover {
+  background-color: #edf2f7;
+}
+
+/* Better markdown formatting */
+.message-content h1,
+.message-content h2,
+.message-content h3 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.message-content h1 { font-size: 1.5rem; }
+.message-content h2 { font-size: 1.3rem; }
+.message-content h3 { font-size: 1.1rem; }
+
+.message-content ul,
+.message-content ol {
+  margin: 0.5rem 0;
+  padding-left: 2rem;
+}
+
+.message-content li {
+  margin: 0.25rem 0;
+}
+
+.message-content p {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+
+.message-content strong {
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.message-content em {
+  font-style: italic;
+}
+
+.message-content code {
+  background-color: #f7fafc;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.message-content pre {
+  background-color: #2d3748;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.message-content pre code {
+  background-color: transparent;
+  padding: 0;
+  color: #e2e8f0;
+}
+
+.message-content blockquote {
+  border-left: 4px solid #cbd5e0;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #4a5568;
+  font-style: italic;
+}
+
+.message-content hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 1rem 0;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .app-content {

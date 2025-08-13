@@ -1,10 +1,88 @@
-# LabAcc Copilot - Development Guidelines
+# LabAcc Copilot - Development Guidelines & Framework
 
 **🌍 MULTI-LANGUAGE AI ASSISTANT BY DESIGN 🌍**
 
 AI-powered autonomous laboratory assistant for wet-lab biologists to analyze experimental data, diagnose issues, and suggest optimizations. Works in ALL languages - English, Chinese, Spanish, Arabic, Japanese, and more!
 
-No Fallback, this is a project in early development stage so DO NOT consider aspect in real projection stage, such as fallback, security, high parallel etc. just quick dev and quick fail and move on fast.
+> **Development Philosophy**: Quick development, quick fail, move fast. This is an early-stage project - focus on core functionality, not production-level concerns like fallback systems or high parallelism.
+
+---
+
+## 📚 DOCUMENTATION STRUCTURE & RULES
+
+### File Organization (STRICT RULES)
+
+**Root Directory (Keep MINIMAL)**
+- ✅ `README.md` - User-facing documentation
+- ✅ `README_CN.md` - Localized README (Chinese)
+- ✅ `CLAUDE.md` - THIS FILE - Development guidelines
+- ✅ `STATUS.md` - Current system status
+- ❌ **NO OTHER .md FILES IN ROOT!**
+
+**Documentation Folders**
+```
+/dev_plan/           # Big picture, vision, roadmap
+├── v2_copilot_vision.md     # Overall vision and goals
+├── implementation_phases.md  # Phased development plan
+└── [feature]_plan.md        # High-level feature plans
+
+/spec/               # Technical specifications
+├── react-agent-api.md       # API documentation
+├── file-management.md       # File system specs
+├── [component]_spec.md      # Component specifications
+└── deprecated/              # Old specs (for reference)
+```
+
+### Documentation Rules
+1. **NO random .md files** scattered in codebase
+2. **NO /docs/ folder** - code changes too fast
+3. **Plans go in /dev_plan/** - vision and roadmap
+4. **Specs go in /spec/** - technical details
+5. **Delete outdated files** - don't accumulate cruft
+
+---
+
+## 🔄 DEVELOPMENT CYCLE FRAMEWORK
+
+### 1. THINK Phase (dev_plan/)
+```
+Idea → Vision Document → Expected Outcomes
+```
+- Write high-level plan in `/dev_plan/[feature]_plan.md`
+- Define success metrics
+- Outline major milestones
+
+### 2. DESIGN Phase (spec/)
+```
+Plan → Technical Spec → API Design
+```
+- Create detailed spec in `/spec/[component]_spec.md`
+- Define interfaces and data flow
+- Document key decisions
+
+### 3. BUILD Phase
+```
+Spec → Implementation → Testing
+```
+- Follow spec strictly
+- Use single source of truth (no v2/v3 files)
+- Test as you build
+
+### 4. ITERATE Phase
+```
+Feedback → Update Spec → Refactor
+```
+- Update specs when design changes
+- Delete old code, don't comment out
+- Keep STATUS.md current
+
+### 5. CLEAN Phase
+```
+Review → Remove Cruft → Document
+```
+- Delete unused files
+- Move completed plans to `deprecated/`
+- Update README.md for users
 
 ## 🚫 ABSOLUTELY NO PATTERN MATCHING - EVER! 🚫
 
@@ -115,29 +193,50 @@ data/alice_projects/
 └── [more experiments...]
 ```
 
-## 📋 Development Specifications
+## 📋 DEVELOPMENT SPECIFICATIONS
 
-### ⚠️ ALWAYS Follow These Guidelines
+### ⚠️ CRITICAL RULES (MUST FOLLOW)
 
-**1. Single Source of Truth - NO VERSIONING**
-- **NO backup files, NO fallback versions, NO v2/v3/v4 files**
+**1. Documentation Discipline**
+- ✅ Write plan in `/dev_plan/` FIRST
+- ✅ Create spec in `/spec/` BEFORE coding
+- ✅ Update STATUS.md AFTER changes
+- ❌ NO random .md files anywhere else
+- ❌ NO documentation in code comments
+
+**2. Single Source of Truth**
+- **NO backup files, NO v2/v3/v4 versions**
 - Keep exactly ONE version of each component
-- Quick development, quick fail, move fast
-- Delete old code instead of keeping backups
-- Use git for version history, not file versioning
+- Delete old code instead of commenting out
+- Use git for version history
 
-**2. Read Specifications First**
-- Check `/spec/` directory for component specifications
-- Update specs when making architectural changes
-- Write specs for new features before implementation
+**3. File Organization**
+```
+/src/               # Source code
+├── agents/         # Agent implementations
+├── api/            # API endpoints
+├── components/     # Shared components
+├── memory/         # Memory system
+├── tools/          # Tool implementations
+└── config/         # Configuration
 
-**3. File-Based Memory Priority**
-- Use README files as primary context source
-- Store insights in human-readable markdown
-- Avoid vector databases and embeddings
-- Make AI reasoning transparent and auditable
+/tests/             # Test files
+├── test_cases/     # Test data
+├── agent_evaluation/ # Agent testing
+└── reports/        # Test reports
 
-**4. React Agent Development**
+/data/              # User data (git-ignored)
+└── alice_projects/ # Experiment storage
+```
+
+**4. Code Quality Standards**
+- Test before committing
+- Use type hints in Python
+- Follow existing patterns
+- No hardcoded secrets
+- Use environment variables
+
+**5. React Agent Development**
 - Use LangGraph's create_react_agent() pattern
 - Add new capabilities with @tool decorator
 - Keep tools simple and focused
@@ -340,13 +439,20 @@ def research_literature(query: str) -> str:
 - **Pattern Recognition**: Cross-experiment learning
 - **Time Savings**: >30% reduction in debugging time
 
-## 🔗 Important Resources
+## 🔗 IMPORTANT RESOURCES
 
-### Documentation
-- **`/spec/`** - Technical specifications
-- **`/spec/react-agent-api.md`** - React agent API documentation
-- **`STATUS.md`** - Current system status and capabilities
-- **`README.md`** - User-facing documentation
+### Project Documentation
+- **`/dev_plan/`** - Vision, roadmap, high-level plans
+- **`/spec/`** - Technical specifications and APIs
+- **`STATUS.md`** - Current system status
+- **`README.md`** - User documentation
+- **`CLAUDE.md`** - THIS FILE - Dev guidelines
+
+### Quick Reference
+- Plans before specs
+- Specs before code
+- Test before merge
+- Clean before commit
 
 ### External Tools
 - **Tavily API** - Literature search and web research
@@ -399,19 +505,49 @@ uv run python src/agents/react_agent.py
 
 ---
 
+## 🎯 DEVELOPMENT WORKFLOW FOR CLAUDE CODE
+
+### When Starting a New Feature:
+1. **CHECK** `/dev_plan/` for existing plans
+2. **WRITE** plan if none exists
+3. **CREATE** spec in `/spec/`
+4. **IMPLEMENT** following the spec
+5. **TEST** the implementation
+6. **UPDATE** STATUS.md
+7. **CLEAN** up any mess
+
+### When Fixing or Improving:
+1. **READ** relevant specs first
+2. **UPDATE** spec if design changes
+3. **IMPLEMENT** the fix
+4. **DELETE** old code (don't comment)
+5. **TEST** the changes
+6. **UPDATE** STATUS.md
+
+### File Creation Rules:
+- ✅ Create .py files in appropriate /src/ folders
+- ✅ Create test files in /tests/
+- ✅ Create plans in /dev_plan/
+- ✅ Create specs in /spec/
+- ❌ NEVER create .md files in root (except the 4 allowed)
+- ❌ NEVER create documentation folders
+- ❌ NEVER keep backup/old versions
+
 ## 🎯 Development Mindset
 
-**v2.1 Philosophy**: Simplicity is the ultimate sophistication  
+**Philosophy**: Simplicity is the ultimate sophistication  
 **Core Pattern**: LangGraph React Agent with simple tools  
 **Extension Model**: Just add @tool decorators, no complex orchestration
 
-**Core Principle**: Natural language understanding should just work - in any language, without configuration, without keyword matching. The LLM is smart enough to understand intent.
-
-**Success Metric**: Developers say "I can add a new feature in 5 minutes" - the architecture is so simple that extending it is trivial.
+**Core Principles**:
+- Natural language understanding works in ANY language
+- The LLM is smart - trust it, no pattern matching
+- Keep it simple - add features in <5 minutes
+- Document in the RIGHT place - not scattered
 
 ---
 
-**Last Updated**: 2025-01-12  
-**Version**: v2.1 operational with simplified React agent  
-**Status**: Single agent with tools, 70% less code than v2.0  
-**Next**: Background processing and proactive insights (v2.2)
+**Last Updated**: 2025-01-13  
+**Version**: v2.2 with memory system  
+**Status**: Single agent with automatic memory management  
+**Next**: Background processing and proactive insights (v2.3)

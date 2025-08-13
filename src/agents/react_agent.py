@@ -16,6 +16,8 @@ from pathlib import Path
 from typing import List, Optional
 import asyncio
 import logging
+import aiohttp
+import json
 
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage, AIMessage
@@ -41,6 +43,26 @@ except ImportError:
     pass
 
 logger = logging.getLogger(__name__)
+
+# ============= Tool Call Notification System =============
+
+async def notify_tool_call(session_id: str, tool_name: str, status: str, args: dict = None):
+    """Send tool call notification to WebSocket via HTTP endpoint"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = "http://localhost:8002/api/tool-update"
+            data = {
+                "session_id": session_id,
+                "tool_name": tool_name,
+                "status": status,
+                "args": args or {}
+            }
+            async with session.post(url, json=data) as response:
+                if response.status != 200:
+                    logger.warning(f"Failed to send tool update: {response.status}")
+    except Exception as e:
+        logger.debug(f"Could not send tool update: {e}")
+        # Don't fail if notification fails - it's not critical
 
 # ============= Analysis Tools (with automatic memory updates) =============
 
@@ -246,39 +268,11 @@ async def analyze_data(file_path: str) -> str:
         if analysis.data_points:
             result += f"- Data points: {analysis.data_points}\n"
         
-        # AUTOMATIC MEMORY UPDATE - happens in background!
-        async def update_memory_background():
-            try:
-                # Detect if this is in an experiment folder
-                path_str = str(full_path)
-                if "/exp_" in path_str:
-                    # Extract experiment ID
-                    parts = path_str.split("/")
-                    for part in parts:
-                        if part.startswith("exp_"):
-                            experiment_id = part
-                            # Update README automatically with context-aware summary
-                            await update_file_registry.ainvoke({
-                                "experiment_id": experiment_id,
-                                "file_name": analysis.file_name,
-                                "file_type": analysis.file_type,
-                                "file_size": f"{analysis.size_bytes} bytes",
-                                "summary": context_summary  # Use the context-aware summary
-                            })
-                            
-                            if analysis.analysis_confidence > 0.7:
-                                await append_insight.ainvoke({
-                                    "experiment_id": experiment_id,
-                                    "insight": f"Analyzed {analysis.file_name}: {analysis.content_summary}",
-                                    "source": "analysis"
-                                })
-                            logger.info(f"Auto-updated README for {experiment_id}")
-                            break
-            except Exception as e:
-                logger.error(f"Background memory update failed: {e}")
-        
-        # Fire and forget - don't wait
-        asyncio.create_task(update_memory_background())
+        # MEMORY UPDATES REMOVED FROM analyze_data TOOL
+        # Memory updates should ONLY happen at the conversation level where the LLM
+        # can analyze the full context and decide if there's new information worth storing.
+        # The analyze_data tool should be a pure read operation.
+        logger.debug(f"Analyzed file: {analysis.file_name} (memory updates handled by conversation manager)")
         
         return result
         
@@ -441,9 +435,16 @@ async def handle_message(
                     "experiment_id": current_folder
                 })
                 
-                # Extract key information
-                if "Overview" in readme_content:
-                    context_parts.append(f"Current Experiment Context:\n{readme_content[:1000]}")
+                # Just dump the full README content - no parsing needed
+                rich_context = f"""
+=== FULL README CONTENT FOR {current_folder.upper()} ===
+This is the complete README.md content from folder {current_folder}:
+
+{readme_content}
+
+=== END OF README CONTENT ===
+"""
+                context_parts.append(rich_context)
             except:
                 pass
         
@@ -460,9 +461,24 @@ async def handle_message(
                 file_paths = selected_files
             context_parts.append(f"User has selected these files: {', '.join(file_paths)}")
         
-        # 3. Build final message with automatic context and instructions
+        # 3. Build final message with smart instructions based on available context
         system_hint = ""
-        if current_folder and selected_files:
+        if current_folder and current_folder.startswith("exp_") and context_parts and "CURRENT EXPERIMENT CONTEXT" in str(context_parts):
+            # Experiment folder with rich context - discourage tool calls
+            system_hint = f"""
+
+[SYSTEM INSTRUCTIONS]
+The complete README.md content for {current_folder} is provided above. DO NOT call any tools to read it again:
+- DO NOT use analyze_data to read README.md - the full content is already in this prompt
+- DO NOT use list_folder_contents to check folder contents - you have the README information
+- The README contains all experiment details: overview, methods, results, issues, next steps
+- Answer questions directly from the README content provided above
+- Only call tools if you need information NOT in the README above
+
+Current folder: {current_folder}
+Selected files: {selected_files if selected_files else 'None'}
+"""
+        elif current_folder and selected_files:
             system_hint = f"\n\n[System: User is looking at folder '{current_folder}' with files {selected_files} selected. When they say 'this folder' or 'this file', use list_folder_contents for folders and analyze_data for files.]"
         elif current_folder:
             system_hint = f"\n\n[System: User is looking at folder '{current_folder}'. When they ask about 'this folder', use list_folder_contents tool with folder_path='{current_folder}'.]"
@@ -485,22 +501,60 @@ async def handle_message(
         
         # Extract response and log tool calls
         if result and "messages" in result:
-            # Log tool interactions for debugging
+            # Log tool interactions for debugging and send notifications
             tool_calls_made = []
             for msg in result["messages"]:
                 if hasattr(msg, 'tool_calls') and msg.tool_calls:
                     for tool_call in msg.tool_calls:
-                        tool_name = tool_call.get('name', tool_call.get('function', {}).get('name', 'unknown'))
-                        tool_args = tool_call.get('arguments', tool_call.get('function', {}).get('arguments', '{}'))
-                        tool_calls_made.append(f"{tool_name}({tool_args})")
-                        logger.debug(f"Tool call: {tool_name} with args: {tool_args}")
+                        # Handle both dict and object formats
+                        if isinstance(tool_call, dict):
+                            tool_name = tool_call.get('name', tool_call.get('function', {}).get('name', 'unknown'))
+                            tool_args = tool_call.get('arguments', tool_call.get('function', {}).get('arguments', '{}'))
+                        else:
+                            # It's an object with attributes
+                            tool_name = getattr(tool_call, 'name', None) or getattr(getattr(tool_call, 'function', None), 'name', 'unknown')
+                            tool_args = getattr(tool_call, 'arguments', None) or getattr(getattr(tool_call, 'function', None), 'arguments', '{}')
+                        
+                        # Parse arguments if they're a JSON string
+                        args_dict = {}
+                        if isinstance(tool_args, str) and tool_args.startswith('{'):
+                            try:
+                                args_dict = json.loads(tool_args)
+                                tool_args_str = ', '.join(f"{k}={v}" for k, v in args_dict.items())
+                            except:
+                                tool_args_str = tool_args
+                        else:
+                            tool_args_str = str(tool_args)
+                        
+                        tool_calls_made.append(f"{tool_name}({tool_args_str})")
+                        logger.debug(f"Tool call: {tool_name} with args: {tool_args_str}")
+                        
+                        # Send tool notification to WebSocket
+                        await notify_tool_call(session_id, tool_name, "running", args_dict)
             
             # Get the final response
             for msg in reversed(result["messages"]):
                 if isinstance(msg, AIMessage):
                     response = msg.content
                     
-                    # AUTOMATIC MEMORY EXTRACTION AND UPDATE
+                    # Check if response is empty or truncated
+                    if not response or response.strip() in ["", "...", "…"]:
+                        logger.warning("Empty or truncated response from agent")
+                        # Try to find a previous non-empty response
+                        for prev_msg in reversed(result["messages"][:-1]):
+                            if isinstance(prev_msg, AIMessage) and prev_msg.content:
+                                response = prev_msg.content
+                                break
+                        else:
+                            # If still no response, provide a helpful error message
+                            if tool_calls_made:
+                                response = f"I encountered an issue processing your request. The tools were called but didn't return expected results. Tool calls attempted: {', '.join(tool_calls_made[:3])}. Please try rephrasing your question or check if the files/folders exist."
+                            else:
+                                response = "I encountered an issue processing your request. Please try rephrasing your question."
+                    
+                    # LET LLM DECIDE IF MEMORY SHOULD BE UPDATED
+                    # The auto_update_memory function uses LLM to determine if update is needed
+                    # It will analyze the conversation and only update if there's new information
                     if current_folder and current_folder.startswith("exp_"):
                         # Use the smart memory updater to extract and apply updates
                         from src.memory.auto_memory_updater import auto_update_memory
@@ -518,6 +572,7 @@ async def handle_message(
                         
                         # Fire and forget - don't wait
                         asyncio.create_task(update_memory_from_conversation())
+                        logger.debug(f"Triggered background memory analysis")
                     
                     # Enhanced conversation logging with tool calls
                     try:

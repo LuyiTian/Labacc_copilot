@@ -45,8 +45,16 @@ for model_name, model_config in config["model_configs"].items():
     print(f"  {is_available} {model_name:30} - {model_config['description']}")
 
 print("\n" + "=" * 60)
+try:
+    from src.components.llm import get_evaluation_model_name
+    resolved = get_evaluation_model_name()
+    print(f"🧠 Unified evaluator model: {resolved}")
+    env_override = os.environ.get("EVALUATOR_MODEL")
+    if env_override:
+        print(f"🔄 EVALUATOR_MODEL env override: {env_override}")
+except Exception as e:
+    print(f"⚠️ Could not resolve unified evaluator model: {e}")
 
-# Final recommendation
 if os.environ.get("OPENROUTER_API_KEY"):
     print("✅ System is configured to use GPT-OSS 120B via OpenRouter")
 elif os.environ.get("SILICONFLOW_API_KEY"):

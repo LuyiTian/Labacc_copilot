@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import io from 'socket.io-client';
+import ToolCallIndicator from './ToolCallIndicator';
 
 const API_SERVER = 'http://localhost:8002/api/chat';
 
@@ -186,6 +189,7 @@ const ChatPanel = ({ currentFolder, selectedFiles, showFiles }) => {
         </div>
         <div className="message-content">
           <ReactMarkdown
+            remarkPlugins={[remarkGfm, remarkBreaks]}
             components={{
               code({ node, inline, className, children, ...props }) {
                 const match = /language-(\w+)/.exec(className || '');
@@ -202,6 +206,14 @@ const ChatPanel = ({ currentFolder, selectedFiles, showFiles }) => {
                   <code className={className} {...props}>
                     {children}
                   </code>
+                );
+              },
+              // Better table rendering
+              table({ children }) {
+                return (
+                  <div className="markdown-table-wrapper">
+                    <table className="markdown-table">{children}</table>
+                  </div>
                 );
               }
             }}
@@ -236,6 +248,9 @@ const ChatPanel = ({ currentFolder, selectedFiles, showFiles }) => {
           <span className="context-value">{selectedFiles.length} files</span>
         </div>
       )}
+      
+      {/* Tool Call Indicator */}
+      <ToolCallIndicator sessionId={sessionId} />
       
       <div className="chat-messages">
         {messages.map(renderMessage)}

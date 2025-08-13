@@ -12,7 +12,7 @@ from dataclasses import dataclass, asdict
 from datetime import datetime
 import concurrent.futures
 
-from .evaluator_agent import AgentEvaluator, EvaluationResult, TestCase
+from .evaluator_agent import AgentEvaluator, EvaluationResult, TestCase, TestCategory
 from .test_generator import TestCaseGenerator
 from src.agents.react_agent import handle_message
 
@@ -41,7 +41,7 @@ class PerformanceMetrics:
 class AgentTestRunner:
     """Comprehensive test runner for agent evaluation"""
     
-    def __init__(self, evaluator_model: str = "gpt-4o", max_parallel: int = 5):
+    def __init__(self, evaluator_model: Optional[str] = None, max_parallel: int = 5):
         self.evaluator = AgentEvaluator(evaluator_model)
         self.max_parallel = max_parallel
         self.test_results: List[EvaluationResult] = []
@@ -322,10 +322,10 @@ class AgentTestRunner:
 
 
 # Convenience functions for common testing scenarios
-async def quick_test(query: str, current_folder: str = None, language: str = "English") -> bool:
+async def quick_test(query: str, current_folder: str = None, language: str = "English", evaluator_model: Optional[str] = None) -> bool:
     """Quick single test for debugging"""
     
-    runner = AgentTestRunner()
+    runner = AgentTestRunner(evaluator_model=evaluator_model)
     
     test_case = TestCase(
         id="quick_test",

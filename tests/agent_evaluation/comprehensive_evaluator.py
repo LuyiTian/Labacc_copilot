@@ -26,6 +26,7 @@ from langchain_core.messages import BaseMessage
 
 from .evaluator_agent import AgentEvaluator, EvaluationResult, TestCase
 from .trajectory_evaluator import TrajectoryEvaluator, TrajectoryEvaluation, TrajectoryExtractor, AgentTrajectory
+from src.components.llm import get_evaluation_model_name
 
 
 @dataclass
@@ -118,9 +119,10 @@ class ComprehensiveEvaluationResult:
 class ComprehensiveAgentEvaluator:
     """Enhanced evaluator that assesses both response quality and execution trajectory"""
     
-    def __init__(self, model_name: str = "gpt-4o"):
-        self.response_evaluator = AgentEvaluator(model_name)
-        self.trajectory_evaluator = TrajectoryEvaluator(model_name)
+    def __init__(self, model_name: Optional[str] = None):
+        resolved = model_name or get_evaluation_model_name()
+        self.response_evaluator = AgentEvaluator(resolved)
+        self.trajectory_evaluator = TrajectoryEvaluator(resolved)
         self.trajectory_extractor = TrajectoryExtractor()
     
     async def evaluate_comprehensive(

@@ -201,6 +201,10 @@ export LANGFUSE_PUBLIC_KEY="pk-lf-xxxxx"
 
 # Custom project root (default: data/alice_projects)
 export LABACC_PROJECT_ROOT="/path/to/projects"
+
+# Unified evaluator LLM model (optional)
+# If not set, the system falls back to config default in src/config/llm_config.json
+export EVALUATOR_MODEL="siliconflow-qwen-30b"  # or any key from available models shown by check_config.py
 ```
 
 **Deep Research Settings** (reduced for testing):

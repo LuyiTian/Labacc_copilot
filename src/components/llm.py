@@ -115,6 +115,33 @@ AGENT_MODEL_ASSIGNMENTS = {
     **AGENT_MODEL_ASSIGNMENTS,
 }
 
+
+def get_evaluation_model_name() -> str:
+    """Return unified evaluator LLM model name.
+    
+    Priority:
+    1) EVALUATOR_MODEL env var if present and valid
+    2) agent_model_assignments['evaluator'] from external config if present
+    3) agent_model_assignments['default']
+    
+    Raises ValueError if resolved name is not in MODEL_CONFIGS.
+    """
+    env_model = os.getenv("EVALUATOR_MODEL")
+    if env_model:
+        if env_model in MODEL_CONFIGS:
+            return env_model
+        logger.warning(
+            "EVALUATOR_MODEL='%s' not found in MODEL_CONFIGS. Falling back to config.", env_model
+        )
+    # External config may provide an 'evaluator' role
+    candidate = AGENT_MODEL_ASSIGNMENTS.get("evaluator") or AGENT_MODEL_ASSIGNMENTS.get("default")
+    if candidate in MODEL_CONFIGS:
+        return candidate
+    available_models = list(MODEL_CONFIGS.keys())
+    raise ValueError(
+        f"Evaluator model '{candidate}' not found. Available models: {available_models}"
+    )
+
 def get_available_models() -> dict[str, str]:
     """Get list of available models with descriptions."""
     available = {}

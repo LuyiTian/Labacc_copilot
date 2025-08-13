@@ -24,7 +24,7 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, BaseMessage
-from src.components.llm import get_llm_instance
+from src.components.llm import get_llm_instance, get_evaluation_model_name
 
 
 class TrajectoryStepType(Enum):
@@ -212,8 +212,9 @@ class TrajectoryExtractor:
 class TrajectoryEvaluator:
     """LLM-based evaluator for agent execution trajectories"""
     
-    def __init__(self, model_name: str = "gpt-4o"):
-        self.llm = get_llm_instance(model_name)
+    def __init__(self, model_name: Optional[str] = None):
+        resolved = model_name or get_evaluation_model_name()
+        self.llm = get_llm_instance(resolved)
         
     def create_trajectory_prompt(self, trajectory: AgentTrajectory, test_case, agent_response: str) -> str:
         """Create evaluation prompt for trajectory analysis"""

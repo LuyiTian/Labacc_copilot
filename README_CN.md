@@ -201,6 +201,10 @@ export LANGFUSE_PUBLIC_KEY="pk-lf-xxxxx"
 
 # 自定义项目根目录（默认：data/alice_projects）
 export LABACC_PROJECT_ROOT="/path/to/projects"
+
+# 统一的评估 LLM 模型（可选）
+# 如果未设置，将回退到 src/config/llm_config.json 中的默认配置
+export EVALUATOR_MODEL="siliconflow-qwen-30b"  # 或者使用 check_config.py 显示的任何可用模型键
 ```
 
 **深度研究设置**（为测试而优化）：

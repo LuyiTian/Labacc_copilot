@@ -42,6 +42,7 @@
 - Automatic updates when files analyzed
 - Insights tracked with timestamps
 - Change log for all modifications
+- ✅ Fixed error handling for empty agent responses
 
 **🎨 Unified Interface**
 - React frontend with embedded AI chat (localhost:5173)
@@ -95,6 +96,23 @@ User Query → Context Builder → React Agent → Tool Selection → Memory Upd
 - **Research loops**: 1 (optimized)
 - **Cost per query**: ~$0.01-0.03
 - **Monthly estimate**: <$10 for typical usage
+
+## ⚠️ Identified Issues & Planned Improvements
+
+### Issues Found (2025-01-13)
+1. **Tool Calls Not Visible**: Users don't see what tools are being called in real-time
+2. **Inefficient Context Discovery**: Agent calls multiple tools just to read README files
+3. **Poor Prompt Engineering**: Context not pre-injected, causing unnecessary tool calls
+4. **Empty Response Errors**: Agent sometimes returns empty content after tool calls (now handled with error message)
+
+### Planned Improvements (v2.3)
+1. **Real-time Tool Visibility**: WebSocket streaming of tool calls to UI
+2. **README Context Injection**: Pre-load README content into prompts
+3. **Smart Context Templates**: Different templates for optimization vs overview queries
+4. **Reduced Tool Calls**: 70% reduction in context discovery calls
+5. **Faster Response**: 50% improvement for context-aware queries
+
+See `/dev_plan/ui_enhancement_and_context_injection.md` for detailed implementation plan.
 
 ## 📝 Recent Changes
 
