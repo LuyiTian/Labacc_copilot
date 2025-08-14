@@ -90,6 +90,10 @@ class EvaluationCLI:
 async def main():
     """Main CLI entry point"""
     
+    # Set TEST_MODE environment variable for bob_projects access
+    import os
+    os.environ["TEST_MODE"] = "true"
+    
     parser = argparse.ArgumentParser(
         description="LabAcc Copilot Agent Evaluation System",
         formatter_class=argparse.RawDescriptionHelpFormatter,

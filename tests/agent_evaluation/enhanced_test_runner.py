@@ -100,9 +100,36 @@ class EnhancedAgentTestRunner:
     """Test runner with comprehensive trajectory evaluation"""
     
     def __init__(self, evaluator_model: Optional[str] = None, max_parallel: int = 3):
+        # Set TEST_MODE for bob_projects access
+        import os
+        os.environ["TEST_MODE"] = "true"
+        
+        # Restore bob_projects from backup before tests
+        self._restore_bob_projects()
+        
         self.comprehensive_evaluator = ComprehensiveAgentEvaluator(evaluator_model)
         self.max_parallel = max_parallel
         self.test_results: List[TrajectoryTestResult] = []
+    
+    def _restore_bob_projects(self):
+        """Restore bob_projects from backup to ensure clean state"""
+        import shutil
+        from pathlib import Path
+        
+        backup_dir = Path("/data/luyit/script/git/Labacc_copilot/data/bob_projects_backup_20250813_174456")
+        test_data_dir = Path("/data/luyit/script/git/Labacc_copilot/data/bob_projects")
+        
+        if not backup_dir.exists():
+            print(f"⚠️ Warning: Backup directory not found at {backup_dir}")
+            return
+        
+        # Remove existing bob_projects if it exists
+        if test_data_dir.exists():
+            shutil.rmtree(test_data_dir)
+        
+        # Copy from backup
+        shutil.copytree(backup_dir, test_data_dir)
+        print(f"✅ Restored bob_projects from backup: {backup_dir}")
         
     async def run_single_test_with_trajectory(self, test_case: TestCase) -> TrajectoryTestResult:
         """Run single test with full trajectory capture and evaluation"""
@@ -282,6 +309,10 @@ class EnhancedAgentTestRunner:
         
         # Print summary report
         self._print_comprehensive_report(summary)
+        
+        # Restore bob_projects after all tests complete
+        self._restore_bob_projects()
+        print("\n✅ Restored bob_projects to clean state after evaluation")
         
         return summary
     
