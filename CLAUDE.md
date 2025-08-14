@@ -226,7 +226,10 @@ data/alice_projects/
 └── reports/        # Test reports
 
 /data/              # User data (git-ignored)
-└── alice_projects/ # Experiment storage
+├── alice_projects/ # Main experiment storage
+├── bob_projects/   # Test experiments (may be modified during testing)
+└── bob_projects_backup_*/ # IMPORTANT: Backup to restore test data
+                           # Use: cp -r data/bob_projects_backup_*/* data/bob_projects/
 ```
 
 **4. Code Quality Standards**
@@ -547,7 +550,7 @@ uv run python src/agents/react_agent.py
 
 ---
 
-**Last Updated**: 2025-01-13  
-**Version**: v2.2 with memory system  
-**Status**: Single agent with automatic memory management  
+**Last Updated**: 2025-01-14  
+**Version**: v2.2.1 with real-time tool visibility  
+**Status**: Production ready - all major issues resolved  
 **Next**: Background processing and proactive insights (v2.3)

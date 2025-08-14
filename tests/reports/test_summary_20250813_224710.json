@@ -1,0 +1,21 @@
+{
+  "total_tests": 52,
+  "passed_tests": 48,
+  "failed_tests": 4,
+  "overall_pass_rate": 0.9230769230769231,
+  "category_scores": {
+    "context": 8.305,
+    "file": 9.274999999999997,
+    "insights": 8.54,
+    "optimization": 9.434999999999999,
+    "edge": 7.081249999999999
+  },
+  "language_scores": {
+    "english": 8.670454545454545,
+    "chinese": 9.177272727272726,
+    "other": 7.081249999999999
+  },
+  "average_response_time": 18369.92073059082,
+  "total_execution_time": 955.2358779907227,
+  "timestamp": "2025-08-13T22:47:10.617380"
+}

@@ -272,9 +272,16 @@
   border-bottom: none;
 }
 
-.tool-call-item.running {
+.tool-call-item.starting {
   background: #fff7e6;
   border-left: 3px solid #ff9500;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
 }
 
 .tool-call-item.completed {
@@ -322,7 +329,7 @@
   font-weight: 600;
 }
 
-.tool-call-item.running .tool-status {
+.tool-call-item.starting .tool-status {
   background: #fff3cd;
   color: #856404;
 }
@@ -369,6 +376,48 @@
 .message-content ol {
   margin: 0.5rem 0;
   padding-left: 1.5rem;
+}
+
+/* Markdown Table Styles */
+.markdown-table-wrapper {
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.markdown-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9em;
+}
+
+.markdown-table th,
+.markdown-table td {
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top; /* Important for multi-line content */
+  line-height: 1.5;
+}
+
+.markdown-table th {
+  background-color: #f2f2f2;
+  font-weight: 600;
+}
+
+.markdown-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.markdown-table tr:hover {
+  background-color: #f5f5f5;
+}
+
+/* Ensure line breaks in table cells display properly */
+.markdown-table td br,
+.markdown-table th br {
+  display: block;
+  content: "";
+  margin-top: 0.25em;
 }
 
 .loading {

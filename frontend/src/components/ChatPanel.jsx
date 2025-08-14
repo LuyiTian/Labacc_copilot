@@ -215,6 +215,83 @@ const ChatPanel = ({ currentFolder, selectedFiles, showFiles }) => {
                     <table className="markdown-table">{children}</table>
                   </div>
                 );
+              },
+              // Handle table cells with line breaks
+              td({ children }) {
+                // Recursively process content to handle <br> tags
+                const processContent = (node) => {
+                  if (!node) return null;
+                  
+                  // If it's an array, process each item
+                  if (Array.isArray(node)) {
+                    return node.map((item, index) => 
+                      <React.Fragment key={index}>{processContent(item)}</React.Fragment>
+                    );
+                  }
+                  
+                  // If it's a string, check for <br> tags
+                  if (typeof node === 'string') {
+                    // Check if the string contains <br> tags
+                    if (node.includes('<br')) {
+                      const parts = node.split(/<br\s*\/?>/gi);
+                      return parts.map((part, index) => (
+                        <React.Fragment key={index}>
+                          {part}
+                          {index < parts.length - 1 && <br />}
+                        </React.Fragment>
+                      ));
+                    }
+                    return node;
+                  }
+                  
+                  // If it's a React element with children, process the children
+                  if (node.props && node.props.children) {
+                    return React.cloneElement(node, {
+                      ...node.props,
+                      children: processContent(node.props.children)
+                    });
+                  }
+                  
+                  return node;
+                };
+                
+                return <td>{processContent(children)}</td>;
+              },
+              // Also handle th elements the same way
+              th({ children }) {
+                const processContent = (node) => {
+                  if (!node) return null;
+                  
+                  if (Array.isArray(node)) {
+                    return node.map((item, index) => 
+                      <React.Fragment key={index}>{processContent(item)}</React.Fragment>
+                    );
+                  }
+                  
+                  if (typeof node === 'string') {
+                    if (node.includes('<br')) {
+                      const parts = node.split(/<br\s*\/?>/gi);
+                      return parts.map((part, index) => (
+                        <React.Fragment key={index}>
+                          {part}
+                          {index < parts.length - 1 && <br />}
+                        </React.Fragment>
+                      ));
+                    }
+                    return node;
+                  }
+                  
+                  if (node.props && node.props.children) {
+                    return React.cloneElement(node, {
+                      ...node.props,
+                      children: processContent(node.props.children)
+                    });
+                  }
+                  
+                  return node;
+                };
+                
+                return <th>{processContent(children)}</th>;
               }
             }}
           >

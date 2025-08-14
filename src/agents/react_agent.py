@@ -396,7 +396,7 @@ def create_memory_agent():
     llm = get_llm_instance(model_name)
     logger.info(f"React agent using model: {model_name}")
     
-    # Only functional tools, no memory management tools!
+    # Use original tools without wrapping to avoid async/sync issues
     tools = [
         scan_project,
         list_folder_contents,
@@ -493,98 +493,130 @@ Selected files: {selected_files if selected_files else 'None'}
         # Create agent
         agent = create_memory_agent()
         
-        # Process message with higher recursion limit - USE ASYNC!
-        result = await agent.ainvoke(
+        # Track tool calls and response
+        tool_calls_made = []
+        unique_tools = set()
+        final_response = ""
+        all_messages = []
+        last_ai_message = None
+        
+        # Stream events for real-time tool visibility
+        async for event in agent.astream_events(
             {"messages": [HumanMessage(content=enriched_message)]},
-            config={"recursion_limit": 50}  # Increase from default 25
-        )
-        
-        # Extract response and log tool calls
-        if result and "messages" in result:
-            # Log tool interactions for debugging and send notifications
-            tool_calls_made = []
-            for msg in result["messages"]:
-                if hasattr(msg, 'tool_calls') and msg.tool_calls:
-                    for tool_call in msg.tool_calls:
-                        # Handle both dict and object formats
-                        if isinstance(tool_call, dict):
-                            tool_name = tool_call.get('name', tool_call.get('function', {}).get('name', 'unknown'))
-                            tool_args = tool_call.get('arguments', tool_call.get('function', {}).get('arguments', '{}'))
-                        else:
-                            # It's an object with attributes
-                            tool_name = getattr(tool_call, 'name', None) or getattr(getattr(tool_call, 'function', None), 'name', 'unknown')
-                            tool_args = getattr(tool_call, 'arguments', None) or getattr(getattr(tool_call, 'function', None), 'arguments', '{}')
-                        
-                        # Parse arguments if they're a JSON string
-                        args_dict = {}
-                        if isinstance(tool_args, str) and tool_args.startswith('{'):
-                            try:
-                                args_dict = json.loads(tool_args)
-                                tool_args_str = ', '.join(f"{k}={v}" for k, v in args_dict.items())
-                            except:
-                                tool_args_str = tool_args
-                        else:
-                            tool_args_str = str(tool_args)
-                        
-                        tool_calls_made.append(f"{tool_name}({tool_args_str})")
-                        logger.debug(f"Tool call: {tool_name} with args: {tool_args_str}")
-                        
-                        # Send tool notification to WebSocket
-                        await notify_tool_call(session_id, tool_name, "running", args_dict)
+            config={"recursion_limit": 50},
+            version="v1"  # Try v1 for better compatibility
+        ):
+            event_type = event.get("event", "")
             
-            # Get the final response
-            for msg in reversed(result["messages"]):
-                if isinstance(msg, AIMessage):
-                    response = msg.content
-                    
-                    # Check if response is empty or truncated
-                    if not response or response.strip() in ["", "...", "…"]:
-                        logger.warning("Empty or truncated response from agent")
-                        # Try to find a previous non-empty response
-                        for prev_msg in reversed(result["messages"][:-1]):
-                            if isinstance(prev_msg, AIMessage) and prev_msg.content:
-                                response = prev_msg.content
-                                break
-                        else:
-                            # If still no response, provide a helpful error message
-                            if tool_calls_made:
-                                response = f"I encountered an issue processing your request. The tools were called but didn't return expected results. Tool calls attempted: {', '.join(tool_calls_made[:3])}. Please try rephrasing your question or check if the files/folders exist."
-                            else:
-                                response = "I encountered an issue processing your request. Please try rephrasing your question."
-                    
-                    # LET LLM DECIDE IF MEMORY SHOULD BE UPDATED
-                    # The auto_update_memory function uses LLM to determine if update is needed
-                    # It will analyze the conversation and only update if there's new information
-                    if current_folder and current_folder.startswith("exp_"):
-                        # Use the smart memory updater to extract and apply updates
-                        from src.memory.auto_memory_updater import auto_update_memory
-                        
-                        async def update_memory_from_conversation():
-                            try:
-                                result = await auto_update_memory(
-                                    user_message=message,
-                                    agent_response=response,
-                                    experiment_id=current_folder
-                                )
-                                logger.info(f"Memory update result: {result}")
-                            except Exception as e:
-                                logger.error(f"Failed to auto-update memory: {e}")
-                        
-                        # Fire and forget - don't wait
-                        asyncio.create_task(update_memory_from_conversation())
-                        logger.debug(f"Triggered background memory analysis")
-                    
-                    # Enhanced conversation logging with tool calls
-                    try:
-                        if tool_calls_made:
-                            logger.info(f"Tools used: {', '.join(tool_calls_made)}")
-                        log_conversation(message, response, session_id)
-                    except:
-                        pass  # Don't fail if logging fails
-                    
-                    return response
+            # Handle tool start events
+            if event_type == "on_tool_start":
+                tool_name = event.get("name", "unknown")
+                tool_input = event.get("data", {}).get("input", {})
+                
+                # Send "starting" notification immediately
+                logger.info(f"Tool {tool_name} starting execution for session {session_id}")
+                await notify_tool_call(session_id, tool_name, "starting", tool_input)
+                
+                # Track for logging
+                if tool_name not in unique_tools:
+                    unique_tools.add(tool_name)
+                    if isinstance(tool_input, dict):
+                        args_str = ', '.join(f"{k}={v}" for k, v in tool_input.items())
+                    else:
+                        args_str = str(tool_input)
+                    tool_calls_made.append(f"{tool_name}({args_str})")
+            
+            # Handle tool end events
+            elif event_type == "on_tool_end":
+                tool_name = event.get("name", "unknown")
+                logger.info(f"Tool {tool_name} completed for session {session_id}")
+                await notify_tool_call(session_id, tool_name, "completed", {})
+            
+            # Handle chat model events - this is where the actual response comes from
+            elif event_type == "on_chat_model_end":
+                # Extract the AI message from chat model output
+                output = event.get("data", {}).get("output", None)
+                if output:
+                    # The output could be a message directly
+                    if isinstance(output, AIMessage):
+                        last_ai_message = output
+                        if output.content:
+                            final_response = output.content
+                            logger.debug(f"Got AI response from chat model: {len(final_response)} chars")
+                    # Or it could be in a different format
+                    elif hasattr(output, "content"):
+                        final_response = output.content
+                        logger.debug(f"Got content from output: {len(final_response)} chars")
+            
+            # Handle chain events
+            elif event_type == "on_chain_end":
+                # Try to extract final result from chain output
+                output = event.get("data", {}).get("output", {})
+                if isinstance(output, dict) and "messages" in output:
+                    all_messages = output["messages"]
+                    # Get the last AI message
+                    for msg in reversed(all_messages):
+                        if isinstance(msg, AIMessage) and msg.content:
+                            # Use this as response if we don't have one yet or if it's longer
+                            if not final_response or len(msg.content) > len(final_response):
+                                final_response = msg.content
+                                logger.debug(f"Got response from chain end: {len(final_response)} chars")
+                            break
         
-        return "No response generated."
+        # Use the final response
+        response = final_response
+        
+        # Check if response is empty or truncated
+        if not response or response.strip() in ["", "...", "…"]:
+            logger.warning("Empty or truncated response from agent")
+            # Try to find a previous non-empty response from all_messages
+            for prev_msg in reversed(all_messages[:-1] if all_messages else []):
+                if isinstance(prev_msg, AIMessage) and prev_msg.content:
+                    response = prev_msg.content
+                    break
+            else:
+                # If still no response, provide a helpful error message
+                if tool_calls_made:
+                    response = f"I encountered an issue processing your request. The tools were called but didn't return expected results. Tool calls attempted: {', '.join(tool_calls_made[:3])}. Please try rephrasing your question or check if the files/folders exist."
+                else:
+                    response = "I encountered an issue processing your request. Please try rephrasing your question."
+        
+        # LET LLM DECIDE IF MEMORY SHOULD BE UPDATED
+        # The auto_update_memory function uses LLM to determine if update is needed
+        # It will analyze the conversation and only update if there's new information
+        if current_folder and current_folder.startswith("exp_"):
+            # Use the smart memory updater to extract and apply updates
+            from src.memory.auto_memory_updater import auto_update_memory
+            
+            async def update_memory_from_conversation():
+                try:
+                    result = await auto_update_memory(
+                        user_message=message,
+                        agent_response=response,
+                        experiment_id=current_folder
+                    )
+                    logger.info(f"Memory update result: {result}")
+                except Exception as e:
+                    logger.error(f"Failed to auto-update memory: {e}")
+            
+            # Fire and forget - don't wait
+            asyncio.create_task(update_memory_from_conversation())
+            logger.debug(f"Triggered background memory analysis")
+        
+        # Enhanced conversation logging with tool calls
+        try:
+            if tool_calls_made:
+                logger.info(f"Tools used: {', '.join(tool_calls_made)}")
+            log_conversation(message, response, session_id)
+        except:
+            pass  # Don't fail if logging fails
+        
+        # Debug log
+        logger.info(f"[Session: {session_id}]")
+        logger.info(f"User: {message[:100]}...")
+        logger.info(f"Agent: {response[:200]}...")
+        
+        return response
         
     except Exception as e:
         logger.error(f"Error handling message: {e}")

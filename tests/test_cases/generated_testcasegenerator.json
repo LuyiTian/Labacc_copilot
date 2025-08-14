@@ -1,0 +1,1315 @@
+{
+  "metadata": {
+    "total_tests": 52,
+    "categories": [
+      "context_understanding",
+      "experiment_insights",
+      "file_analysis",
+      "multilingual",
+      "protocol_optimization"
+    ],
+    "languages": [
+      "Mixed",
+      "English",
+      "Chinese"
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "context_en_1",
+      "category": "context_understanding",
+      "user_query": "What is in this folder?",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "scRNAseq experiment files including dissociation protocol notes, cell analysis results, and quality control data",
+      "expected_insights": [
+        "Only 8% tumor epithelial cells captured",
+        "65% immune cells (severe bias)"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "context_cn_1",
+      "category": "multilingual",
+      "user_query": "这个文件夹里有什么？",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "scRNAseq实验文件，包括解离协议记录、细胞分析结果和质量控制数据",
+      "expected_insights": [
+        "Only 8% tumor epithelial cells captured",
+        "65% immune cells (severe bias)"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "context_en_2",
+      "category": "context_understanding",
+      "user_query": "What files are here?",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "scRNAseq experiment files including dissociation protocol notes, cell analysis results, and quality control data",
+      "expected_insights": [
+        "Only 8% tumor epithelial cells captured",
+        "65% immune cells (severe bias)"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "context_cn_2",
+      "category": "multilingual",
+      "user_query": "这里有什么文件？",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "scRNAseq实验文件，包括解离协议记录、细胞分析结果和质量控制数据",
+      "expected_insights": [
+        "Only 8% tumor epithelial cells captured",
+        "65% immune cells (severe bias)"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "context_en_3",
+      "category": "context_understanding",
+      "user_query": "Tell me about this experiment",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "scRNAseq experiment files including dissociation protocol notes, cell analysis results, and quality control data",
+      "expected_insights": [
+        "Only 8% tumor epithelial cells captured",
+        "65% immune cells (severe bias)"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "context_cn_3",
+      "category": "multilingual",
+      "user_query": "告诉我这个实验的情况",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "scRNAseq实验文件，包括解离协议记录、细胞分析结果和质量控制数据",
+      "expected_insights": [
+        "Only 8% tumor epithelial cells captured",
+        "65% immune cells (severe bias)"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "context_en_4",
+      "category": "context_understanding",
+      "user_query": "What's the content of this directory?",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "scRNAseq experiment files including dissociation protocol notes, cell analysis results, and quality control data",
+      "expected_insights": [
+        "Only 8% tumor epithelial cells captured",
+        "65% immune cells (severe bias)"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "context_cn_4",
+      "category": "multilingual",
+      "user_query": "这个目录里有什么内容？",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "scRNAseq实验文件，包括解离协议记录、细胞分析结果和质量控制数据",
+      "expected_insights": [
+        "Only 8% tumor epithelial cells captured",
+        "65% immune cells (severe bias)"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "context_en_5",
+      "category": "context_understanding",
+      "user_query": "Show me what's in this folder",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "scRNAseq experiment files including dissociation protocol notes, cell analysis results, and quality control data",
+      "expected_insights": [
+        "Only 8% tumor epithelial cells captured",
+        "65% immune cells (severe bias)"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "context_cn_5",
+      "category": "multilingual",
+      "user_query": "给我看看这个文件夹里有什么",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "scRNAseq实验文件，包括解离协议记录、细胞分析结果和质量控制数据",
+      "expected_insights": [
+        "Only 8% tumor epithelial cells captured",
+        "65% immune cells (severe bias)"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "file_analysis_en_dissociation_notes.txt_1",
+      "category": "file_analysis",
+      "user_query": "What is in this file?",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "dissociation_notes.txt"
+      ],
+      "expected_content": "Dissociation protocol notes documenting tissue processing, observations, and technical issues",
+      "expected_insights": [
+        "45-minute digestion time caused over-digestion",
+        "Large epithelial cell clumps were resistant to dissociation",
+        "Cell viability was low at 76%"
+      ],
+      "ground_truth": {
+        "target_file": "dissociation_notes.txt"
+      }
+    },
+    {
+      "id": "file_analysis_cn_dissociation_notes.txt_1",
+      "category": "multilingual",
+      "user_query": "这个文件里是什么？",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "dissociation_notes.txt"
+      ],
+      "expected_content": "Dissociation protocol notes documenting tissue processing, observations, and technical issues",
+      "expected_insights": [
+        "45-minute digestion time caused over-digestion",
+        "Large epithelial cell clumps were resistant to dissociation",
+        "Cell viability was low at 76%"
+      ],
+      "ground_truth": {
+        "target_file": "dissociation_notes.txt"
+      }
+    },
+    {
+      "id": "file_analysis_en_dissociation_notes.txt_2",
+      "category": "file_analysis",
+      "user_query": "Tell me about this file",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "dissociation_notes.txt"
+      ],
+      "expected_content": "Dissociation protocol notes documenting tissue processing, observations, and technical issues",
+      "expected_insights": [
+        "45-minute digestion time caused over-digestion",
+        "Large epithelial cell clumps were resistant to dissociation",
+        "Cell viability was low at 76%"
+      ],
+      "ground_truth": {
+        "target_file": "dissociation_notes.txt"
+      }
+    },
+    {
+      "id": "file_analysis_cn_dissociation_notes.txt_2",
+      "category": "multilingual",
+      "user_query": "告诉我这个文件的内容",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "dissociation_notes.txt"
+      ],
+      "expected_content": "Dissociation protocol notes documenting tissue processing, observations, and technical issues",
+      "expected_insights": [
+        "45-minute digestion time caused over-digestion",
+        "Large epithelial cell clumps were resistant to dissociation",
+        "Cell viability was low at 76%"
+      ],
+      "ground_truth": {
+        "target_file": "dissociation_notes.txt"
+      }
+    },
+    {
+      "id": "file_analysis_en_dissociation_notes.txt_3",
+      "category": "file_analysis",
+      "user_query": "Analyze this file content",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "dissociation_notes.txt"
+      ],
+      "expected_content": "Dissociation protocol notes documenting tissue processing, observations, and technical issues",
+      "expected_insights": [
+        "45-minute digestion time caused over-digestion",
+        "Large epithelial cell clumps were resistant to dissociation",
+        "Cell viability was low at 76%"
+      ],
+      "ground_truth": {
+        "target_file": "dissociation_notes.txt"
+      }
+    },
+    {
+      "id": "file_analysis_cn_dissociation_notes.txt_3",
+      "category": "multilingual",
+      "user_query": "分析这个文件的内容",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "dissociation_notes.txt"
+      ],
+      "expected_content": "Dissociation protocol notes documenting tissue processing, observations, and technical issues",
+      "expected_insights": [
+        "45-minute digestion time caused over-digestion",
+        "Large epithelial cell clumps were resistant to dissociation",
+        "Cell viability was low at 76%"
+      ],
+      "ground_truth": {
+        "target_file": "dissociation_notes.txt"
+      }
+    },
+    {
+      "id": "file_analysis_en_dissociation_notes.txt_4",
+      "category": "file_analysis",
+      "user_query": "What does this file contain?",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "dissociation_notes.txt"
+      ],
+      "expected_content": "Dissociation protocol notes documenting tissue processing, observations, and technical issues",
+      "expected_insights": [
+        "45-minute digestion time caused over-digestion",
+        "Large epithelial cell clumps were resistant to dissociation",
+        "Cell viability was low at 76%"
+      ],
+      "ground_truth": {
+        "target_file": "dissociation_notes.txt"
+      }
+    },
+    {
+      "id": "file_analysis_cn_dissociation_notes.txt_4",
+      "category": "multilingual",
+      "user_query": "这个文件包含什么？",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "dissociation_notes.txt"
+      ],
+      "expected_content": "Dissociation protocol notes documenting tissue processing, observations, and technical issues",
+      "expected_insights": [
+        "45-minute digestion time caused over-digestion",
+        "Large epithelial cell clumps were resistant to dissociation",
+        "Cell viability was low at 76%"
+      ],
+      "ground_truth": {
+        "target_file": "dissociation_notes.txt"
+      }
+    },
+    {
+      "id": "file_analysis_en_cell_markers_analysis.csv_1",
+      "category": "file_analysis",
+      "user_query": "What's in this CSV file?",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "cell_markers_analysis.csv"
+      ],
+      "expected_content": "Single-cell RNA sequencing analysis results with cell type classifications and marker genes",
+      "expected_insights": [
+        "Only 8.2% tumor epithelial cells captured",
+        "65.5% immune cells total (T cells, NK cells, macrophages)",
+        "High stress response genes in epithelial cells"
+      ],
+      "ground_truth": {
+        "target_file": "cell_markers_analysis.csv"
+      }
+    },
+    {
+      "id": "file_analysis_cn_cell_markers_analysis.csv_1",
+      "category": "multilingual",
+      "user_query": "这个CSV文件里是什么？",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "cell_markers_analysis.csv"
+      ],
+      "expected_content": "Single-cell RNA sequencing analysis results with cell type classifications and marker genes",
+      "expected_insights": [
+        "Only 8.2% tumor epithelial cells captured",
+        "65.5% immune cells total (T cells, NK cells, macrophages)",
+        "High stress response genes in epithelial cells"
+      ],
+      "ground_truth": {
+        "target_file": "cell_markers_analysis.csv"
+      }
+    },
+    {
+      "id": "file_analysis_en_cell_markers_analysis.csv_2",
+      "category": "file_analysis",
+      "user_query": "Analyze this data file",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "cell_markers_analysis.csv"
+      ],
+      "expected_content": "Single-cell RNA sequencing analysis results with cell type classifications and marker genes",
+      "expected_insights": [
+        "Only 8.2% tumor epithelial cells captured",
+        "65.5% immune cells total (T cells, NK cells, macrophages)",
+        "High stress response genes in epithelial cells"
+      ],
+      "ground_truth": {
+        "target_file": "cell_markers_analysis.csv"
+      }
+    },
+    {
+      "id": "file_analysis_cn_cell_markers_analysis.csv_2",
+      "category": "multilingual",
+      "user_query": "分析这个数据文件",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "cell_markers_analysis.csv"
+      ],
+      "expected_content": "Single-cell RNA sequencing analysis results with cell type classifications and marker genes",
+      "expected_insights": [
+        "Only 8.2% tumor epithelial cells captured",
+        "65.5% immune cells total (T cells, NK cells, macrophages)",
+        "High stress response genes in epithelial cells"
+      ],
+      "ground_truth": {
+        "target_file": "cell_markers_analysis.csv"
+      }
+    },
+    {
+      "id": "file_analysis_en_cell_markers_analysis.csv_3",
+      "category": "file_analysis",
+      "user_query": "Tell me about this analysis",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "cell_markers_analysis.csv"
+      ],
+      "expected_content": "Single-cell RNA sequencing analysis results with cell type classifications and marker genes",
+      "expected_insights": [
+        "Only 8.2% tumor epithelial cells captured",
+        "65.5% immune cells total (T cells, NK cells, macrophages)",
+        "High stress response genes in epithelial cells"
+      ],
+      "ground_truth": {
+        "target_file": "cell_markers_analysis.csv"
+      }
+    },
+    {
+      "id": "file_analysis_cn_cell_markers_analysis.csv_3",
+      "category": "multilingual",
+      "user_query": "告诉我这个分析的内容",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "cell_markers_analysis.csv"
+      ],
+      "expected_content": "Single-cell RNA sequencing analysis results with cell type classifications and marker genes",
+      "expected_insights": [
+        "Only 8.2% tumor epithelial cells captured",
+        "65.5% immune cells total (T cells, NK cells, macrophages)",
+        "High stress response genes in epithelial cells"
+      ],
+      "ground_truth": {
+        "target_file": "cell_markers_analysis.csv"
+      }
+    },
+    {
+      "id": "insights_en_1",
+      "category": "experiment_insights",
+      "user_query": "What went wrong with this experiment?",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "Analysis of experimental problems including cell type bias, over-digestion, and protocol limitations",
+      "expected_insights": [
+        "Severe immune cell enrichment bias (65% vs expected 35%)",
+        "Poor epithelial cell recovery (8% vs expected 30%)",
+        "Over-digestion causing cell stress and death",
+        "Inadequate mechanical disruption of epithelial clumps"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "insights_cn_1",
+      "category": "multilingual",
+      "user_query": "这个实验出了什么问题？",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "实验问题分析，包括细胞类型偏差、过度消化和协议限制",
+      "expected_insights": [
+        "Severe immune cell enrichment bias (65% vs expected 35%)",
+        "Poor epithelial cell recovery (8% vs expected 30%)",
+        "Over-digestion causing cell stress and death",
+        "Inadequate mechanical disruption of epithelial clumps"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "insights_en_2",
+      "category": "experiment_insights",
+      "user_query": "What problems do you see?",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "Analysis of experimental problems including cell type bias, over-digestion, and protocol limitations",
+      "expected_insights": [
+        "Severe immune cell enrichment bias (65% vs expected 35%)",
+        "Poor epithelial cell recovery (8% vs expected 30%)",
+        "Over-digestion causing cell stress and death",
+        "Inadequate mechanical disruption of epithelial clumps"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "insights_cn_2",
+      "category": "multilingual",
+      "user_query": "你看到了什么问题？",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "实验问题分析，包括细胞类型偏差、过度消化和协议限制",
+      "expected_insights": [
+        "Severe immune cell enrichment bias (65% vs expected 35%)",
+        "Poor epithelial cell recovery (8% vs expected 30%)",
+        "Over-digestion causing cell stress and death",
+        "Inadequate mechanical disruption of epithelial clumps"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "insights_en_3",
+      "category": "experiment_insights",
+      "user_query": "Identify issues in this experiment",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "Analysis of experimental problems including cell type bias, over-digestion, and protocol limitations",
+      "expected_insights": [
+        "Severe immune cell enrichment bias (65% vs expected 35%)",
+        "Poor epithelial cell recovery (8% vs expected 30%)",
+        "Over-digestion causing cell stress and death",
+        "Inadequate mechanical disruption of epithelial clumps"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "insights_cn_3",
+      "category": "multilingual",
+      "user_query": "识别这个实验中的问题",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "实验问题分析，包括细胞类型偏差、过度消化和协议限制",
+      "expected_insights": [
+        "Severe immune cell enrichment bias (65% vs expected 35%)",
+        "Poor epithelial cell recovery (8% vs expected 30%)",
+        "Over-digestion causing cell stress and death",
+        "Inadequate mechanical disruption of epithelial clumps"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "insights_en_4",
+      "category": "experiment_insights",
+      "user_query": "What needs to be optimized?",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "Analysis of experimental problems including cell type bias, over-digestion, and protocol limitations",
+      "expected_insights": [
+        "Severe immune cell enrichment bias (65% vs expected 35%)",
+        "Poor epithelial cell recovery (8% vs expected 30%)",
+        "Over-digestion causing cell stress and death",
+        "Inadequate mechanical disruption of epithelial clumps"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "insights_cn_4",
+      "category": "multilingual",
+      "user_query": "什么需要优化？",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "实验问题分析，包括细胞类型偏差、过度消化和协议限制",
+      "expected_insights": [
+        "Severe immune cell enrichment bias (65% vs expected 35%)",
+        "Poor epithelial cell recovery (8% vs expected 30%)",
+        "Over-digestion causing cell stress and death",
+        "Inadequate mechanical disruption of epithelial clumps"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "insights_en_5",
+      "category": "experiment_insights",
+      "user_query": "Analyze the experimental problems",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "Analysis of experimental problems including cell type bias, over-digestion, and protocol limitations",
+      "expected_insights": [
+        "Severe immune cell enrichment bias (65% vs expected 35%)",
+        "Poor epithelial cell recovery (8% vs expected 30%)",
+        "Over-digestion causing cell stress and death",
+        "Inadequate mechanical disruption of epithelial clumps"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "insights_cn_5",
+      "category": "multilingual",
+      "user_query": "分析实验中的问题",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "实验问题分析，包括细胞类型偏差、过度消化和协议限制",
+      "expected_insights": [
+        "Severe immune cell enrichment bias (65% vs expected 35%)",
+        "Poor epithelial cell recovery (8% vs expected 30%)",
+        "Over-digestion causing cell stress and death",
+        "Inadequate mechanical disruption of epithelial clumps"
+      ],
+      "ground_truth": {
+        "files": [
+          "README.md",
+          "dissociation_notes.txt",
+          "cell_markers_analysis.csv",
+          "raw_data_qc.csv"
+        ],
+        "key_findings": [
+          "Only 8% tumor epithelial cells captured",
+          "65% immune cells (severe bias)",
+          "High cell stress (16.8% mitochondrial genes)",
+          "Over-digestion suspected at 45min/37°C"
+        ],
+        "problems": [
+          "immune enrichment bias",
+          "epithelial cell fragility",
+          "incomplete mechanical disruption"
+        ]
+      }
+    },
+    {
+      "id": "optimization_en_1",
+      "category": "protocol_optimization",
+      "user_query": "How should we optimize this protocol?",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "Protocol optimization recommendations based on identified problems",
+      "expected_insights": [
+        "Cold pre-digestion at 4°C for 15 minutes",
+        "Reduce warm digestion time to 20-25 minutes",
+        "Enhanced mechanical disruption with additional gentleMACS cycles",
+        "Real-time monitoring every 10 minutes",
+        "DNase treatment to reduce ambient RNA"
+      ],
+      "ground_truth": {
+        "optimization_plan": [
+          "Cold pre-digestion at 4°C for 15 minutes",
+          "Shortened warm digestion (20-25 min vs 45 min)",
+          "Enhanced mechanical disruption",
+          "Real-time monitoring every 10 minutes"
+        ]
+      }
+    },
+    {
+      "id": "optimization_cn_1",
+      "category": "multilingual",
+      "user_query": "我们应该如何优化这个协议？",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "基于已识别问题的协议优化建议",
+      "expected_insights": [
+        "Cold pre-digestion at 4°C for 15 minutes",
+        "Reduce warm digestion time to 20-25 minutes",
+        "Enhanced mechanical disruption with additional gentleMACS cycles",
+        "Real-time monitoring every 10 minutes",
+        "DNase treatment to reduce ambient RNA"
+      ],
+      "ground_truth": {
+        "optimization_plan": [
+          "Cold pre-digestion at 4°C for 15 minutes",
+          "Shortened warm digestion (20-25 min vs 45 min)",
+          "Enhanced mechanical disruption",
+          "Real-time monitoring every 10 minutes"
+        ]
+      }
+    },
+    {
+      "id": "optimization_en_2",
+      "category": "protocol_optimization",
+      "user_query": "What improvements do you recommend?",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "Protocol optimization recommendations based on identified problems",
+      "expected_insights": [
+        "Cold pre-digestion at 4°C for 15 minutes",
+        "Reduce warm digestion time to 20-25 minutes",
+        "Enhanced mechanical disruption with additional gentleMACS cycles",
+        "Real-time monitoring every 10 minutes",
+        "DNase treatment to reduce ambient RNA"
+      ],
+      "ground_truth": {
+        "optimization_plan": [
+          "Cold pre-digestion at 4°C for 15 minutes",
+          "Shortened warm digestion (20-25 min vs 45 min)",
+          "Enhanced mechanical disruption",
+          "Real-time monitoring every 10 minutes"
+        ]
+      }
+    },
+    {
+      "id": "optimization_cn_2",
+      "category": "multilingual",
+      "user_query": "你推荐什么改进？",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "基于已识别问题的协议优化建议",
+      "expected_insights": [
+        "Cold pre-digestion at 4°C for 15 minutes",
+        "Reduce warm digestion time to 20-25 minutes",
+        "Enhanced mechanical disruption with additional gentleMACS cycles",
+        "Real-time monitoring every 10 minutes",
+        "DNase treatment to reduce ambient RNA"
+      ],
+      "ground_truth": {
+        "optimization_plan": [
+          "Cold pre-digestion at 4°C for 15 minutes",
+          "Shortened warm digestion (20-25 min vs 45 min)",
+          "Enhanced mechanical disruption",
+          "Real-time monitoring every 10 minutes"
+        ]
+      }
+    },
+    {
+      "id": "optimization_en_3",
+      "category": "protocol_optimization",
+      "user_query": "How can we fix these problems?",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "Protocol optimization recommendations based on identified problems",
+      "expected_insights": [
+        "Cold pre-digestion at 4°C for 15 minutes",
+        "Reduce warm digestion time to 20-25 minutes",
+        "Enhanced mechanical disruption with additional gentleMACS cycles",
+        "Real-time monitoring every 10 minutes",
+        "DNase treatment to reduce ambient RNA"
+      ],
+      "ground_truth": {
+        "optimization_plan": [
+          "Cold pre-digestion at 4°C for 15 minutes",
+          "Shortened warm digestion (20-25 min vs 45 min)",
+          "Enhanced mechanical disruption",
+          "Real-time monitoring every 10 minutes"
+        ]
+      }
+    },
+    {
+      "id": "optimization_cn_3",
+      "category": "multilingual",
+      "user_query": "我们如何解决这些问题？",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "基于已识别问题的协议优化建议",
+      "expected_insights": [
+        "Cold pre-digestion at 4°C for 15 minutes",
+        "Reduce warm digestion time to 20-25 minutes",
+        "Enhanced mechanical disruption with additional gentleMACS cycles",
+        "Real-time monitoring every 10 minutes",
+        "DNase treatment to reduce ambient RNA"
+      ],
+      "ground_truth": {
+        "optimization_plan": [
+          "Cold pre-digestion at 4°C for 15 minutes",
+          "Shortened warm digestion (20-25 min vs 45 min)",
+          "Enhanced mechanical disruption",
+          "Real-time monitoring every 10 minutes"
+        ]
+      }
+    },
+    {
+      "id": "optimization_en_4",
+      "category": "protocol_optimization",
+      "user_query": "Suggest protocol modifications",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "Protocol optimization recommendations based on identified problems",
+      "expected_insights": [
+        "Cold pre-digestion at 4°C for 15 minutes",
+        "Reduce warm digestion time to 20-25 minutes",
+        "Enhanced mechanical disruption with additional gentleMACS cycles",
+        "Real-time monitoring every 10 minutes",
+        "DNase treatment to reduce ambient RNA"
+      ],
+      "ground_truth": {
+        "optimization_plan": [
+          "Cold pre-digestion at 4°C for 15 minutes",
+          "Shortened warm digestion (20-25 min vs 45 min)",
+          "Enhanced mechanical disruption",
+          "Real-time monitoring every 10 minutes"
+        ]
+      }
+    },
+    {
+      "id": "optimization_cn_4",
+      "category": "multilingual",
+      "user_query": "建议协议修改",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "基于已识别问题的协议优化建议",
+      "expected_insights": [
+        "Cold pre-digestion at 4°C for 15 minutes",
+        "Reduce warm digestion time to 20-25 minutes",
+        "Enhanced mechanical disruption with additional gentleMACS cycles",
+        "Real-time monitoring every 10 minutes",
+        "DNase treatment to reduce ambient RNA"
+      ],
+      "ground_truth": {
+        "optimization_plan": [
+          "Cold pre-digestion at 4°C for 15 minutes",
+          "Shortened warm digestion (20-25 min vs 45 min)",
+          "Enhanced mechanical disruption",
+          "Real-time monitoring every 10 minutes"
+        ]
+      }
+    },
+    {
+      "id": "optimization_en_5",
+      "category": "protocol_optimization",
+      "user_query": "What changes should we make?",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "Protocol optimization recommendations based on identified problems",
+      "expected_insights": [
+        "Cold pre-digestion at 4°C for 15 minutes",
+        "Reduce warm digestion time to 20-25 minutes",
+        "Enhanced mechanical disruption with additional gentleMACS cycles",
+        "Real-time monitoring every 10 minutes",
+        "DNase treatment to reduce ambient RNA"
+      ],
+      "ground_truth": {
+        "optimization_plan": [
+          "Cold pre-digestion at 4°C for 15 minutes",
+          "Shortened warm digestion (20-25 min vs 45 min)",
+          "Enhanced mechanical disruption",
+          "Real-time monitoring every 10 minutes"
+        ]
+      }
+    },
+    {
+      "id": "optimization_cn_5",
+      "category": "multilingual",
+      "user_query": "我们应该做什么改变？",
+      "language": "Chinese",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "基于已识别问题的协议优化建议",
+      "expected_insights": [
+        "Cold pre-digestion at 4°C for 15 minutes",
+        "Reduce warm digestion time to 20-25 minutes",
+        "Enhanced mechanical disruption with additional gentleMACS cycles",
+        "Real-time monitoring every 10 minutes",
+        "DNase treatment to reduce ambient RNA"
+      ],
+      "ground_truth": {
+        "optimization_plan": [
+          "Cold pre-digestion at 4°C for 15 minutes",
+          "Shortened warm digestion (20-25 min vs 45 min)",
+          "Enhanced mechanical disruption",
+          "Real-time monitoring every 10 minutes"
+        ]
+      }
+    },
+    {
+      "id": "edge_ambiguous_1",
+      "category": "context_understanding",
+      "user_query": "Analyze",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "dissociation_notes.txt"
+      ],
+      "expected_content": "Agent should understand context and provide relevant analysis",
+      "expected_insights": [
+        "Agent asks for clarification or makes reasonable assumptions based on context"
+      ],
+      "ground_truth": {
+        "test_type": "ambiguous_query"
+      }
+    },
+    {
+      "id": "edge_ambiguous_2",
+      "category": "context_understanding",
+      "user_query": "Check",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "dissociation_notes.txt"
+      ],
+      "expected_content": "Agent should understand context and provide relevant analysis",
+      "expected_insights": [
+        "Agent asks for clarification or makes reasonable assumptions based on context"
+      ],
+      "ground_truth": {
+        "test_type": "ambiguous_query"
+      }
+    },
+    {
+      "id": "edge_ambiguous_3",
+      "category": "context_understanding",
+      "user_query": "Look at this",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "dissociation_notes.txt"
+      ],
+      "expected_content": "Agent should understand context and provide relevant analysis",
+      "expected_insights": [
+        "Agent asks for clarification or makes reasonable assumptions based on context"
+      ],
+      "ground_truth": {
+        "test_type": "ambiguous_query"
+      }
+    },
+    {
+      "id": "edge_ambiguous_4",
+      "category": "context_understanding",
+      "user_query": "What's wrong?",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "dissociation_notes.txt"
+      ],
+      "expected_content": "Agent should understand context and provide relevant analysis",
+      "expected_insights": [
+        "Agent asks for clarification or makes reasonable assumptions based on context"
+      ],
+      "ground_truth": {
+        "test_type": "ambiguous_query"
+      }
+    },
+    {
+      "id": "edge_ambiguous_5",
+      "category": "context_understanding",
+      "user_query": "Help",
+      "language": "English",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": [
+        "dissociation_notes.txt"
+      ],
+      "expected_content": "Agent should understand context and provide relevant analysis",
+      "expected_insights": [
+        "Agent asks for clarification or makes reasonable assumptions based on context"
+      ],
+      "ground_truth": {
+        "test_type": "ambiguous_query"
+      }
+    },
+    {
+      "id": "edge_mixed_1",
+      "category": "multilingual",
+      "user_query": "Tell me about 这个实验",
+      "language": "Mixed",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "Agent should handle mixed language appropriately",
+      "expected_insights": [
+        "Agent understands mixed language context"
+      ],
+      "ground_truth": {
+        "test_type": "mixed_language"
+      }
+    },
+    {
+      "id": "edge_mixed_2",
+      "category": "multilingual",
+      "user_query": "What's the 问题 with this protocol?",
+      "language": "Mixed",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "Agent should handle mixed language appropriately",
+      "expected_insights": [
+        "Agent understands mixed language context"
+      ],
+      "ground_truth": {
+        "test_type": "mixed_language"
+      }
+    },
+    {
+      "id": "edge_mixed_3",
+      "category": "multilingual",
+      "user_query": "Analyze the 细胞 data",
+      "language": "Mixed",
+      "current_folder": "exp_001_protocol_test",
+      "selected_files": null,
+      "expected_content": "Agent should handle mixed language appropriately",
+      "expected_insights": [
+        "Agent understands mixed language context"
+      ],
+      "ground_truth": {
+        "test_type": "mixed_language"
+      }
+    }
+  ]
+}

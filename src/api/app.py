@@ -35,6 +35,7 @@ class ConnectionManager:
     
     async def send_tool_update(self, session_id: str, tool_name: str, status: str, args: dict = None):
         """Send tool call update to all connections for a session"""
+        logger.info(f"Attempting to send tool update: session={session_id}, tool={tool_name}, status={status}")
         if session_id in self.active_connections:
             message = json.dumps({
                 "type": "tool_call",
@@ -47,12 +48,16 @@ class ConnectionManager:
             for websocket in self.active_connections[session_id]:
                 try:
                     await websocket.send_text(message)
-                except:
+                    logger.info(f"Sent tool update to WebSocket for session {session_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to send to WebSocket: {e}")
                     disconnected.add(websocket)
             
             # Clean up disconnected websockets
             for ws in disconnected:
                 self.active_connections[session_id].discard(ws)
+        else:
+            logger.warning(f"No active WebSocket connections for session {session_id}")
 
 # Create global connection manager
 manager = ConnectionManager()

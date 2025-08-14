@@ -6,57 +6,108 @@ const ToolCallIndicator = ({ sessionId }) => {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId) {
+      console.log('ToolCallIndicator: No sessionId yet');
+      return;
+    }
 
+    console.log(`ToolCallIndicator: Connecting to WebSocket for session ${sessionId}`);
+    
     // Connect to WebSocket
     const ws = new WebSocket(`ws://localhost:8002/ws/agent/${sessionId}`);
     
     ws.onopen = () => {
       setIsConnected(true);
       setSocket(ws);
-      console.log('Tool call WebSocket connected');
+      console.log(`Tool call WebSocket connected for session ${sessionId}`);
     };
 
     ws.onmessage = (event) => {
+      // Skip ping/pong messages
+      if (event.data === 'pong') {
+        return;
+      }
+      
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'tool_call') {
-          const toolCall = {
-            id: Date.now() + Math.random(),
-            tool: data.tool,
-            status: data.status,
-            args: data.args || {},
-            timestamp: new Date().toLocaleTimeString()
-          };
-          
           setToolCalls(prev => {
-            // Remove any previous calls with same tool if completed
-            const filtered = data.status === 'running' 
-              ? prev.filter(call => call.tool !== data.tool || call.status === 'completed')
-              : prev;
-            return [...filtered, toolCall];
+            if (data.status === 'starting') {
+              // Add new tool call with starting status
+              const toolCall = {
+                id: `${data.tool}_${Date.now()}`,
+                tool: data.tool,
+                status: 'starting',
+                args: data.args || {},
+                timestamp: new Date().toLocaleTimeString()
+              };
+              console.log(`Tool starting: ${data.tool}`);
+              return [...prev, toolCall];
+              
+            } else if (data.status === 'completed' || data.status === 'error') {
+              // Find and update the existing tool call, or add new if not found
+              const existingIndex = prev.findIndex(c => 
+                c.tool === data.tool && c.status === 'starting'
+              );
+              
+              if (existingIndex >= 0) {
+                // Update existing tool call
+                const updated = [...prev];
+                updated[existingIndex] = {
+                  ...updated[existingIndex],
+                  status: data.status,
+                  completedAt: new Date().toLocaleTimeString()
+                };
+                
+                // Auto-remove after 3 seconds for completed tools
+                if (data.status === 'completed') {
+                  setTimeout(() => {
+                    setToolCalls(current => 
+                      current.filter(c => c.id !== updated[existingIndex].id)
+                    );
+                  }, 3000);
+                }
+                
+                console.log(`Tool ${data.status}: ${data.tool}`);
+                return updated;
+              } else {
+                // No starting event was captured, add as completed directly
+                const toolCall = {
+                  id: `${data.tool}_${Date.now()}`,
+                  tool: data.tool,
+                  status: data.status,
+                  args: data.args || {},
+                  timestamp: new Date().toLocaleTimeString()
+                };
+                
+                // Auto-remove after 3 seconds
+                if (data.status === 'completed') {
+                  setTimeout(() => {
+                    setToolCalls(current => current.filter(c => c.id !== toolCall.id));
+                  }, 3000);
+                }
+                
+                return [...prev, toolCall];
+              }
+            }
+            
+            return prev;
           });
-
-          // Auto-remove completed tool calls after 5 seconds
-          if (data.status === 'completed' || data.status === 'error') {
-            setTimeout(() => {
-              setToolCalls(prev => prev.filter(call => call.id !== toolCall.id));
-            }, 5000);
-          }
         }
       } catch (error) {
         console.error('Error parsing tool call message:', error);
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       setIsConnected(false);
       setSocket(null);
-      console.log('Tool call WebSocket disconnected');
+      console.log(`Tool call WebSocket disconnected: code=${event.code}, reason=${event.reason}`);
     };
 
     ws.onerror = (error) => {
       console.error('Tool call WebSocket error:', error);
+      console.error('WebSocket readyState:', ws.readyState);
       setIsConnected(false);
     };
 
@@ -83,8 +134,19 @@ const ToolCallIndicator = ({ sessionId }) => {
     }
   }, [socket, isConnected]);
 
-  if (!isConnected || toolCalls.length === 0) {
-    return null;
+  // Always show if connected, even with no tool calls (for debugging)
+  if (!isConnected) {
+    return (
+      <div className="tool-call-indicator" style={{opacity: 0.5}}>
+        <div className="tool-calls-header">
+          <span className="tool-calls-title">🔧 Agent Tools (Connecting...)</span>
+        </div>
+      </div>
+    );
+  }
+  
+  if (toolCalls.length === 0) {
+    return null; // Hide when no active tool calls
   }
 
   return (
@@ -98,7 +160,7 @@ const ToolCallIndicator = ({ sessionId }) => {
           <div key={call.id} className={`tool-call-item ${call.status}`}>
             <div className="tool-call-main">
               <span className="tool-icon">
-                {call.status === 'running' ? '⚡' : 
+                {call.status === 'starting' ? '⚡' : 
                  call.status === 'completed' ? '✅' : 
                  call.status === 'error' ? '❌' : '🔧'}
               </span>

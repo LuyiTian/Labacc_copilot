@@ -1,225 +1,69 @@
 # LabAcc Copilot
 
-**AI-powered autonomous laboratory assistant using LangGraph React Agent for analyzing experimental data, diagnosing issues, and suggesting optimizations.**
-
-## 🎯 Current Status: v2.1 - Simplified React Agent
-
-✅ **SIMPLIFIED**: Single React agent with tools (LangGraph)  
-✅ **NATURAL**: LLM understands intent in any language  
-✅ **MAINTAINABLE**: 70% less code, easier to extend  
-✅ **PROVEN**: Uses LangGraph's battle-tested React pattern  
-🚧 **NEXT**: Background processing and proactive insights
+AI laboratory assistant for experimental data analysis and optimization.
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Python 3.11+
-- Node.js 18+
-- uv (Python package manager)
-
-### Installation
 ```bash
-# Clone repository
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone and setup
 git clone <repo-url>
 cd Labacc_copilot
-
-# Install Python dependencies
 uv sync
-
-# Install frontend dependencies
 cd frontend && npm install && cd ..
 
-# Set API keys (required for deep research)
-export TAVILY_API_KEY="your-tavily-key"      # For literature search
-export LANGFUSE_SECRET_KEY="your-langfuse-key"  # Optional: LLM tracking
+# Set API keys
+export TAVILY_API_KEY="your-key"
+export OPENROUTER_API_KEY="your-key"
+
+# Start
+./start-dev.sh
+# Open http://localhost:5173
 ```
 
-### Start Development Environment
+## 💡 Features
+
+- **Multi-language Support**: Works in English, Chinese, Spanish, etc.
+- **Memory System**: Each experiment has persistent README memory
+- **Real-time Tool Visibility**: See which tools are running live
+- **Literature Search**: Integrated Tavily API for research papers
+- **Smart Context**: Pre-loads relevant data to reduce tool calls
+
+## 📝 Example Usage
+
+```
+"列出我的实验"               → Lists all experiments
+"Analyze exp_001 data"      → Analyzes specific experiment
+"PCR optimization tips"     → Provides optimization suggestions
+"Research CRISPR methods"   → Searches scientific literature
+"创建新实验文件夹"            → Creates new experiment folder
+```
+
+## ⚙️ Configuration
+
 ```bash
-# Terminal 1: Backend API + React Agent
-uv run uvicorn src.api.app:app --port 8002 --reload
-
-# Terminal 2: React Frontend
-cd frontend && npm run dev
-
-# Access the application at: http://localhost:5173
+export TAVILY_API_KEY="tvly-..."     # Literature search
+export OPENROUTER_API_KEY="sk-..."   # LLM provider
 ```
+## 🔧 Troubleshooting
 
-## 🤖 React Agent System (v2.1)
+- **Port already in use**: Kill existing processes or use different ports
+- **API key errors**: Ensure environment variables are set correctly
+- **Frontend not loading**: Check if backend is running on port 8002
+- **Tool not found**: Restart the backend after code changes
 
-### Simple Architecture
-```
-User Query → LangGraph React Agent → Appropriate Tool
-                     │
-                     ├─→ 📁 scan_project: List all experiments
-                     ├─→ 🔬 analyze_experiment: Analyze specific folder
-                     ├─→ 📚 research_literature: Search papers (Tavily)
-                     ├─→ ⚡ optimize_protocol: Optimization suggestions
-                     └─→ 💾 manage_files: File operations
-```
+## 📚 Documentation
 
-### How It Works
+- `STATUS.md` - Current system status and changelog
+- `CLAUDE.md` - Development guidelines (for developers)
+- `/spec/` - Technical specifications
+- `/dev_plan/` - Development roadmap
 
-**No Manual Intent Detection!** The LangGraph React agent uses the LLM's natural language understanding to:
-1. Understand user intent in any language
-2. Decide which tool(s) to use
-3. Execute the appropriate tool
-4. Return a natural response
+## 📄 License
 
-### Available Tools
-
-#### 📁 **scan_project**
-- Lists all experiments in the project
-- Shows file counts and creation dates
-- Provides experiment summaries
-
-#### 🔬 **analyze_experiment**
-- Analyzes specific experiment folders
-- Reviews protocols and data files
-- Provides insights based on experiment type
-
-#### 📚 **research_literature**
-- Searches scientific literature via Tavily API
-- Quick or deep research modes
-- Returns relevant papers and methods
-
-#### ⚡ **optimize_protocol**
-- Provides optimization suggestions
-- Troubleshoots specific issues
-- Offers protocol improvements
-
-#### 💾 **manage_files**
-- Creates experiment folders
-- Organizes files
-- Lists folder contents
-
-### Example Commands
-
-**Quick Responses (instant):**
-```
-"hi"                        → Welcome message with capabilities
-"scan my project"           → Overview of all experiments
-"optimize my protocol"      → Strategic suggestions
-"what should I do next?"    → Next steps guidance
-```
-
-**Deep Research (10-30 seconds):**
-```
-"deep research PCR optimization"     → Literature search + reports
-"research GC-rich template methods"  → Scientific papers analysis
-"literature on gel electrophoresis"  → Method validation
-```
-
-## 🏗️ System Architecture
-
-### Simplified Response Flow
-
-1. **User sends message** in any language
-2. **React agent understands** intent naturally
-3. **Agent selects tool(s)** automatically
-4. **Tool executes** and returns results
-5. **Agent formats response** naturally
-
-**Response Times:**
-- Simple queries: 2-3 seconds
-- Analysis tasks: 3-5 seconds
-- Literature search: 10-30 seconds (Tavily API)
-
-### File-Based Memory System
-```
-data/alice_projects/
-├── .labacc/                    # Copilot metadata
-│   ├── project_knowledge.md   # Cross-experiment insights
-│   └── agent_state.json       # Persistent agent memory
-├── exp_001_pcr_optimization/
-│   ├── README.md              # Experiment documentation
-│   └── [data files...]
-└── [more experiments...]
-```
-
-## 📊 Key Features
-
-### Current Capabilities (v2.1)
-- ✅ **React Agent**: Single agent with multiple tools
-- ✅ **Natural Language**: Works in any language
-- ✅ **Deep Research**: Tavily-powered literature search
-- ✅ **Project Scanning**: Automatic experiment discovery
-- ✅ **Smart Tools**: Context-aware analysis
-- ✅ **File Management**: Integrated experiment browser
-- ✅ **Simple & Maintainable**: 70% less code than v2.0
-
-### Coming Soon (v2.2)
-- 🚧 **Background Processing**: Proactive experiment monitoring
-- 🚧 **Pattern Recognition**: Cross-experiment analysis
-- 🚧 **Predictive Modeling**: Success probability calculations
-- 🚧 **Multimodal Analysis**: Advanced image processing
-- 🚧 **More Tools**: Easy to add new capabilities
-
-## 🔧 Development
-
-### Project Structure
-```
-├── frontend/                 # React application
-│   └── src/components/      # UI components
-├── src/
-│   ├── agents/              
-│   │   └── react_agent.py  # Single React agent with tools
-│   ├── api/                 # FastAPI endpoints
-│   │   ├── app.py          # Main API
-│   │   └── react_bridge.py # Bridge to React agent
-│   ├── tools/               # Utility tools
-│   │   └── deep_research/  # Tavily integration
-│   └── components/          # Core components
-├── data/
-│   └── alice_projects/      # Experiment storage
-└── CLAUDE.md               # Development guidelines
-```
-
-### Running Tests
-```bash
-# Test React agent
-uv run python src/agents/react_agent.py
-
-# Test with API server
-uv run uvicorn src.api.app:app --port 8002 --reload
-# Then: curl -X POST http://localhost:8002/api/chat/message ...
-
-# Test deep research (requires Tavily API key)
-uv run python test_deep_research.py
-```
-
-### Configuration
-
-**Environment Variables:**
-```bash
-# Required for deep research
-export TAVILY_API_KEY="tvly-xxxxx"
-
-# Optional LLM configuration
-export LANGFUSE_SECRET_KEY="sk-lf-xxxxx"
-export LANGFUSE_PUBLIC_KEY="pk-lf-xxxxx"
-
-# Custom project root (default: data/alice_projects)
-export LABACC_PROJECT_ROOT="/path/to/projects"
-
-# Unified evaluator LLM model (optional)
-# If not set, the system falls back to config default in src/config/llm_config.json
-export EVALUATOR_MODEL="siliconflow-qwen-30b"  # or any key from available models shown by check_config.py
-```
-
-**Deep Research Settings** (reduced for testing):
-- Query fanout: 3 queries (reduced from 10)
-- Research loops: 1 (reduced from 2)
-- Timeout: 30 seconds
-- Cost: ~$0.01-0.03 per research query
-
-## 📈 Performance Metrics
-
-- **Simple Queries**: 2-3 seconds (tool selection + execution)
-- **Analysis Tasks**: 3-5 seconds (data processing)
-- **Deep Research**: 10-30 seconds (Tavily API)
-- **Project Scan**: <2 seconds for 100 experiments
-- **File Operations**: <1 second
+MIT License - See LICENSE file for details
 
 ## 🔒 Security & Privacy
 
