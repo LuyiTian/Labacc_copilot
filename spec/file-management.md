@@ -1,10 +1,14 @@
-# File Management System Specification v5.0 (IMPLEMENTED)
+# File Management System Specification v2.3
 
 ## Executive Summary
 
-The LabAcc Copilot file management system has been fully implemented as a unified architecture combining a React frontend with FastAPI backend and React Agent for AI-powered file operations. This document reflects the actual implementation status as of 2025-01-12.
+The LabAcc Copilot file management system has been fully implemented as a unified architecture combining a React frontend with FastAPI backend and React Agent for AI-powered file operations. This document reflects the actual implementation status as of 2025-01-14.
 
-**v5.0 Update**: Simplified to single React Agent architecture with natural language understanding. Removed Chainlit UI and complex orchestration. 70% code reduction with improved maintainability.
+**v2.1 Update**: Simplified to single React Agent architecture with natural language understanding. Removed multi-agent orchestration. 70% code reduction with improved maintainability.
+
+**v2.2 Update**: Added README-based memory system and real-time tool visibility.
+
+**v2.3 Update**: Adding proactive file analysis with context gathering. When files are uploaded, the agent automatically analyzes them and naturally asks follow-up questions in the user's language to capture experimental context.
 
 ## Architecture Overview
 
@@ -122,15 +126,21 @@ active_sessions[session_id] = {
 }
 ```
 
-## 2. Smart Features (v5.0)
+## 2. Smart Features
 
 ### 2.1 Natural Language Understanding
 **Status**: ✅ Implemented
 
-The React Agent naturally understands file operations in any language without keyword matching:
+**CRITICAL PRINCIPLE**: NO PATTERN MATCHING, NO KEYWORDS, NO TEMPLATES
+
+The React Agent naturally understands file operations in any language:
 - "Create a new PCR folder" → Creates organized experiment folder
 - "保存这些文件" (Chinese) → Saves files appropriately  
 - "Analyze these gel images" → Triggers analysis tool
+- "¿Qué hay en esta carpeta?" (Spanish) → Lists folder contents
+- Works in Arabic, Japanese, Russian, or any other language
+
+The agent understands INTENT, not patterns. Never use keyword matching.
 
 ### 2.2 Experiment Organization
 **Status**: ✅ Implemented
@@ -152,6 +162,145 @@ exp_XXX_[type]_YYYY-MM-DD/
 - Automatic pattern recognition
 - Data quality assessment
 - Protocol validation
+
+### 2.4 Proactive Context Gathering (NEW in v2.3)
+**Status**: 🚧 To Be Implemented
+
+#### Workflow:
+1. **File Upload Detection**: When files are uploaded via left panel (max 3 files)
+2. **Automatic Analysis**: Agent analyzes file content (blocks chat, shows tool indicators)
+3. **Context Summary**: Agent naturally describes file and its potential role
+4. **Natural Questions**: Agent asks 1-2 questions in user's language based on understanding
+5. **User Response**: Waits for user to provide additional context (2 min timeout)
+6. **Memory Synthesis**: Agent combines insights → README update
+
+#### Implementation Details:
+```python
+# WebSocket event for file upload
+@websocket.on("file_uploaded")
+async def handle_file_upload(file_paths: List[str], session_id: str):
+    # 0. Check upload limit
+    if len(file_paths) > 3:
+        return await send_error("Maximum 3 files at a time")
+    
+    # 1. Skip hidden files
+    valid_files = [f for f in file_paths if not os.path.basename(f).startswith(".")]
+    if not valid_files:
+        return  # All files were hidden, skip silently
+    
+    # 2. Agent naturally analyzes files
+    analysis = await agent.invoke({
+        "messages": [HumanMessage(
+            content=f"Analyze these uploaded files: {valid_files}"
+        )]
+    })
+    
+    # 3. Agent generates questions naturally in user's language
+    # No templates, no patterns - pure LLM understanding
+    
+    # 4. Send to chat UI with tool visibility
+    await send_to_chat({
+        "type": "proactive_analysis",
+        "analysis": analysis,
+        "awaiting_response": True
+    })
+    
+    # 5. On response (or timeout), update README memory
+    # Agent decides what to preserve based on context
+```
+
+#### Natural Question Generation:
+The React Agent analyzes file content and generates contextual questions naturally in the user's language. NO hardcoded questions or templates.
+
+```python
+# Agent naturally understands context and asks relevant questions
+# Works in ANY language - English, Chinese, Spanish, etc.
+questions = await agent.generate_contextual_questions(
+    file_content=analyzed_content,
+    project_context=experiment_readme,
+    user_language=detected_from_session
+)
+# Agent might ask about primers for PCR data, staining for images, etc.
+# But questions are generated naturally, not from templates
+```
+
+#### UI/UX Considerations:
+
+**Chat Blocking During Analysis**:
+- Show loading spinner with "Analyzing uploaded file..."
+- Display real-time tool indicators (which tools are running)
+- Prevent new messages until analysis complete
+- Estimated time: 3-5 seconds per file
+
+**Question Presentation**:
+- Clear visual separation from regular chat messages
+- Numbered questions for easy reference
+- Optional: Quick response buttons for common answers
+- Input field remains active for detailed responses
+
+**Visual Feedback**:
+```jsx
+// Component structure for proactive analysis
+<ProactiveAnalysisMessage>
+  <FileInfo icon={fileIcon} name={fileName} />
+  <Summary>{briefSummary}</Summary>
+  <Divider />
+  <Questions>
+    {questions.map((q, i) => (
+      <Question key={i} number={i+1}>{q}</Question>
+    ))}
+  </Questions>
+  <ResponseArea placeholder="Type your response..." />
+</ProactiveAnalysisMessage>
+```
+
+#### Edge Case Handling:
+
+**Bulk Upload Limit** (Max 3 files):
+```python
+# Enforce strict 3-file limit
+if len(uploaded_files) > 3:
+    return error_response(
+        "Please upload maximum 3 files at a time. "
+        "This allows proper context gathering for each file."
+    )
+# For 2-3 files, agent naturally groups analysis
+# and asks consolidated questions in user's language
+```
+
+**Hidden/System Files**:
+```python
+# Skip hidden files (start with .)
+if filename.startswith("."):
+    return  # Skip .gitignore, .env, etc.
+
+# For other files, agent analyzes and may naturally ask:
+# "Is this file related to your current experiment?"
+# if content seems unrelated to project context
+```
+
+**User Response Timeout**:
+```python
+# Wait up to 2 minutes for user context
+if await wait_for_response(timeout=120):
+    user_context = response
+else:
+    # Inform user and proceed with analysis-based context
+    await send_message(
+        "Proceeding with file organization based on initial analysis. "
+        "You can add context anytime by describing the file's purpose."
+    )
+    user_context = None  # Agent uses only file analysis
+```
+
+**File Updates/Overwrites**:
+```python
+# Detect if file already exists
+if file_exists(path):
+    # Agent naturally asks about changes in user's language
+    # e.g., might ask what's different, or if it's a correction
+    # No hardcoded questions - generated based on context
+```
 
 ## 3. API Response Formats
 
@@ -199,19 +348,40 @@ exp_XXX_[type]_YYYY-MM-DD/
 }
 ```
 
+### 3.4 Proactive Analysis Response (NEW in v2.3)
+```json
+{
+  "type": "proactive_analysis",
+  "fileInfo": {
+    "name": "pcr_results_20250114.csv",
+    "type": "csv",
+    "path": "/exp_003_pcr_2025-01-14/data/pcr_results_20250114.csv"
+  },
+  "summary": "PCR amplification data showing Ct values across 96 wells with 3 technical replicates. Average Ct=24.3±2.1, indicating successful amplification.",
+  "projectContext": "This appears to be optimization data for your ongoing primer testing series in exp_003.",
+  "questions": [
+    "Generated naturally by agent based on file content and user's language",
+    "No hardcoded questions - contextual and multilingual"
+  ],
+  "awaitingResponse": true,
+  "tools_used": ["analyze_data", "scan_project"]
+}
+```
+
 ## 4. Performance Metrics
 
-### v5.0 Achievements:
-- **Response Time**: 2-3 seconds (down from 60s in v4.0)
-- **Code Reduction**: 70% less code than v4.0
+### v2.2 Achievements:
+- **Response Time**: 2-3 seconds
+- **Code Reduction**: 70% less code than v2.0 multi-agent
 - **Natural Language**: Works in any language
 - **Maintenance**: Single agent, easy to extend
 
 ### Key Optimizations:
 - Single React Agent (no orchestration overhead)
-- Direct LLM intent understanding (no parsing layer)
-- Simplified tool architecture
+- Direct LLM intent understanding (no parsing/pattern matching)
+- Natural multi-language support without templates
 - Efficient session management
+- Proactive context gathering reduces manual annotation
 
 ## 5. Security Considerations
 
@@ -256,14 +426,20 @@ uv run python src/agents/react_agent.py
 4. ✅ Multi-language support
 5. ✅ Context-aware operations
 
-## 7. Future Enhancements (v5.1)
+## 7. Implementation Roadmap
 
-### Planned Features:
+### v2.3 Features (In Progress):
+- ✅ Proactive file analysis after upload
+- ✅ Context gathering through targeted questions
+- ✅ Automatic README memory updates with context
+- 🚧 WebSocket integration for real-time analysis
+- 🚧 Batch upload handling
+
+### v2.4+ Future Enhancements:
 - Background file monitoring
-- Automatic experiment detection
-- Proactive analysis suggestions
-- Cross-experiment insights
-- Export capabilities
+- Automatic experiment change detection
+- Cross-experiment pattern recognition
+- Export capabilities for reports
 
 ### Architecture Evolution:
 - Keep single React Agent pattern
@@ -273,12 +449,26 @@ uv run python src/agents/react_agent.py
 
 ## Implementation Summary
 
-✅ **COMPLETED**: The file management system is fully operational with natural language understanding, smart organization, and integrated AI assistance through a simplified React Agent architecture.
+✅ **v2.2 COMPLETED**: The file management system is fully operational with natural language understanding, smart organization, and integrated AI assistance through a simplified React Agent architecture.
 
-**Key Achievement**: 70% code reduction while maintaining all functionality and improving response times from 60s to 2-3s.
+🚧 **v2.3 IN PROGRESS**: Adding proactive file analysis with context gathering. When users upload files (max 3 at a time), the agent automatically analyzes them and naturally asks questions in the user's language to capture experimental context for enhanced memory updates.
+
+### Key Design Principles (MUST FOLLOW):
+1. **NO PATTERN MATCHING** - Agent understands intent naturally
+2. **NO HARDCODED QUESTIONS** - Questions generated based on context
+3. **NO LANGUAGE ASSUMPTIONS** - Works in any language automatically
+4. **3-FILE UPLOAD LIMIT** - Ensures proper context gathering
+5. **SKIP HIDDEN FILES** - Files starting with "." are ignored
+6. **NATURAL INTERACTION** - Agent acts as lab partner, not a form
+
+**Key Achievements**: 
+- 70% code reduction while maintaining all functionality
+- Response times improved to 2-3 seconds
+- Proactive context gathering eliminates manual annotation burden
+- True multi-language support without any templates
 
 ---
 
-**Version**: 5.0 (Simplified React Agent)  
-**Date**: 2025-01-12  
-**Status**: ✅ OPERATIONAL
+**Version**: 2.3 (Proactive Context Gathering)  
+**Date**: 2025-01-14  
+**Status**: 🚧 SPECIFICATION UPDATED - IMPLEMENTATION PENDING
