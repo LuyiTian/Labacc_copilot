@@ -33,7 +33,7 @@ from .test_generator import TestCaseGenerator
 from .evaluator_agent import TestCase
 
 # Import agent with trajectory capture capability
-from src.agents.react_agent import handle_message
+from src.agents.react_agent import handle_message_with_trajectory
 
 
 @dataclass 
@@ -203,30 +203,20 @@ class EnhancedAgentTestRunner:
         """
         Execute agent and capture full trajectory
         
-        NOTE: This requires modifying react_agent.py to return execution messages.
-        For now, we'll work with the existing handle_message function.
+        Uses the enhanced handle_message_with_trajectory to get both
+        response and execution messages.
         """
         
-        # TODO: Enhance react_agent.py to return execution trajectory
-        # For now, we'll call the existing function
-        agent_response = await handle_message(
+        # Call the enhanced function to get both response and trajectory
+        agent_response, execution_messages = await handle_message_with_trajectory(
             message=message,
             session_id=session_id,
             current_folder=current_folder,
             selected_files=selected_files
         )
         
-        # Mock trajectory capture until react_agent.py is enhanced
-        # In a real implementation, this would come from LangGraph execution
-        from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
-        
-        mock_messages = [
-            HumanMessage(content=message),
-            AIMessage(content="I'll help you with that."),
-            # Additional messages would be captured from actual LangGraph execution
-        ]
-        
-        return agent_response, mock_messages
+        # Return the real response and trajectory
+        return agent_response, execution_messages
     
     async def run_batch_tests_with_trajectory(
         self, 

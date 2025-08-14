@@ -225,14 +225,10 @@ data/ref/literature/  # Literature files
 chainlit.md
 
 # Large data files (keep examples)
-*.csv
-*.xlsx
+
 *.png
 *.jpg
 *.jpeg
-*.pdf
-!example_*.csv
-!example_*.png
 
 # Model and cache files
 *.model

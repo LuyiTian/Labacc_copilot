@@ -631,6 +631,261 @@ Selected files: {selected_files if selected_files else 'None'}
         return error_msg
 
 
+async def handle_message_with_trajectory(
+    message: str, 
+    session_id: str = "default",
+    current_folder: Optional[str] = None,
+    selected_files: Optional[List[str]] = None
+) -> tuple[str, list]:
+    """
+    Handle a user message and return both response and execution trajectory.
+    
+    This is an enhanced version of handle_message that captures the full
+    execution trajectory for evaluation purposes.
+    
+    Returns:
+        tuple: (response_string, execution_messages_list)
+    """
+    
+    try:
+        # AUTOMATIC CONTEXT INJECTION (same as handle_message)
+        context_parts = []
+        
+        # 1. Load experiment context automatically if in experiment folder
+        if current_folder and current_folder.startswith("exp_"):
+            try:
+                # Read README automatically (not as a tool!)
+                readme_content = await read_memory.ainvoke({
+                    "experiment_id": current_folder
+                })
+                
+                # Just dump the full README content - no parsing needed
+                rich_context = f"""
+=== FULL README CONTENT FOR {current_folder.upper()} ===
+This is the complete README.md content from folder {current_folder}:
+{readme_content}
+=== END OF README CONTENT ===
+"""
+                context_parts.append(rich_context)
+            except:
+                pass
+        
+        # 2. Add context about current folder and files
+        if current_folder:
+            context_parts.append(f"User is currently in folder: {current_folder}")
+        
+        if selected_files:
+            # Build full paths for clarity
+            if current_folder:
+                file_paths = [f"{current_folder}/{f}" for f in selected_files]
+            else:
+                file_paths = selected_files
+            context_parts.append(f"User has selected these files: {', '.join(file_paths)}")
+        
+        # 3. Build final message with smart instructions based on available context
+        system_hint = ""
+        if current_folder and current_folder.startswith("exp_") and context_parts and "CURRENT EXPERIMENT CONTEXT" in str(context_parts):
+            system_hint = f"""
+[SYSTEM INSTRUCTIONS]
+The complete README.md content for {current_folder} is provided above. DO NOT call any tools to read it again:
+- DO NOT use analyze_data to read README.md - the full content is already in this prompt
+- DO NOT use list_folder_contents to check folder contents - you have the README information
+- The README contains all experiment details: overview, methods, results, issues, next steps
+- Answer questions directly from the README content provided above
+- Only call tools if you need information NOT in the README above
+Current folder: {current_folder}
+Selected files: {selected_files if selected_files else 'None'}
+"""
+        elif current_folder and selected_files:
+            system_hint = f"\n\n[System: User is looking at folder '{current_folder}' with files {selected_files} selected. When they say 'this folder' or 'this file', use list_folder_contents for folders and analyze_data for files.]"
+        elif current_folder:
+            system_hint = f"\n\n[System: User is looking at folder '{current_folder}'. When they ask about 'this folder', use list_folder_contents tool with folder_path='{current_folder}'.]"
+        elif selected_files:
+            system_hint = f"\n\n[System: User has selected files {selected_files}. When they ask about 'this file', use analyze_data tool.]"
+        
+        if context_parts:
+            enriched_message = message + "\n\n" + "\n".join(context_parts) + system_hint
+        else:
+            enriched_message = message
+        
+        # Create agent
+        agent = create_memory_agent()
+        
+        # Track tool calls, response, and execution messages
+        tool_calls_made = []
+        unique_tools = set()
+        final_response = ""
+        all_messages = []
+        last_ai_message = None
+        execution_trajectory = []  # This will store the full trajectory
+        
+        # Import message types for trajectory
+        from langchain_core.messages import ToolMessage, FunctionMessage, SystemMessage
+        
+        # Add initial human message to trajectory
+        initial_human_msg = HumanMessage(content=enriched_message)
+        execution_trajectory.append(initial_human_msg)
+        
+        # Stream events for real-time tool visibility and trajectory capture
+        async for event in agent.astream_events(
+            {"messages": [initial_human_msg]},
+            config={"recursion_limit": 50},
+            version="v1"
+        ):
+            event_type = event.get("event", "")
+            
+            # Capture messages from events for trajectory
+            if "messages" in event.get("data", {}):
+                event_messages = event["data"]["messages"]
+                if isinstance(event_messages, list):
+                    for msg in event_messages:
+                        if msg not in execution_trajectory:  # Avoid duplicates
+                            execution_trajectory.append(msg)
+            
+            # Handle tool start events
+            if event_type == "on_tool_start":
+                tool_name = event.get("name", "unknown")
+                tool_input = event.get("data", {}).get("input", {})
+                
+                # Send "starting" notification immediately
+                logger.info(f"Tool {tool_name} starting execution for session {session_id}")
+                await notify_tool_call(session_id, tool_name, "starting", tool_input)
+                
+                # Track for logging
+                if tool_name not in unique_tools:
+                    unique_tools.add(tool_name)
+                    if isinstance(tool_input, dict):
+                        args_str = ', '.join(f"{k}={v}" for k, v in tool_input.items())
+                    else:
+                        args_str = str(tool_input)
+                    tool_calls_made.append(f"{tool_name}({args_str})")
+            
+            # Handle tool end events
+            elif event_type == "on_tool_end":
+                tool_name = event.get("name", "unknown")
+                tool_output = event.get("data", {}).get("output", "")
+                
+                logger.info(f"Tool {tool_name} completed for session {session_id}")
+                await notify_tool_call(session_id, tool_name, "completed", {})
+                
+                # Create a ToolMessage for trajectory
+                tool_msg = ToolMessage(
+                    content=str(tool_output),
+                    tool_call_id=f"{tool_name}_{len(execution_trajectory)}",
+                    name=tool_name
+                )
+                execution_trajectory.append(tool_msg)
+            
+            # Handle chat model events
+            elif event_type == "on_chat_model_end":
+                output = event.get("data", {}).get("output", {})
+                if output:
+                    # Store all messages from this event
+                    if hasattr(output, "generations"):
+                        for gen in output.generations:
+                            if hasattr(gen, "message"):
+                                all_messages.append(gen.message)
+                                if isinstance(gen.message, AIMessage):
+                                    execution_trajectory.append(gen.message)
+                                    last_ai_message = gen.message
+                                    if gen.message.content:
+                                        final_response = gen.message.content
+                    elif isinstance(output, AIMessage):
+                        all_messages.append(output)
+                        execution_trajectory.append(output)
+                        last_ai_message = output
+                        if output.content:
+                            final_response = output.content
+                    elif hasattr(output, "content"):
+                        final_response = output.content
+            
+            # Handle chain events
+            elif event_type == "on_chain_end":
+                output = event.get("data", {}).get("output", {})
+                if isinstance(output, dict) and "messages" in output:
+                    chain_messages = output["messages"]
+                    all_messages = chain_messages
+                    # Add any new messages to trajectory
+                    for msg in chain_messages:
+                        if msg not in execution_trajectory:
+                            execution_trajectory.append(msg)
+                    # Get the last AI message
+                    for msg in reversed(chain_messages):
+                        if isinstance(msg, AIMessage) and msg.content:
+                            if not final_response or len(msg.content) > len(final_response):
+                                final_response = msg.content
+                            break
+        
+        # Use the final response
+        response = final_response
+        
+        # Check if response is empty or truncated
+        if not response or response.strip() in ["", "...", "…"]:
+            logger.warning("Empty or truncated response from agent")
+            # Try to find a previous non-empty response from execution_trajectory
+            for prev_msg in reversed(execution_trajectory):
+                if isinstance(prev_msg, AIMessage) and prev_msg.content:
+                    response = prev_msg.content
+                    break
+            else:
+                # If still no response, provide a helpful error message
+                if tool_calls_made:
+                    response = f"I encountered an issue processing your request. The tools were called but didn't return expected results. Tool calls attempted: {', '.join(tool_calls_made[:3])}. Please try rephrasing your question or check if the files/folders exist."
+                else:
+                    response = "I encountered an issue processing your request. Please try rephrasing your question."
+        
+        # Background memory update (same as handle_message)
+        if current_folder and current_folder.startswith("exp_"):
+            from src.memory.auto_memory_updater import auto_update_memory
+            
+            async def update_memory_from_conversation():
+                try:
+                    result = await auto_update_memory(
+                        user_message=message,
+                        agent_response=response,
+                        experiment_id=current_folder
+                    )
+                    logger.info(f"Memory update result: {result}")
+                except Exception as e:
+                    logger.error(f"Failed to auto-update memory: {e}")
+            
+            asyncio.create_task(update_memory_from_conversation())
+            logger.debug(f"Triggered background memory analysis")
+        
+        # Enhanced conversation logging with tool calls
+        try:
+            if tool_calls_made:
+                logger.info(f"Tools used: {', '.join(tool_calls_made)}")
+            log_conversation(message, response, session_id)
+        except:
+            pass
+        
+        # Debug log
+        logger.info(f"[Session: {session_id}]")
+        logger.info(f"User: {message[:100]}...")
+        logger.info(f"Agent: {response[:200]}...")
+        logger.info(f"Trajectory: {len(execution_trajectory)} messages captured")
+        
+        return response, execution_trajectory
+        
+    except Exception as e:
+        logger.error(f"Error handling message with trajectory: {e}")
+        error_msg = f"Error: {str(e)}"
+        
+        # Return error with minimal trajectory
+        error_trajectory = [
+            HumanMessage(content=message),
+            AIMessage(content=error_msg)
+        ]
+        
+        try:
+            log_conversation(message, error_msg, session_id)
+        except:
+            pass
+        
+        return error_msg, error_trajectory
+
+
 # ============= Test Function =============
 
 async def test():

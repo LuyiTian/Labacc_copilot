@@ -2,7 +2,7 @@
 
 **Version**: 2.2.1  
 **Last Updated**: 2025-01-14  
-**Status**: ✅ Fully Operational with Real-time Tool Visibility
+**Status**: ✅ Fully Operational with Unified Testing Framework
 
 ## 🚦 Service Status
 
@@ -28,6 +28,18 @@
 | **Tool: compare_experiments** | ✅ Active | 2-3s | Cross-experiment analysis |
 | **Tool: create_experiment** | ✅ Active | <1s | Initialize new experiments |
 | **Tool: get_project_insights** | ✅ Active | 2-3s | Extract patterns |
+
+## 🧪 Testing Framework Status
+
+| Test Type | Framework | Command | Purpose | Status |
+|-----------|-----------|---------|---------|--------|
+| **Unit Tests** | pytest | `python run_unit_tests.py` | Code correctness during development | ✅ Active |
+| **Agent Evaluation** | LLM-as-judge | `python run_evaluation.py` | Comprehensive behavior testing | ✅ Active |
+
+### Test Coverage
+- **Unit Tests**: Fast (<30s), isolated, deterministic - run frequently during development
+- **Agent Evaluation**: Comprehensive (10-15min), 50+ scenarios - run before commits/releases
+
 | **Tool: scan_project** | ✅ Active | <1s | Lists all experiments with status |
 | **Tool: analyze_data** | ✅ Active | 3-5s | Analyze with context |
 | **Tool: diagnose_issue** | ✅ Active | 2-3s | LLM reasoning (no patterns!) |
@@ -100,11 +112,13 @@ User Query → Context Builder → React Agent → Tool Selection → Memory Upd
 ## ✅ Recently Fixed Issues (2025-01-14)
 
 ### Issues Fixed Today
-1. ✅ **Real-time Tool Visibility**: Now shows tools as they execute with WebSocket streaming
-2. ✅ **README Context Pre-injection**: README content automatically loaded into context
-3. ✅ **Smart Context Templates**: Context tailored to query type (optimization vs overview)
-4. ✅ **Empty Response Handling**: Proper fallback messages when agent response is empty
-5. ✅ **Tool Execution Streaming**: Using `astream_events()` for real-time notifications
+1. ✅ **Unified Testing Framework**: Separated unit tests (pytest) from agent evaluation (LLM-as-judge)
+2. ✅ **Clear Test Separation**: Unit tests for code correctness, agent evaluation for behavior quality
+3. ✅ **Real-time Tool Visibility**: Now shows tools as they execute with WebSocket streaming
+4. ✅ **README Context Pre-injection**: README content automatically loaded into context
+5. ✅ **Smart Context Templates**: Context tailored to query type (optimization vs overview)
+6. ✅ **Empty Response Handling**: Proper fallback messages when agent response is empty
+7. ✅ **Tool Execution Streaming**: Using `astream_events()` for real-time notifications
 
 ### Performance Improvements Achieved
 - **70% reduction** in unnecessary tool calls (README pre-loading)

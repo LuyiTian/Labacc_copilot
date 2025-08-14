@@ -15,8 +15,34 @@ from src.memory.readme_memory import MemoryManager, ExperimentMemory
 from src.components.llm import get_llm_instance
 from langchain_core.messages import HumanMessage
 
-# Initialize memory manager
-memory_manager = MemoryManager()
+
+def get_memory_manager(experiment_id: str = None) -> MemoryManager:
+    """
+    Get the appropriate memory manager based on context.
+    
+    Supports both alice_projects (production) and bob_projects (testing).
+    """
+    # Check if we should use bob_projects
+    use_bob_projects = False
+    
+    # Check environment variable for test mode
+    if os.environ.get("TEST_MODE") == "true":
+        use_bob_projects = True
+    
+    # Check if experiment_id suggests bob_projects
+    if experiment_id:
+        # Check if the experiment exists in bob_projects
+        bob_path = Path("data/bob_projects") / experiment_id
+        if bob_path.exists():
+            use_bob_projects = True
+    
+    # Determine project root
+    if use_bob_projects:
+        project_root = os.path.join(os.getcwd(), "data", "bob_projects")
+    else:
+        project_root = os.path.join(os.getcwd(), "data", "alice_projects")
+    
+    return MemoryManager(project_root)
 
 # ============= Memory Tools =============
 
@@ -37,6 +63,7 @@ async def read_memory(
         The requested memory content as formatted text
     """
     try:
+        memory_manager = get_memory_manager(experiment_id)
         memory = memory_manager.read_memory(experiment_id)
         
         if memory is None:
@@ -137,6 +164,7 @@ async def write_memory(
             parsed_content = content
         
         # Update the section
+        memory_manager = get_memory_manager(experiment_id)
         success = memory_manager.update_section(experiment_id, section, parsed_content)
         
         if success:
@@ -164,7 +192,17 @@ async def search_memories(
         Search results with matching experiments and context
     """
     try:
+        # For search, we might need to search both alice and bob projects
+        # Start with default (alice) unless TEST_MODE is set
+        memory_manager = get_memory_manager()
         results = memory_manager.search_memories(query, scope)
+        
+        # If in test mode or no results, also check bob_projects
+        if os.environ.get("TEST_MODE") == "true" or not results:
+            bob_manager = MemoryManager(os.path.join(os.getcwd(), "data", "bob_projects"))
+            bob_results = bob_manager.search_memories(query, scope)
+            if bob_results:
+                results = results + "\n\n" + bob_results if results else bob_results
         
         if not results:
             return f"No experiments found matching '{query}'"
@@ -205,6 +243,7 @@ async def append_insight(
     """
     try:
         # Read current memory
+        memory_manager = get_memory_manager(experiment_id)
         memory = memory_manager.read_memory(experiment_id)
         
         if memory is None:
@@ -260,6 +299,7 @@ async def update_file_registry(
     """
     try:
         # Read current memory
+        memory_manager = get_memory_manager(experiment_id)
         memory = memory_manager.read_memory(experiment_id)
         
         if memory is None:
@@ -333,6 +373,7 @@ async def compare_experiments(
         # Read all experiment memories
         memories = {}
         for exp_id in exp_list:
+            memory_manager = get_memory_manager(exp_id)
             memory = memory_manager.read_memory(exp_id)
             if memory:
                 memories[exp_id] = memory
@@ -415,6 +456,7 @@ async def create_experiment(
         name_clean = ''.join(c for c in name_clean if c.isalnum() or c == '_')
         
         # Find next available number
+        memory_manager = get_memory_manager()
         existing = [d.name for d in Path(memory_manager.project_root).iterdir() 
                    if d.is_dir() and d.name.startswith("exp_")]
         
@@ -463,6 +505,7 @@ async def get_project_insights() -> str:
     """
     try:
         # Get all experiments
+        memory_manager = get_memory_manager()
         exp_dirs = [d for d in Path(memory_manager.project_root).iterdir() 
                    if d.is_dir() and d.name.startswith("exp_")]
         
