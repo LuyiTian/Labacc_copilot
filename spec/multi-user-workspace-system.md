@@ -22,17 +22,69 @@ Simple flow:
 
 ## The Real Problem
 
-**Current**: One global `data/` folder, everyone sees everything  
-**Need**: Private projects, controlled sharing, simple collaboration
+### **Current Issues**
 
-**Real Lab Scenario**:
+1. **One global `data/` folder, everyone sees everything**  
+2. **CRITICAL BUG: Path resolution failure causing file upload errors**
+3. **No private projects, controlled sharing, or simple collaboration**
+
+### **Critical Bug Analysis** (August 2025)
+
+**Symptom**: PDF uploaded to `/bob_projects/exp_002_optimization/` but ended up in `/data/exp_002_optimization/` (wrong location)
+
+**Root Cause**: `src/api/file_routes.py:195-197` path reconstruction bug:
+```python
+# BROKEN CODE (FIXED 2025-08-15):
+originals_dir = Path(project_root) / experiment_id / "originals"  
+# Creates: data/exp_002_optimization/originals/
+# Should be: data/bob_projects/exp_002_optimization/originals/
+
+# FIXED CODE:
+originals_dir = dest_dir / "originals"  # ✅ Use validated destination
+```
+
+**Deeper Architecture Problems**:
+- ❌ **5-layer path interpretation chaos**: Frontend → API validation → Upload logic → Agent tools → Memory system
+- ❌ **No single source of truth**: Each component guesses path meanings differently  
+- ❌ **Brittle context extraction**: System extracts experiment context by parsing path strings
+- ❌ **Path reconstruction anti-pattern**: Rebuilding paths from fragments instead of preserving validated paths
+
+### **Real Lab Scenario**:
 ```
 Mike: "I want my PCR experiments private, but share the successful protocol with Lisa"
 Lisa: "I need to access lab protocols, work on my cancer study, and collaborate with Mike"  
 Sarah (PI): "I need oversight of all lab projects and manage permissions"
+Bug Report: "My PDF uploads go to wrong folders and create mysterious exp_unknown directories"
 ```
 
 ## Project-Centric Solution
+
+**Key Insight**: Session-based project isolation eliminates ALL path resolution complexity by providing a single source of truth.
+
+### **How This Fixes Current Bugs**
+
+**Before (Broken):**
+```python
+# 5-layer path interpretation chaos:
+Frontend: "/bob_projects/exp_002_optimization/" 
+   ↓ API strips leading "/"
+API: "bob_projects/exp_002_optimization/"
+   ↓ validate_path() resolves against project_root
+Validated: "data/bob_projects/exp_002_optimization/"
+   ↓ Upload logic extracts experiment_id
+Extract: "exp_002_optimization" 
+   ↓ Path reconstruction (BUG!)
+Result: "data/exp_002_optimization/" ❌ WRONG LOCATION
+```
+
+**After (Clean):**
+```python  
+# Single session-based resolution:
+Session: project_path = "/external/lab_data/projects/project_bob_lung_cancer/"
+Tool Call: upload_file("protocol.pdf", "experiments/")
+Resolution: project_path / "experiments/" = "/external/lab_data/projects/project_bob_lung_cancer/experiments/"
+Result: ✅ ALWAYS CORRECT, NO GUESSING
+```
 
 ### 1. Project Storage (Outside Codebase)
 ```
@@ -290,12 +342,48 @@ Login → Project Selection → Agent Tools (Relative Paths Only)
 ```
 
 **Core changes needed:**
-1. **Project storage**: External folder management (0.5 day)
-2. **Authentication & project selection**: Login + project picker (1 day)  
-3. **Agent simplification**: Relative paths only (0.5 day)
-4. **Project management UI**: Create/share projects (1 day)
+1. **✅ FIXED: Immediate path bug** - `src/api/file_routes.py` line 196 (Fixed 2025-08-15)
+2. **Project storage**: External folder management (0.5 day)
+3. **Authentication & project selection**: Login + project picker (1 day)  
+4. **Agent simplification**: Relative paths only (0.5 day) - **HUGE win: ~50 lines → ~5 lines per tool**
+5. **Project management UI**: Create/share projects (1 day)
 
 **Total effort: ~3 days** for project-based multi-user system.
+
+### **Path Resolution Migration Strategy**
+
+**Current Complex System** (to be replaced):
+```python
+# src/api/file_routes.py - Complex path reconstruction
+relative_path = str(dest_dir.relative_to(project_root))
+path_parts = relative_path.split('/')
+for part in path_parts:
+    if part.startswith('exp_'):  # Brittle experiment detection
+        experiment_id = part
+        break
+originals_dir = Path(project_root) / experiment_id / "originals"  # BUG: reconstruction fails
+```
+
+**New Simple System** (after refactoring):
+```python  
+# src/projects/session.py - Bulletproof session-based resolution
+class ProjectSession:
+    def resolve_path(self, relative_path: str) -> Path:
+        return self.project_path / relative_path  # Always works
+        
+# Tools become trivial:
+@tool
+async def upload_file(filename: str, destination: str = ".") -> str:
+    session = get_current_session()
+    upload_path = session.resolve_path(destination)
+    # No experiment ID extraction, no path reconstruction, no guessing!
+```
+
+**Migration Benefits**:
+- **Eliminates**: ~500 lines of complex path resolution logic
+- **Prevents**: All path-related bugs (yours + future ones)  
+- **Simplifies**: Agent tools from ~50 lines to ~5 lines each
+- **Adds**: Multi-user support as a bonus
 
 ### Benefits of Project-Centric Approach
 

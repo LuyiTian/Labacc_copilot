@@ -1,0 +1,26 @@
+{
+  "total_tests": 2,
+  "passed_tests": 0,
+  "failed_tests": 2,
+  "overall_pass_rate": 0.0,
+  "category_scores": {
+    "isolation": 2.6,
+    "session": 0.0
+  },
+  "language_scores": {
+    "English": 1.3
+  },
+  "project_scores": {
+    "unknown": 1.3
+  },
+  "session_management_score": 9.998223781585693,
+  "average_response_time": 0.18012523651123047,
+  "total_execution_time": 0.36025047302246094,
+  "timestamp": "2025-08-15T22:23:38.735436",
+  "multi_user_features_tested": [
+    "session_creation",
+    "project_isolation",
+    "project_selection",
+    "session_management"
+  ]
+}

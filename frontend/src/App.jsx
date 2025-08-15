@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import Login from './components/Login';
+import Dashboard from './components/Dashboard';
 import ChatPanel from './components/ChatPanel';
 import './App.css';
 import './styles/ChatPanel.css';
+import './styles/Auth.css';
 
 function App() {
+  // Authentication state
+  const [user, setUser] = useState(null);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [sessionId, setSessionId] = useState(null);
+  
+  // File manager state (original functionality)
   const [files, setFiles] = useState([]);
   const [currentPath, setCurrentPath] = useState('/');
   const [selectedFile, setSelectedFile] = useState(null);
@@ -14,16 +23,47 @@ function App() {
 
   const API_BASE = 'http://localhost:8002';
 
+  // Handle login success
+  const handleLoginSuccess = (userData) => {
+    setUser(userData);
+    setSessionId(userData.sessionId);
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    setUser(null);
+    setSelectedProject(null);
+    setSessionId(null);
+    setCurrentPath('/');
+    setFiles([]);
+    setSelectedFiles([]);
+  };
+
+  // Handle project selection from dashboard
+  const handleProjectSelect = (projectId, sessionId) => {
+    setSelectedProject(projectId);
+    setSessionId(sessionId);
+  };
+
   // Load files when path changes
   useEffect(() => {
     loadFiles(currentPath);
   }, [currentPath]);
 
   const loadFiles = async (path) => {
+    if (!selectedProject) return;
+    
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE}/api/files/list?path=${encodeURIComponent(path)}`);
+      const headers = {};
+      if (sessionId) {
+        headers['X-Session-ID'] = sessionId;
+      }
+      
+      const response = await fetch(`${API_BASE}/api/files/list?path=${encodeURIComponent(path)}`, {
+        headers
+      });
       const data = await response.json();
       setFiles(data.files || []);
     } catch (err) {
@@ -74,8 +114,14 @@ function App() {
     }
 
     try {
+      const headers = {};
+      if (sessionId) {
+        headers['X-Session-ID'] = sessionId;
+      }
+      
       const response = await fetch(`${API_BASE}/api/files/upload`, {
         method: 'POST',
+        headers,
         body: formData,
       });
       
@@ -94,9 +140,14 @@ function App() {
     if (!folderName) return;
 
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (sessionId) {
+        headers['X-Session-ID'] = sessionId;
+      }
+      
       const response = await fetch(`${API_BASE}/api/files/folder`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           path: currentPath,
           folder_name: folderName,
@@ -117,9 +168,14 @@ function App() {
     if (!confirm(`Delete ${file.name}?`)) return;
 
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (sessionId) {
+        headers['X-Session-ID'] = sessionId;
+      }
+      
       const response = await fetch(`${API_BASE}/api/files`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           paths: [file.path],
         }),
@@ -167,16 +223,43 @@ function App() {
     }
   };
 
+  // Load files when project changes or path changes
+  useEffect(() => {
+    if (selectedProject) {
+      loadFiles(currentPath);
+    }
+  }, [currentPath, selectedProject]);
+
+
+  // Main render logic - implements the requested flow
+  if (!user) {
+    // Step 1: User Login
+    return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  if (!selectedProject) {
+    // Step 2: Project Management Dashboard  
+    return (
+      <Dashboard 
+        user={user}
+        onProjectSelect={handleProjectSelect}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  // Step 3: Project Workspace (Original UI Layout)
   return (
     <div className="app-container">
       <div className="app-header">
-        <h1>LabAcc Copilot - File Manager</h1>
+        <h1>LabAcc Copilot - {selectedProject.replace('project_', '').replace(/_/g, ' ')}</h1>
         <div className="header-info">
           Modern file management for wet-lab biologists
         </div>
       </div>
       
       <div className="app-content">
+        {/* Original File Manager - Left Side */}
         {showFiles && (
           <div className="file-manager-section">
           {/* Toolbar */}
@@ -249,21 +332,47 @@ function App() {
           </div>
         )}
         
-        {/* Chat Panel */}
-        <ChatPanel 
-          currentFolder={currentPath}
-          selectedFiles={selectedFiles.map(f => f.path)}
-          showFiles={showFiles}
-        />
+        {/* Chat Panel - Updated for session-based system */}
+        {selectedProject && (
+          <ChatPanel 
+            currentFolder={currentPath}
+            selectedFiles={selectedFiles.map(f => f.path)}
+            showFiles={showFiles}
+            sessionId={sessionId}
+            selectedProject={selectedProject}
+          />
+        )}
+        
+        {/* Project Controls - Show when project selected */}
+        {selectedProject && (
+          <div className="project-controls">
+            <div className="current-project">
+              📁 {selectedProject.replace('project_', '').replace(/_/g, ' ')}
+            </div>
+            <button 
+              className="change-project-btn"
+              onClick={() => {
+                setSelectedProject(null);
+                setSessionId(null);
+                setCurrentPath('/');
+                setFiles([]);
+              }}
+            >
+              Change Project
+            </button>
+          </div>
+        )}
         
         {/* Toggle Files Button */}
-        <button 
-          className="files-toggle-button"
-          onClick={() => setShowFiles(!showFiles)}
-          title={showFiles ? 'Hide Files' : 'Show Files'}
-        >
-          {showFiles ? '📁 Hide Files' : '📁 Show Files'}
-        </button>
+        {selectedProject && (
+          <button 
+            className="files-toggle-button"
+            onClick={() => setShowFiles(!showFiles)}
+            title={showFiles ? 'Hide Files' : 'Show Files'}
+          >
+            {showFiles ? '📁 Hide Files' : '📁 Show Files'}
+          </button>
+        )}
       </div>
     </div>
   );

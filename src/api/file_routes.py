@@ -13,7 +13,7 @@ import asyncio
 import logging
 
 import aiofiles
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -87,15 +87,28 @@ def validate_path(path: str, project_root: str) -> Path:
     return resolved_path
 
 
-def get_project_root() -> str:
-    """Get the project root directory from environment or default"""
-    default_root = os.path.join(os.getcwd(), "data")
-    return os.environ.get("LABACC_PROJECT_ROOT", default_root)
+def get_project_root(request: Request) -> str:
+    """Get the session-specific project root directory"""
+    from src.projects.session import session_manager
+    
+    # Get session ID from header
+    session_id = request.headers.get("X-Session-ID")
+    if not session_id:
+        raise HTTPException(status_code=401, detail="No session ID provided")
+    
+    # Get session context
+    session = session_manager.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=403, detail="Invalid or expired session")
+    
+    # Return the session-specific project path
+    return str(session.project_path)
 
 
 # File operation endpoints
 @router.get("/list", response_model=ListFilesResponse)
 async def list_files(
+    request: Request,
     path: str = "/",
     project_root: str = Depends(get_project_root)
 ) -> ListFilesResponse:
@@ -192,7 +205,8 @@ async def upload_files(
             # Determine where to save the file
             if experiment_id and conversion_pipeline.needs_conversion(filename):
                 # For convertible files in experiments, save to originals/
-                originals_dir = Path(project_root) / experiment_id / "originals"
+                # FIXED: Use dest_dir instead of reconstructing path from experiment_id
+                originals_dir = dest_dir / "originals"
                 originals_dir.mkdir(parents=True, exist_ok=True)
                 file_path = originals_dir / filename
             else:

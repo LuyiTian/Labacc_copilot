@@ -79,8 +79,8 @@ from src.api import file_router
 
 app.include_router(file_router)
 
-# Mount React-Chainlit bridge routes
-from src.api.react_bridge import router as chat_router
+# Mount React-Agent bridge routes (simplified for development)
+from src.api.temp_bridge import router as chat_router
 
 app.include_router(chat_router)
 
@@ -88,6 +88,11 @@ app.include_router(chat_router)
 from src.api.debug_routes import router as debug_router
 
 app.include_router(debug_router)
+
+# Mount project management routes
+from src.api.project_routes import router as project_router
+
+app.include_router(project_router)
 
 # Health check endpoint
 @app.get("/health")

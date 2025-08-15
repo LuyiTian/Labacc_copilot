@@ -4,74 +4,86 @@ import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import io from 'socket.io-client';
+// Removed socket.io-client import - using native WebSocket instead
 import ToolCallIndicator from './ToolCallIndicator';
+import '../styles/ChatPanel.css';
 
 const API_SERVER = 'http://localhost:8002/api/chat';
 
-const ChatPanel = ({ currentFolder, selectedFiles, showFiles }) => {
+const ChatPanel = ({ currentFolder, selectedFiles, showFiles, sessionId, selectedProject }) => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState(null);
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
 
-  // Initialize connection to chat server
+  // Initialize session-based connection
   useEffect(() => {
-    const connectToChatServer = async () => {
-      try {
-        // First, establish connection to get session
-        const response = await fetch(`${API_SERVER}/init`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            currentFolder,
-            selectedFiles
-          })
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setSessionId(data.sessionId);
-          setIsConnected(true);
-          
-          // Add welcome message
-          setMessages([{
-            id: 'welcome',
-            content: 'Welcome to LabAcc Copilot! I can help you analyze experimental data, organize files, and suggest optimizations.',
-            author: 'Assistant',
-            createdAt: new Date().toISOString(),
-            type: 'ai_message'
-          }]);
-        }
-      } catch (error) {
-        console.error('Failed to connect to chat server:', error);
-        setIsConnected(false);
-        
-        // Add offline message
-        setMessages([{
-          id: 'offline',
-          content: 'Chat is currently offline. The FastAPI server may not be running on port 8002. Please check the backend server.',
-          author: 'System',
-          createdAt: new Date().toISOString(),
-          type: 'system_message'
-        }]);
+    if (sessionId && selectedProject) {
+      setIsConnected(true);
+      
+      // Add welcome message for selected project
+      setMessages([{
+        id: 'welcome',
+        content: `🚀 **Welcome to LabAcc Copilot!**\n\nYou're now working in project: **${selectedProject.replace('project_', '').replace(/_/g, ' ')}**\n\nI can help you:\n- 📁 List and analyze experiments\n- 🔬 Read and interpret data files\n- 📊 Diagnose experimental issues\n- 🎯 Suggest optimizations\n- 📚 Research literature\n\nTry asking: *"List my experiments"* or *"What's in this project?"*`,
+        author: 'Assistant',
+        createdAt: new Date().toISOString(),
+        type: 'ai_message'
+      }]);
+      
+      // Connect WebSocket for tool call updates
+      if (socketRef.current) {
+        socketRef.current.close();
       }
-    };
-
-    connectToChatServer();
-
+      
+      const ws = new WebSocket(`ws://localhost:8002/ws/agent/${sessionId}`);
+      
+      ws.onopen = () => {
+        console.log('WebSocket connected for session:', sessionId);
+        setIsConnected(true);
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'tool_call') {
+            console.log('Tool call update:', data);
+            // Tool call indicators will be handled by ToolCallIndicator component
+          }
+        } catch (err) {
+          console.error('WebSocket message parse error:', err);
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setIsConnected(false);
+      };
+      
+      ws.onclose = () => {
+        console.log('WebSocket disconnected');
+        setIsConnected(false);
+      };
+      
+      socketRef.current = ws;
+    } else if (!selectedProject) {
+      setIsConnected(false);
+      setMessages([{
+        id: 'no-project',
+        content: 'Please select a project to start chatting with the AI agent.',
+        author: 'System',
+        createdAt: new Date().toISOString(),
+        type: 'system_message'
+      }]);
+    }
     // Cleanup on unmount
     return () => {
       if (socketRef.current) {
-        socketRef.current.disconnect();
+        socketRef.current.close();
       }
     };
-  }, []);
+  }, [sessionId, selectedProject]);
 
   // Update context when folder or files change
   useEffect(() => {
@@ -115,12 +127,11 @@ const ChatPanel = ({ currentFolder, selectedFiles, showFiles }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Session-ID': sessionId
         },
         body: JSON.stringify({
-          sessionId,
           message: messageContent,
-          currentFolder,
-          selectedFiles
+          session_id: sessionId
         })
       });
 

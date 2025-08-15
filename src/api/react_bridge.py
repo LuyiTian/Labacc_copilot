@@ -1,96 +1,171 @@
 """
-Bridge API endpoints for React-LangGraph integration
-Simplified to use a single React agent instead of complex orchestration
+Bridge API endpoints for React-LangGraph integration with Multi-User Support
+
+Handles authenticated sessions, project selection, and agent communication.
+Integrates with the new session-based project system for bulletproof path resolution.
 """
 
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials  
 from pydantic import BaseModel
 
 from src.agents.react_agent import handle_message as handle_user_message
-
-# Store active sessions
-active_sessions: dict[str, dict[str, Any]] = {}
+from src.projects.auth import auth_manager
+from src.projects.session import session_manager, set_current_session
+from src.projects.project_manager import project_manager
 
 router = APIRouter(prefix="/api/chat")
+security = HTTPBearer()
 
-class InitRequest(BaseModel):
-    currentFolder: str | None = None
-    selectedFiles: list[str] = []
+# Request/Response models
+class InitSessionRequest(BaseModel):
+    """Initialize session after authentication"""
+    pass
+
+class ProjectSelectionRequest(BaseModel):
+    sessionId: str
+    projectId: str
 
 class MessageRequest(BaseModel):
     sessionId: str
     message: str
-    currentFolder: str | None = None
-    selectedFiles: list[str] = []
+    # Note: No more currentFolder/selectedFiles - path resolution is session-based!
 
-class ContextUpdate(BaseModel):
+class ProjectInfo(BaseModel):
+    project_id: str
+    name: str
+    description: str
+    permission: str  # owner/shared/admin
+    owner_id: str
+
+class SessionInfo(BaseModel):
     sessionId: str
-    currentFolder: str | None = None
-    selectedFiles: list[str] = []
+    user_id: str
+    selected_project: Optional[str]
+    permission: Optional[str] 
+    project_selected: bool
+    message_count: int
+    created_at: str
+
+# Dependency to get current authenticated user
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """Extract and verify user from bearer token"""
+    token = credentials.credentials
+    user_info = auth_manager.verify_token(token)
+    
+    if not user_info:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    return user_info
 
 @router.post("/init")
-async def init_session(request: InitRequest):
-    """Initialize a new chat session"""
+async def init_session(request: InitSessionRequest, 
+                      current_user: dict = Depends(get_current_user)):
+    """Initialize a new authenticated chat session"""
     session_id = str(uuid.uuid4())
-
-    active_sessions[session_id] = {
-        "created_at": datetime.now().isoformat(),
-        "current_folder": request.currentFolder,
-        "selected_files": request.selectedFiles,
-        "thread_id": f"react_user:{session_id}",
-        "message_history": []
-    }
-
+    
+    # Create session in session manager
+    success = session_manager.create_session(session_id, current_user["user_id"])
+    
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create session"
+        )
+    
     return {
         "sessionId": session_id,
-        "status": "initialized"
+        "status": "session_created",
+        "user_id": current_user["user_id"],
+        "message": "Session created. Please select a project to continue."
     }
 
-@router.post("/context")
-async def update_context(request: ContextUpdate):
-    """Update session context (current folder, selected files)"""
-    if request.sessionId not in active_sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
+@router.get("/projects")
+async def get_user_projects(current_user: dict = Depends(get_current_user)) -> List[ProjectInfo]:
+    """Get list of projects accessible to current user"""
+    projects = project_manager.get_user_projects(current_user["user_id"])
+    
+    return [
+        ProjectInfo(
+            project_id=project.project_id,
+            name=project.name,
+            description=project.description,
+            permission=project_manager.get_user_permission(current_user["user_id"], project.project_id),
+            owner_id=project.owner_id
+        )
+        for project in projects
+    ]
 
-    session = active_sessions[request.sessionId]
-    session["current_folder"] = request.currentFolder
-    session["selected_files"] = request.selectedFiles
-
-    return {"status": "context_updated"}
+@router.post("/select-project")
+async def select_project(request: ProjectSelectionRequest,
+                        current_user: dict = Depends(get_current_user)):
+    """Select a project for the session"""
+    
+    # Verify session belongs to current user
+    session_info = session_manager.get_session_info(request.sessionId)
+    if not session_info or session_info["user_id"] != current_user["user_id"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Session not found or access denied"
+        )
+    
+    # Select project in session manager (includes permission checks)
+    project_session = session_manager.select_project(request.sessionId, request.projectId)
+    
+    if not project_session:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to project or project not found"
+        )
+    
+    return {
+        "status": "project_selected",
+        "sessionId": request.sessionId,
+        "projectId": request.projectId,
+        "permission": project_session.permission,
+        "message": f"Project selected. You can now chat with the agent about this project."
+    }
 
 @router.post("/message")
-async def send_message(request: MessageRequest):
+async def send_message(request: MessageRequest,
+                      current_user: dict = Depends(get_current_user)):
     """Send a message to the AI assistant"""
-    if request.sessionId not in active_sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
-
-    session = active_sessions[request.sessionId]
-
-    # Update context
-    session["current_folder"] = request.currentFolder
-    session["selected_files"] = request.selectedFiles
-
-    # Add user message to history
-    user_message = {
-        "id": str(uuid.uuid4()),
-        "content": request.message,
-        "author": "User",
-        "timestamp": datetime.now().isoformat(),
-        "type": "user_message"
-    }
-    session["message_history"].append(user_message)
-
+    
+    # Get session context
+    project_session = session_manager.get_session(request.sessionId)
+    
+    if not project_session:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No project selected. Please select a project first."
+        )
+    
+    # Verify session belongs to current user
+    if project_session.user_id != current_user["user_id"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to session"
+        )
+    
     try:
+        # Set current session context for this request thread
+        set_current_session(request.sessionId)
+        
         # Process with the enhanced React agent
+        # NOTE: No more currentFolder/selectedFiles - agent uses session.resolve_path()!
         ai_response = await handle_user_message(
             message=request.message,
             session_id=request.sessionId,
-            current_folder=request.currentFolder,
-            selected_files=request.selectedFiles
+            current_folder=None,  # Not used anymore
+            selected_files=None   # Not used anymore
         )
         
         # Log for debugging (in development)
@@ -98,9 +173,9 @@ async def send_message(request: MessageRequest):
             from src.api.debug_routes import debug_history
             debug_entry = {
                 "timestamp": datetime.now().isoformat(),
+                "user_id": current_user["user_id"],
+                "project_id": project_session.selected_project,
                 "user_message": request.message,
-                "current_folder": request.currentFolder,
-                "selected_files": request.selectedFiles,
                 "agent_response": ai_response
             }
             debug_history.append(debug_entry)
@@ -109,57 +184,67 @@ async def send_message(request: MessageRequest):
         except:
             pass  # Don't fail if debug logging fails
 
-        # Add AI response to history
-        ai_message = {
-            "id": str(uuid.uuid4()),
-            "content": ai_response,
-            "author": "Assistant",
-            "timestamp": datetime.now().isoformat(),
-            "type": "ai_message"
-        }
-        session["message_history"].append(ai_message)
-
         return {
             "response": ai_response,
             "author": "Assistant",
-            "sessionId": request.sessionId
+            "sessionId": request.sessionId,
+            "projectId": project_session.selected_project
         }
 
     except Exception as e:
         error_message = f"Error processing your message: {str(e)}"
-
-        # Add error to history
-        error_msg = {
-            "id": str(uuid.uuid4()),
-            "content": error_message,
-            "author": "System",
-            "timestamp": datetime.now().isoformat(),
-            "type": "error_message"
-        }
-        session["message_history"].append(error_msg)
-
         raise HTTPException(status_code=500, detail=error_message)
 
 @router.get("/session/{session_id}")
-async def get_session(session_id: str):
+async def get_session(session_id: str,
+                     current_user: dict = Depends(get_current_user)) -> SessionInfo:
     """Get session information"""
-    if session_id not in active_sessions:
+    
+    session_info = session_manager.get_session_info(session_id)
+    
+    if not session_info:
         raise HTTPException(status_code=404, detail="Session not found")
-
-    session = active_sessions[session_id]
-    return {
-        "sessionId": session_id,
-        "currentFolder": session.get("current_folder"),
-        "selectedFiles": session.get("selected_files", []),
-        "messageCount": len(session.get("message_history", [])),
-        "createdAt": session.get("created_at")
-    }
+    
+    # Verify session belongs to current user  
+    if session_info["user_id"] != current_user["user_id"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to session"
+        )
+    
+    return SessionInfo(
+        sessionId=session_id,
+        user_id=session_info["user_id"],
+        selected_project=session_info.get("selected_project"),
+        permission=session_info.get("permission"),
+        project_selected=session_info.get("project_selected", False),
+        message_count=0,  # TODO: Implement message history if needed
+        created_at=datetime.now().isoformat()  # TODO: Get from session
+    )
 
 @router.delete("/session/{session_id}")
-async def delete_session(session_id: str):
+async def delete_session(session_id: str,
+                        current_user: dict = Depends(get_current_user)):
     """Delete a session"""
-    if session_id not in active_sessions:
+    
+    session_info = session_manager.get_session_info(session_id)
+    
+    if not session_info:
         raise HTTPException(status_code=404, detail="Session not found")
-
-    del active_sessions[session_id]
-    return {"status": "session_deleted"}
+    
+    # Verify session belongs to current user
+    if session_info["user_id"] != current_user["user_id"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to session"
+        )
+    
+    success = session_manager.end_session(session_id)
+    
+    if success:
+        return {"status": "session_deleted"}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete session"
+        )

@@ -34,6 +34,9 @@ from src.memory.memory_tools import (
     create_experiment
 )
 
+# Import session management for bulletproof path resolution
+from src.projects.session import get_current_session, require_session
+
 # Setup logging configuration
 try:
     from src.config.logging_config import setup_logging, log_conversation
@@ -68,68 +71,75 @@ async def notify_tool_call(session_id: str, tool_name: str, status: str, args: d
 
 @tool
 async def scan_project() -> str:
-    """Scan all experiments and data in the project."""
-    project_root = Path(__file__).parent.parent.parent
-    data_path = project_root / "data"
+    """Scan the entire project to get an overview of all experiments, folders, and main data.
     
-    if not data_path.exists():
-        return "No data folder found. Project not initialized yet."
-    
-    # Find all experiment folders across all subdirectories
-    experiments = []
-    other_folders = []
-    
-    for item in sorted(data_path.rglob("*")):
-        if item.is_dir():
-            relative_path = item.relative_to(data_path)
-            if item.name.startswith("exp_"):
-                # Try to read status from README
-                status = "No README"
-                try:
-                    readme_path = item / "README.md"
-                    if readme_path.exists():
-                        with open(readme_path, 'r') as f:
-                            first_lines = f.read(500)
-                            status = "Active" if "Active" in first_lines else "Has README"
-                except:
-                    pass
-                experiments.append(f"📂 {relative_path}: {status}")
-            elif len(relative_path.parts) == 1:  # Top-level folders only
-                file_count = len(list(item.iterdir())) if item.exists() else 0
-                other_folders.append(f"📁 {relative_path}/ ({file_count} items)")
-    
-    result = "=== PROJECT STRUCTURE ===\n"
-    
-    if other_folders:
-        result += "Main folders:\n" + "\n".join(other_folders[:10]) + "\n\n"
-    
-    if experiments:
-        result += f"Experiments ({len(experiments)} found):\n" + "\n".join(experiments[:15])
-        if len(experiments) > 15:
-            result += f"\n... and {len(experiments) - 15} more experiments"
-    else:
-        result += "No experiment folders found (folders starting with 'exp_')"
-    
-    return result
+    Use this tool first when user asks about the project structure or wants a general overview.
+    Returns a comprehensive summary of the project contents and organization.
+    """
+    try:
+        # Get current session - bulletproof path resolution!
+        session = require_session()
+        project_path = session.project_path
+        
+        if not project_path.exists():
+            return f"Project folder not found: {session.selected_project}"
+        
+        # Find all experiment folders and other directories
+        experiments = []
+        other_folders = []
+        
+        for item in sorted(project_path.rglob("*")):
+            if item.is_dir():
+                relative_path = item.relative_to(project_path)
+                if item.name.startswith("exp_"):
+                    # Try to read status from README
+                    status = "No README"
+                    try:
+                        readme_path = item / "README.md"
+                        if readme_path.exists():
+                            with open(readme_path, 'r') as f:
+                                first_lines = f.read(500)
+                                status = "Active" if "Active" in first_lines else "Has README"
+                    except:
+                        pass
+                    experiments.append(f"📂 {relative_path}: {status}")
+                elif len(relative_path.parts) == 1:  # Top-level folders only
+                    file_count = len(list(item.iterdir())) if item.exists() else 0
+                    other_folders.append(f"📁 {relative_path}/ ({file_count} items)")
+        
+        result = f"=== PROJECT: {session.selected_project} ===\n"
+        result += f"Permission: {session.permission}\n\n"
+        
+        if other_folders:
+            result += "Main folders:\n" + "\n".join(other_folders[:10]) + "\n\n"
+        
+        if experiments:
+            result += f"Experiments ({len(experiments)} found):\n" + "\n".join(experiments[:15])
+            if len(experiments) > 15:
+                result += f"\n... and {len(experiments) - 15} more experiments"
+        else:
+            result += "No experiment folders found (folders starting with 'exp_')"
+        
+        return result
+        
+    except RuntimeError as e:
+        return f"Error: {str(e)}"
 
 
 @tool  
-async def list_folder_contents(folder_path: str) -> str:
-    """List files and subfolders in a specified folder.
+async def list_folder_contents(folder_path: str = ".") -> str:
+    """List files and subfolders in a specified folder within the current project.
+    
+    Use this to explore directory contents and find specific files or experiments.
     
     Args:
-        folder_path: Path relative to project root (e.g., 'data' or 'data/alice_projects/exp_001')
+        folder_path: Path relative to project root (e.g., 'experiments' or 'experiments/exp_001').
+                    Use "." for project root directory.
     """
     try:
-        # Get project root directory
-        project_root = Path(__file__).parent.parent.parent
-        
-        # Clean up path - remove leading slash if present
-        if folder_path.startswith("/"):
-            folder_path = folder_path.lstrip("/")
-        
-        # Resolve full path relative to project root
-        full_path = project_root / folder_path
+        # Bulletproof session-based path resolution - NO MORE CHAOS!
+        session = require_session()
+        full_path = session.resolve_path(folder_path)
         
         if not full_path.exists():
             return f"Folder not found: {folder_path}"
@@ -138,7 +148,6 @@ async def list_folder_contents(folder_path: str) -> str:
             return f"Not a folder: {folder_path}"
         
         # List contents
-        contents = []
         files = []
         folders = []
         
@@ -173,6 +182,8 @@ async def list_folder_contents(folder_path: str) -> str:
         
         return result
         
+    except RuntimeError as e:
+        return f"Error: {str(e)}"
     except Exception as e:
         logger.error(f"Error listing folder: {e}")
         return f"Error listing folder: {str(e)}"
@@ -180,70 +191,27 @@ async def list_folder_contents(folder_path: str) -> str:
 
 @tool
 async def read_file(file_path: str) -> str:
-    """Read file contents, automatically using converted version if available.
-    
-    This tool transparently handles both original and converted files.
-    For PDFs, Office docs, it returns the markdown-converted content.
-    For text files, CSVs, it returns the original content.
+    """Read file contents within current project.
     
     Args:
-        file_path: Path to the file relative to project root (e.g., 'data/alice_projects/exp_001/README.md')
+        file_path: Path to file relative to project root (e.g., 'experiments/exp_001/README.md')
     
     Returns:
-        File contents as string (markdown for converted docs, raw for text)
+        File contents as string
     """
     try:
-        from src.api.file_registry import get_file_registry
+        # Bulletproof session-based path resolution!
+        session = require_session()
+        full_path = session.resolve_path(file_path)
         
-        # Get project root directory  
-        project_root_path = Path(__file__).parent.parent.parent
-        
-        # Clean up path - remove leading slash if present
-        if file_path.startswith("/"):
-            file_path = file_path.lstrip("/")
-        
-        # Resolve full path relative to project root
-        if Path(file_path).is_absolute():
-            full_path = Path(file_path)
-        else:
-            full_path = project_root_path / file_path
-        
-        # Extract experiment ID if in an experiment folder
-        experiment_id = None
-        path_str = str(full_path)
-        if "/exp_" in path_str:
-            parts = path_str.split("/")
-            for part in parts:
-                if part.startswith("exp_"):
-                    experiment_id = part
-                    break
-        
-        # Check file registry for converted version
-        if experiment_id:
-            registry = get_file_registry(str(project_root_path / "data"))
-            
-            # Try to find file in registry by path
-            try:
-                relative_to_project = str(full_path.relative_to(project_root_path))
-                file_info = registry.get_file_by_path(experiment_id, relative_to_project)
-                
-                if file_info:
-                    # Use converted version if available and successful
-                    if (file_info.get("converted_path") and 
-                        file_info.get("conversion", {}).get("status") == "success"):
-                        converted_path = project_root_path / file_info["converted_path"]
-                        if converted_path.exists():
-                            logger.info(f"Reading converted version: {converted_path}")
-                            with open(converted_path, 'r', encoding='utf-8') as f:
-                                content = f.read()
-                            return f"# Content of {Path(file_path).name} (converted to Markdown)\n\n{content}"
-            except ValueError:
-                # File not relative to project root, skip registry lookup
-                pass
-        
-        # Fallback to reading original file
         if not full_path.exists():
             return f"File not found: {file_path}"
+        
+        if not full_path.is_file():
+            return f"Not a file: {file_path}"
+        
+        # TODO: File conversion registry needs to be adapted for new project structure
+        # For now, read original file directly
         
         # Check if it's a binary file
         try:
@@ -254,6 +222,8 @@ async def read_file(file_path: str) -> str:
             # Binary file, return basic info
             return f"Binary file: {full_path.name} ({full_path.stat().st_size} bytes)\nUse analyze_data tool for detailed analysis."
         
+    except RuntimeError as e:
+        return f"Error: {str(e)}"
     except Exception as e:
         logger.error(f"Error reading file: {e}")
         return f"Error reading file: {str(e)}"
@@ -261,70 +231,44 @@ async def read_file(file_path: str) -> str:
 
 @tool
 async def analyze_data(file_path: str) -> str:
-    """Analyze experimental data file. Context is automatically loaded if in an experiment folder.
+    """Analyze experimental data file within current project.
     
     Args:
-        file_path: Path to the data file (relative or absolute)
+        file_path: Path to the data file relative to project root
     """
     try:
-        # Use file analyzer
-        llm = get_llm_instance()
-        analyzer = QuickFileAnalyzer(llm)
-        
-        # Get project root directory
-        project_root = Path(__file__).parent.parent.parent
-        
-        # Clean up path - remove leading slash if present
-        if file_path.startswith("/"):
-            file_path = file_path.lstrip("/")
-        
-        # Resolve full path relative to project root
-        if Path(file_path).is_absolute():
-            full_path = Path(file_path)
-        else:
-            full_path = project_root / file_path
+        # Bulletproof session-based path resolution!
+        session = require_session()
+        full_path = session.resolve_path(file_path)
         
         if not full_path.exists():
             return f"File not found: {file_path}"
         
+        # Use file analyzer
+        llm = get_llm_instance()
+        analyzer = QuickFileAnalyzer(llm)
+        
         # Analyze file
         analysis = await analyzer.analyze_file(str(full_path))
         
-        # For better summaries, also use our context-aware summarizer
-        from src.memory.file_summarizer import summarize_uploaded_file
-        
-        # Detect experiment ID for context
-        experiment_id = None
-        path_str = str(full_path)
-        if "/exp_" in path_str:
-            parts = path_str.split("/")
-            for part in parts:
-                if part.startswith("exp_"):
-                    experiment_id = part
-                    break
-        
-        # Get context-aware summary
-        try:
-            context_summary = await summarize_uploaded_file(str(full_path), experiment_id)
-        except:
-            context_summary = analysis.content_summary
+        # TODO: Context-aware summarizer needs to be adapted for new project structure
+        # For now, use basic analysis
         
         result = f"File Analysis for {analysis.file_name}:\n"
         result += f"- Type: {analysis.file_type}\n"
         result += f"- Size: {analysis.size_bytes} bytes\n"
-        result += f"- Summary: {context_summary}\n"
+        result += f"- Summary: {analysis.content_summary}\n"
+        result += f"- Project: {session.selected_project}\n"
         
         if analysis.data_points:
             result += f"- Data points: {analysis.data_points}\n"
         
-        # MEMORY UPDATES REMOVED FROM analyze_data TOOL
-        # Memory updates should ONLY happen at the conversation level where the LLM
-        # can analyze the full context and decide if there's new information worth storing.
-        # The analyze_data tool should be a pure read operation.
-        logger.debug(f"Analyzed file: {analysis.file_name} (memory updates handled by conversation manager)")
+        logger.debug(f"Analyzed file: {analysis.file_name} in project {session.selected_project}")
         
         return result
         
+    except RuntimeError as e:
+        return f"Error: {str(e)}"
     except Exception as e:
         logger.error(f"Error analyzing file: {e}")
         return f"Error analyzing file: {str(e)}"
@@ -468,72 +412,44 @@ def create_memory_agent():
 async def handle_message(
     message: str, 
     session_id: str = "default",
-    current_folder: Optional[str] = None,
-    selected_files: Optional[List[str]] = None
+    current_folder: Optional[str] = None,  # Deprecated - kept for compatibility
+    selected_files: Optional[List[str]] = None  # Deprecated - kept for compatibility
 ) -> str:
-    """Handle a user message with automatic memory management."""
+    """Handle a user message with session-based project context."""
     
     try:
-        # AUTOMATIC CONTEXT INJECTION
+        # Get session context - this is the single source of truth!
+        session = get_current_session()
+        
+        if not session:
+            return "Error: No project selected. Please select a project first."
+        
+        # Session-based context injection - much simpler!
         context_parts = []
         
-        # 1. Load experiment context automatically if in experiment folder
-        if current_folder and current_folder.startswith("exp_"):
-            try:
-                # Read README automatically (not as a tool!)
-                readme_content = await read_memory.ainvoke({
-                    "experiment_id": current_folder
-                })
-                
-                # Just dump the full README content - no parsing needed
-                rich_context = f"""
-=== FULL README CONTENT FOR {current_folder.upper()} ===
-This is the complete README.md content from folder {current_folder}:
+        # Add project context
+        context_parts.append(f"Working in project: {session.selected_project}")
+        
+        # TODO: Load experiment-specific context if needed
+        # This will need to be adapted for the new project structure
+        
+        # Build enriched message with README context and explicit tool guidance
+        readme_context = ""
+        try:
+            readme_path = session.resolve_path("README.md")
+            if readme_path.exists():
+                with open(readme_path, 'r', encoding='utf-8') as f:
+                    readme_content = f.read()
+                    readme_context = f"\n\n[PROJECT README CONTEXT]\n{readme_content}\n"
+        except Exception as e:
+            logger.debug(f"Could not load README.md: {e}")
+        
+        system_hint = f"""
 
-{readme_content}
-
-=== END OF README CONTENT ===
+[SYSTEM CONTEXT]
+You are working within project: {session.selected_project}
+All file paths are relative to the project root.{readme_context}
 """
-                context_parts.append(rich_context)
-            except:
-                pass
-        
-        # 2. Add context about current folder and files
-        # NO PATTERN MATCHING - just provide context, let LLM understand
-        if current_folder:
-            context_parts.append(f"User is currently in folder: {current_folder}")
-        
-        if selected_files:
-            # Build full paths for clarity
-            if current_folder:
-                file_paths = [f"{current_folder}/{f}" for f in selected_files]
-            else:
-                file_paths = selected_files
-            context_parts.append(f"User has selected these files: {', '.join(file_paths)}")
-        
-        # 3. Build final message with smart instructions based on available context
-        system_hint = ""
-        if current_folder and current_folder.startswith("exp_") and context_parts and "CURRENT EXPERIMENT CONTEXT" in str(context_parts):
-            # Experiment folder with rich context - discourage tool calls
-            system_hint = f"""
-
-[SYSTEM INSTRUCTIONS]
-The complete README.md content for {current_folder} is provided above. DO NOT call any tools to read it again:
-- DO NOT use analyze_data to read README.md - the full content is already in this prompt
-- DO NOT use list_folder_contents to check folder contents - you have the README information
-- The README contains all experiment details: overview, methods, results, issues, next steps
-- Answer questions directly from the README content provided above
-- Only call tools if you need information NOT in the README above
-
-Current folder: {current_folder}
-Selected files: {selected_files if selected_files else 'None'}
-"""
-        elif current_folder and selected_files:
-            system_hint = f"\n\n[System: User is looking at folder '{current_folder}' with files {selected_files} selected. When they say 'this folder' or 'this file', use list_folder_contents for folders and analyze_data for files.]"
-        elif current_folder:
-            system_hint = f"\n\n[System: User is looking at folder '{current_folder}'. When they ask about 'this folder', use list_folder_contents tool with folder_path='{current_folder}'.]"
-        elif selected_files:
-            system_hint = f"\n\n[System: User has selected files {selected_files}. When they ask about 'this file', use analyze_data tool.]"
         
         if context_parts:
             enriched_message = message + "\n\n" + "\n".join(context_parts) + system_hint
@@ -631,27 +547,13 @@ Selected files: {selected_files if selected_files else 'None'}
                 else:
                     response = "I encountered an issue processing your request. Please try rephrasing your question."
         
-        # LET LLM DECIDE IF MEMORY SHOULD BE UPDATED
-        # The auto_update_memory function uses LLM to determine if update is needed
-        # It will analyze the conversation and only update if there's new information
-        if current_folder and current_folder.startswith("exp_"):
-            # Use the smart memory updater to extract and apply updates
-            from src.memory.auto_memory_updater import auto_update_memory
-            
-            async def update_memory_from_conversation():
-                try:
-                    result = await auto_update_memory(
-                        user_message=message,
-                        agent_response=response,
-                        experiment_id=current_folder
-                    )
-                    logger.info(f"Memory update result: {result}")
-                except Exception as e:
-                    logger.error(f"Failed to auto-update memory: {e}")
-            
-            # Fire and forget - don't wait
-            asyncio.create_task(update_memory_from_conversation())
-            logger.debug(f"Triggered background memory analysis")
+        # TODO: Memory update system needs to be adapted for new project structure
+        # For now, we'll skip memory updates until the memory system is adapted
+        # to work with session-based project contexts instead of experiment folders
+        
+        # The memory system was designed around experiment folders (exp_*) within data/
+        # but now we have project-based storage with different structure
+        logger.debug(f"Memory updates temporarily disabled for project-based system")
         
         # Enhanced conversation logging with tool calls
         try:
