@@ -68,38 +68,47 @@ async def notify_tool_call(session_id: str, tool_name: str, status: str, args: d
 
 @tool
 async def scan_project() -> str:
-    """Scan all experiments in the project and show their current status."""
-    project_root = Path("data/alice_projects")
+    """Scan all experiments and data in the project."""
+    project_root = Path(__file__).parent.parent.parent
+    data_path = project_root / "data"
     
-    if not project_root.exists():
-        return "No experiments found. Project folder doesn't exist yet."
+    if not data_path.exists():
+        return "No data folder found. Project not initialized yet."
     
+    # Find all experiment folders across all subdirectories
     experiments = []
-    experiment_details = []
+    other_folders = []
     
-    for folder in sorted(project_root.iterdir()):
-        if folder.is_dir() and folder.name.startswith("exp_"):
-            experiments.append(folder.name)
-            # Try to read status from README automatically
-            try:
-                readme_path = folder / "README.md"
-                if readme_path.exists():
-                    with open(readme_path, 'r') as f:
-                        first_lines = f.read(500)  # Quick read
-                        status = "Active" if "Active" in first_lines else "Unknown"
-                        experiment_details.append(f"- {folder.name}: {status}")
-                else:
-                    experiment_details.append(f"- {folder.name}: No README")
-            except:
-                experiment_details.append(f"- {folder.name}: Cannot read")
+    for item in sorted(data_path.rglob("*")):
+        if item.is_dir():
+            relative_path = item.relative_to(data_path)
+            if item.name.startswith("exp_"):
+                # Try to read status from README
+                status = "No README"
+                try:
+                    readme_path = item / "README.md"
+                    if readme_path.exists():
+                        with open(readme_path, 'r') as f:
+                            first_lines = f.read(500)
+                            status = "Active" if "Active" in first_lines else "Has README"
+                except:
+                    pass
+                experiments.append(f"📂 {relative_path}: {status}")
+            elif len(relative_path.parts) == 1:  # Top-level folders only
+                file_count = len(list(item.iterdir())) if item.exists() else 0
+                other_folders.append(f"📁 {relative_path}/ ({file_count} items)")
     
-    if not experiments:
-        return "No experiments found. Create a new experiment folder starting with 'exp_'"
+    result = "=== PROJECT STRUCTURE ===\n"
     
-    result = f"Found {len(experiments)} experiments:\n"
-    result += "\n".join(experiment_details[:20])
-    if len(experiment_details) > 20:
-        result += f"\n... and {len(experiment_details) - 20} more"
+    if other_folders:
+        result += "Main folders:\n" + "\n".join(other_folders[:10]) + "\n\n"
+    
+    if experiments:
+        result += f"Experiments ({len(experiments)} found):\n" + "\n".join(experiments[:15])
+        if len(experiments) > 15:
+            result += f"\n... and {len(experiments) - 15} more experiments"
+    else:
+        result += "No experiment folders found (folders starting with 'exp_')"
     
     return result
 
@@ -109,50 +118,21 @@ async def list_folder_contents(folder_path: str) -> str:
     """List files and subfolders in a specified folder.
     
     Args:
-        folder_path: Path to the folder (e.g., 'exp_001_pcr' or full path)
+        folder_path: Path relative to project root (e.g., 'data' or 'data/alice_projects/exp_001')
     """
     try:
-        # Resolve path - handle project-relative paths
+        # Get project root directory
+        project_root = Path(__file__).parent.parent.parent
+        
+        # Clean up path - remove leading slash if present
         if folder_path.startswith("/"):
-            # Remove leading slash for project-relative paths
             folder_path = folder_path.lstrip("/")
         
-        # Check if it's in bob_projects or alice_projects
-        if folder_path.startswith("bob_projects"):
-            # Look in data/bob_projects
-            relative_path = folder_path.replace("bob_projects/", "").replace("bob_projects", "")
-            if relative_path:
-                full_path = Path("data/bob_projects") / relative_path
-            else:
-                full_path = Path("data/bob_projects")
-        elif folder_path.startswith("alice_projects"):
-            # Look in data/alice_projects
-            relative_path = folder_path.replace("alice_projects/", "").replace("alice_projects", "")
-            if relative_path:
-                full_path = Path("data/alice_projects") / relative_path
-            else:
-                full_path = Path("data/alice_projects")
-        elif folder_path.startswith("exp_"):
-            # Experiment folder - check both locations
-            alice_path = Path("data/alice_projects") / folder_path
-            bob_path = Path("data/bob_projects") / folder_path
-            if alice_path.exists():
-                full_path = alice_path
-            elif bob_path.exists():
-                full_path = bob_path
-            else:
-                full_path = alice_path  # Default to alice
-        else:
-            # Default to alice_projects for other paths
-            full_path = Path("data/alice_projects") / folder_path
+        # Resolve full path relative to project root
+        full_path = project_root / folder_path
         
         if not full_path.exists():
-            # Try bob_projects as fallback
-            bob_path = Path("data/bob_projects") / folder_path
-            if bob_path.exists():
-                full_path = bob_path
-            else:
-                return f"Folder not found: {folder_path}"
+            return f"Folder not found: {folder_path}"
         
         if not full_path.is_dir():
             return f"Not a folder: {folder_path}"
@@ -207,7 +187,7 @@ async def read_file(file_path: str) -> str:
     For text files, CSVs, it returns the original content.
     
     Args:
-        file_path: Path to the file (can be relative to experiment or absolute)
+        file_path: Path to the file relative to project root (e.g., 'data/alice_projects/exp_001/README.md')
     
     Returns:
         File contents as string (markdown for converted docs, raw for text)
@@ -215,42 +195,18 @@ async def read_file(file_path: str) -> str:
     try:
         from src.api.file_registry import get_file_registry
         
-        # Resolve path similar to analyze_data
+        # Get project root directory  
+        project_root_path = Path(__file__).parent.parent.parent
+        
+        # Clean up path - remove leading slash if present
         if file_path.startswith("/"):
             file_path = file_path.lstrip("/")
         
-        # Determine project root and relative path
-        if file_path.startswith("bob_projects/"):
-            project_root = "data/bob_projects"
-            relative_path = file_path.replace("bob_projects/", "")
-            full_path = Path(project_root) / relative_path
-        elif file_path.startswith("alice_projects/"):
-            project_root = "data/alice_projects"
-            relative_path = file_path.replace("alice_projects/", "")
-            full_path = Path(project_root) / relative_path
-        elif Path(file_path).is_absolute():
+        # Resolve full path relative to project root
+        if Path(file_path).is_absolute():
             full_path = Path(file_path)
-            # Determine project root from absolute path
-            if "alice_projects" in str(full_path):
-                project_root = "data/alice_projects"
-            elif "bob_projects" in str(full_path):
-                project_root = "data/bob_projects"
-            else:
-                project_root = "data/alice_projects"  # Default
         else:
-            # Try both locations
-            alice_path = Path("data/alice_projects") / file_path
-            bob_path = Path("data/bob_projects") / file_path
-            if alice_path.exists():
-                full_path = alice_path
-                project_root = "data/alice_projects"
-            elif bob_path.exists():
-                full_path = bob_path
-                project_root = "data/bob_projects"
-            else:
-                # Default to alice_projects
-                full_path = alice_path
-                project_root = "data/alice_projects"
+            full_path = project_root_path / file_path
         
         # Extract experiment ID if in an experiment folder
         experiment_id = None
@@ -264,22 +220,26 @@ async def read_file(file_path: str) -> str:
         
         # Check file registry for converted version
         if experiment_id:
-            registry = get_file_registry(project_root)
+            registry = get_file_registry(str(project_root_path / "data"))
             
             # Try to find file in registry by path
-            relative_to_project = str(full_path.relative_to(Path(project_root)))
-            file_info = registry.get_file_by_path(experiment_id, relative_to_project)
-            
-            if file_info:
-                # Use converted version if available and successful
-                if (file_info.get("converted_path") and 
-                    file_info.get("conversion", {}).get("status") == "success"):
-                    converted_path = Path(project_root) / file_info["converted_path"]
-                    if converted_path.exists():
-                        logger.info(f"Reading converted version: {converted_path}")
-                        with open(converted_path, 'r', encoding='utf-8') as f:
-                            content = f.read()
-                        return f"# Content of {Path(file_path).name} (converted to Markdown)\n\n{content}"
+            try:
+                relative_to_project = str(full_path.relative_to(project_root_path))
+                file_info = registry.get_file_by_path(experiment_id, relative_to_project)
+                
+                if file_info:
+                    # Use converted version if available and successful
+                    if (file_info.get("converted_path") and 
+                        file_info.get("conversion", {}).get("status") == "success"):
+                        converted_path = project_root_path / file_info["converted_path"]
+                        if converted_path.exists():
+                            logger.info(f"Reading converted version: {converted_path}")
+                            with open(converted_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                            return f"# Content of {Path(file_path).name} (converted to Markdown)\n\n{content}"
+            except ValueError:
+                # File not relative to project root, skip registry lookup
+                pass
         
         # Fallback to reading original file
         if not full_path.exists():
@@ -311,30 +271,18 @@ async def analyze_data(file_path: str) -> str:
         llm = get_llm_instance()
         analyzer = QuickFileAnalyzer(llm)
         
-        # Resolve path - handle project-relative paths like /bob_projects/README.md
+        # Get project root directory
+        project_root = Path(__file__).parent.parent.parent
+        
+        # Clean up path - remove leading slash if present
         if file_path.startswith("/"):
-            # Remove leading slash
             file_path = file_path.lstrip("/")
         
-        # Check if it's in bob_projects or alice_projects
-        if file_path.startswith("bob_projects/"):
-            relative_path = file_path.replace("bob_projects/", "")
-            full_path = Path("data/bob_projects") / relative_path
-        elif file_path.startswith("alice_projects/"):
-            relative_path = file_path.replace("alice_projects/", "")
-            full_path = Path("data/alice_projects") / relative_path
-        elif Path(file_path).is_absolute():
+        # Resolve full path relative to project root
+        if Path(file_path).is_absolute():
             full_path = Path(file_path)
         else:
-            # Try both locations
-            alice_path = Path("data/alice_projects") / file_path
-            bob_path = Path("data/bob_projects") / file_path
-            if alice_path.exists():
-                full_path = alice_path
-            elif bob_path.exists():
-                full_path = bob_path
-            else:
-                full_path = alice_path  # Default
+            full_path = project_root / file_path
         
         if not full_path.exists():
             return f"File not found: {file_path}"

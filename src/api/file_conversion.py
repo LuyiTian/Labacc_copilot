@@ -133,15 +133,41 @@ class FileConversionPipeline:
                     with open(file_path, 'rb') as f:
                         pdf_bytes = f.read()
                     
-                    # Initialize MinerU pipeline
-                    image_writer = DiskReaderWriter(temp_dir)
+                    # Set up image directory structure (MinerU standard)
+                    temp_dir_path = Path(temp_dir)
+                    images_dir = temp_dir_path / "images"
+                    images_dir.mkdir(parents=True, exist_ok=True)
+                    
+                    # Initialize MinerU pipeline with image directory
+                    image_writer = DiskReaderWriter(str(images_dir))
                     
                     # Run pipeline (auto-detects GPU)
-                    pipe = UNIPipe(pdf_bytes, {"_pdf_type": ""}, image_writer)
-                    pipe.pipe_parse()
+                    # MinerU requires model_list in config
+                    config = {
+                        "_pdf_type": "",
+                        "model_list": []  # Empty list uses default models
+                    }
+                    pipe = UNIPipe(pdf_bytes, config, image_writer)
                     
-                    # Get markdown content
-                    md_content = pipe.pipe_mk_markdown()
+                    # Execute MinerU pipeline
+                    pipe.pipe_classify()  # Document classification
+                    
+                    # pipe_analyze() may call exit(1) if models aren't available
+                    # We need to catch SystemExit and convert to regular exception
+                    try:
+                        pipe.pipe_analyze()   # Document analysis  
+                    except SystemExit as e:
+                        raise RuntimeError(f"MinerU models not available: {e}")
+                    
+                    parse_result = pipe.pipe_parse()  # Content parsing
+                    
+                    # Check if parsing was successful
+                    if not parse_result or len(parse_result) == 0:
+                        raise ValueError("MinerU parsing returned no content")
+                    
+                    # Get markdown content (pass basename of image directory)
+                    image_dir_basename = images_dir.name  # Just "images"
+                    md_content = pipe.pipe_mk_markdown(image_dir_basename, drop_mode="none")
                     
                     # Save markdown
                     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -188,7 +214,7 @@ class FileConversionPipeline:
         """
         result = {
             "filename": file_path.name,
-            "original_path": str(file_path),
+            "original_path": str(file_path.relative_to(self.project_root)),
             "converted_path": None,
             "conversion_status": "not_needed",
             "conversion_method": None,
@@ -198,6 +224,8 @@ class FileConversionPipeline:
         # Check if conversion is needed
         if not self.needs_conversion(file_path.name):
             logger.info(f"No conversion needed for {file_path.name}")
+            # Add to registry even if no conversion needed
+            await self.update_registry(experiment_id, result)
             return result
         
         # Determine conversion output path
@@ -223,18 +251,19 @@ class FileConversionPipeline:
         else:
             logger.warning(f"Unsupported file type for conversion: {ext}")
             result["conversion_status"] = "unsupported"
+            await self.update_registry(experiment_id, result)
             return result
         
         # Update result based on conversion outcome
         if conversion_success:
             result["converted_path"] = str(converted_path.relative_to(self.project_root))
             result["conversion_status"] = "success"
-            
-            # Create or update registry
-            await self.update_registry(experiment_id, result)
         else:
             result["conversion_status"] = "failed"
             logger.error(f"Conversion failed for {file_path.name}")
+        
+        # Always update registry regardless of conversion outcome
+        await self.update_registry(experiment_id, result)
         
         return result
     

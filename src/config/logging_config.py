@@ -73,6 +73,27 @@ def setup_logging(log_dir: str = "logs", log_level: str = "INFO"):
     logging.getLogger('httpcore').setLevel(logging.WARNING)
     logging.getLogger('uvicorn.access').setLevel(logging.WARNING)
     
+    # Reduce noise from PDF processing libraries (very verbose!)
+    logging.getLogger('pdfminer').setLevel(logging.WARNING)
+    logging.getLogger('pdfminer.psparser').setLevel(logging.ERROR)
+    logging.getLogger('pdfminer.pdfdocument').setLevel(logging.ERROR)
+    logging.getLogger('pdfminer.pdfinterp').setLevel(logging.ERROR)
+    logging.getLogger('pdfminer.converter').setLevel(logging.WARNING)
+    
+    # Reduce noise from MinerU/magic-pdf
+    logging.getLogger('magic_pdf').setLevel(logging.WARNING)
+    logging.getLogger('magic_pdf.libs').setLevel(logging.WARNING)
+    logging.getLogger('magic_pdf.model').setLevel(logging.WARNING)
+    logging.getLogger('magic_pdf.pipe').setLevel(logging.WARNING)
+    
+    # Reduce noise from language detection
+    logging.getLogger('fast_langdetect').setLevel(logging.ERROR)
+    
+    # Reduce noise from other common verbose libraries
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+    logging.getLogger('transformers').setLevel(logging.WARNING)
+    logging.getLogger('torch').setLevel(logging.WARNING)
+    
     return root_logger
 
 def log_conversation(user_query: str, agent_response: str, session_id: str = "unknown"):

@@ -11,16 +11,21 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # Clone and setup
 git clone <repo-url>
 cd Labacc_copilot
+
+# Create Python 3.12 environment (required for MinerU v2)
+uv python install 3.12
+uv venv .venv --python 3.12
 uv sync
 
-# Optional: Install MinerU for advanced PDF conversion (recommended)
-uv pip install magic-pdf[full] --extra-index-url https://myhloli.github.io/wheels/
-
+# Install frontend dependencies
 cd frontend && npm install && cd ..
 
 # Set API keys
 export TAVILY_API_KEY="your-key"
 export OPENROUTER_API_KEY="your-key"
+
+# For MinerU models (use modelscope in China/Asia)
+export MINERU_MODEL_SOURCE=modelscope  # or huggingface (default)
 
 # Start
 ./start-dev.sh
@@ -63,15 +68,23 @@ export OPENROUTER_API_KEY="your-key"
 
 ### Supported File Formats:
 
-| Format | Extensions | Conversion Tool | Quality |
-|--------|------------|----------------|---------|
-| **PDF** | .pdf | MinerU/MarkItDown | Excellent with MinerU |
-| **Word** | .docx, .doc | MarkItDown | Excellent |
-| **PowerPoint** | .pptx, .ppt | MarkItDown | Good |
-| **Excel** | .xlsx, .xls | MarkItDown | Good (tables preserved) |
-| **HTML** | .html, .htm | MarkItDown | Excellent |
-| **OpenOffice** | .odt, .odp, .ods | MarkItDown | Good |
-| **Rich Text** | .rtf | MarkItDown | Good |
+| Format | Extensions | Conversion Tool | Quality | Speed |
+|--------|------------|----------------|---------|-------|
+| **PDF** | .pdf | MinerU v2 → MarkItDown | Excellent (OCR, formulas) | 2-3s |
+| **Word** | .docx, .doc | MarkItDown | Excellent | 1s |
+| **PowerPoint** | .pptx, .ppt | MarkItDown | Good | 1-2s |
+| **Excel** | .xlsx, .xls | MarkItDown | Good (tables preserved) | 1s |
+| **HTML** | .html, .htm | MarkItDown | Excellent | <1s |
+| **OpenOffice** | .odt, .odp, .ods | MarkItDown | Good | 1-2s |
+| **Rich Text** | .rtf | MarkItDown | Good | 1s |
+| **Markdown** | .md | No conversion needed | Original | 0s |
+| **Text/Code** | .txt, .py, .json, etc. | No conversion needed | Original | 0s |
+
+**Conversion Flow**: 
+- System tries MinerU v2 first for PDFs (if installed)
+- Falls back to MarkItDown if MinerU fails or isn't installed
+- All conversions happen automatically on upload
+- Converted files are cached for instant subsequent access
 
 ### Example Workflow:
 
@@ -101,17 +114,25 @@ export TAVILY_API_KEY="tvly-..."     # Literature search
 export OPENROUTER_API_KEY="sk-..."   # LLM provider
 ```
 
-### Optional: Enhanced PDF Conversion
+### Optional: Enhanced PDF Conversion with MinerU v2
 
-For better PDF conversion quality (especially for complex scientific PDFs with formulas):
+For superior PDF conversion quality (especially for complex scientific PDFs with formulas, tables, and OCR):
 
 ```bash
-# Install MinerU with GPU support (CUDA)
-uv pip install magic-pdf[full] --extra-index-url https://myhloli.github.io/wheels/
+# Install MinerU v2 (includes magic-pdf)
+uv pip install "mineru[all]"
 
-# Or for Apple Silicon (MPS)
-uv pip install magic-pdf[full-mps] --extra-index-url https://myhloli.github.io/wheels/
+# First run will download ~500MB of models
+# Test MinerU installation:
+uv run mineru -p "your_pdf.pdf" -o /tmp/test --output-type md
+
+# If you encounter model download issues, set:
+export MINERU_MODEL_SOURCE=modelscope  # Use modelscope mirror (faster in Asia)
+# or
+export MINERU_MODEL_SOURCE=huggingface  # Default source
 ```
+
+**Note**: MinerU requires Python 3.12. If you have Python 3.13+, create a 3.12 environment as shown in Quick Start.
 
 ## 🔧 Troubleshooting
 
@@ -119,8 +140,11 @@ uv pip install magic-pdf[full-mps] --extra-index-url https://myhloli.github.io/w
 - **API key errors**: Ensure environment variables are set correctly
 - **Frontend not loading**: Check if backend is running on port 8002
 - **Tool not found**: Restart the backend after code changes
-- **PDF conversion fails**: Install MinerU or files will use basic conversion
+- **PDF conversion fails**: Install MinerU v2 or files will use MarkItDown fallback
 - **Large files slow**: Conversion happens on first upload, subsequent reads are fast
+- **MinerU model download fails**: Set `export MINERU_MODEL_SOURCE=modelscope` for mirror
+- **Python 3.13 build errors**: Use Python 3.12 as shown in Quick Start (required for MinerU v2)
+- **"outlines-core" Rust error**: Install with Python 3.12, not 3.13+
 
 ## 📚 Documentation
 
@@ -180,6 +204,6 @@ tools = [...existing_tools, your_new_tool]
 
 ---
 
-**Version**: 3.0.0  
+**Version**: 3.0.1  
 **Last Updated**: 2025-08-15  
-**Status**: Unified file processing with automatic document conversion operational
+**Status**: Unified file processing with MinerU v2 integration complete

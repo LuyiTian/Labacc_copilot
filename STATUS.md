@@ -1,8 +1,8 @@
 # LabAcc Copilot - System Status
 
-**Version**: 3.0.0  
+**Version**: 3.0.1  
 **Last Updated**: 2025-08-15  
-**Status**: ✅ Fully Operational with Automatic Document Conversion
+**Status**: ✅ Fully Operational with MinerU v2 + MarkItDown Dual Conversion
 
 ## 🚦 Service Status
 
@@ -48,13 +48,16 @@
 
 ## ✅ Working Features
 
-**📄 Automatic Document Conversion** ✨ NEW v3.0
-- PDFs, Office docs auto-convert to Markdown on upload
+**📄 Automatic Document Conversion** ✨ v3.0.1 with MinerU v2
+- PDFs convert with MinerU v2 (OCR, formulas) → fallback to MarkItDown
+- Office docs (Word, PowerPoint, Excel) convert with MarkItDown
 - Original files preserved in `originals/` folder
-- Converted files in `.labacc/converted/`
-- Registry tracks both versions in JSON
+- Converted files cached in `.labacc/converted/`
+- Registry tracks both versions in `.labacc/file_registry.json`
 - Agent transparently reads converted content
-- Support for Word, PowerPoint, Excel, PDF, HTML, RTF
+- Support for: PDF, Word, PowerPoint, Excel, HTML, RTF, OpenOffice
+- Conversion speed: 1-3 seconds per document
+- All files tracked in registry (including non-converted)
 
 **🧠 README Memory System**
 - Each experiment has README.md as persistent memory
@@ -151,7 +154,15 @@ User Query → Context Builder → React Agent → Tool Selection → Memory Upd
 
 ## 📝 Recent Changes
 
-### v3.0.0 (2025-08-15) - Automatic Document Conversion ✨ NEW
+### v3.0.1 (2025-08-15) - MinerU v2 Integration Complete
+- ✅ **Integrated MinerU v2** for advanced PDF conversion
+- ✅ **Fixed registry bug** - all files now tracked (including non-converted)
+- ✅ **Python 3.12 environment** requirement documented
+- ✅ **Model source configuration** with MINERU_MODEL_SOURCE env var
+- ✅ **Comprehensive test suite** - 26 passing tests across 4 test files
+- ✅ **Dual conversion system** - MinerU → MarkItDown fallback chain
+
+### v3.0.0 (2025-08-15) - Automatic Document Conversion
 - ✅ **Implemented file conversion pipeline** with MarkItDown
 - ✅ **Added file registry system** for tracking conversions
 - ✅ **Updated upload endpoint** to auto-convert documents
