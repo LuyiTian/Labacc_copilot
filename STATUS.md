@@ -1,8 +1,8 @@
 # LabAcc Copilot - System Status
 
-**Version**: 2.2.1  
-**Last Updated**: 2025-01-14  
-**Status**: ✅ Fully Operational with Unified Testing Framework
+**Version**: 3.0.0  
+**Last Updated**: 2025-08-15  
+**Status**: ✅ Fully Operational with Automatic Document Conversion
 
 ## 🚦 Service Status
 
@@ -41,13 +41,22 @@
 - **Agent Evaluation**: Comprehensive (10-15min), 50+ scenarios - run before commits/releases
 
 | **Tool: scan_project** | ✅ Active | <1s | Lists all experiments with status |
+| **Tool: read_file** | ✅ Active | <1s | Read any file (auto-uses converted version) |
 | **Tool: analyze_data** | ✅ Active | 3-5s | Analyze with context |
 | **Tool: diagnose_issue** | ✅ Active | 2-3s | LLM reasoning (no patterns!) |
 | **Tool: suggest_optimization** | ✅ Active | 3-5s | Learn from successes |
 
 ## ✅ Working Features
 
-**🧠 README Memory System** ✨ NEW
+**📄 Automatic Document Conversion** ✨ NEW v3.0
+- PDFs, Office docs auto-convert to Markdown on upload
+- Original files preserved in `originals/` folder
+- Converted files in `.labacc/converted/`
+- Registry tracks both versions in JSON
+- Agent transparently reads converted content
+- Support for Word, PowerPoint, Excel, PDF, HTML, RTF
+
+**🧠 README Memory System**
 - Each experiment has README.md as persistent memory
 - Simple markdown format (NO YAML - won't break!)
 - Human-editable and git-friendly
@@ -142,7 +151,16 @@ User Query → Context Builder → React Agent → Tool Selection → Memory Upd
 
 ## 📝 Recent Changes
 
-### v2.2.1 (2025-01-14) - Real-time Tool Visibility ✨ NEW
+### v3.0.0 (2025-08-15) - Automatic Document Conversion ✨ NEW
+- ✅ **Implemented file conversion pipeline** with MarkItDown
+- ✅ **Added file registry system** for tracking conversions
+- ✅ **Updated upload endpoint** to auto-convert documents
+- ✅ **Added read_file tool** that transparently uses converted versions
+- ✅ **Support for multiple formats**: PDF, Word, PowerPoint, Excel, HTML
+- ✅ **Preserved originals** in dedicated folder structure
+- ✅ **Complete separation** of format concerns from agent logic
+
+### v2.2.1 (2025-01-14) - Real-time Tool Visibility
 - ✅ **Implemented WebSocket streaming** for tool call notifications
 - ✅ **Added ToolCallIndicator component** showing live tool execution
 - ✅ **Switched to astream_events()** for real-time event capture
@@ -234,21 +252,22 @@ def your_new_tool(param: str) -> str:
   - Usage: `cp -r data/bob_projects_backup_*/* data/bob_projects/`
   - DO NOT DELETE these backup directories!
 
-## 🔮 Next Phase: v2.3 - Background Processing
+## 🔮 Next Phase: v3.1 - Enhanced Conversion & Real-time Updates
 
-**Vision**: Add proactive capabilities on top of memory system
+**Vision**: Improve conversion quality and add real-time status updates
 
 **Planned Features**:
-- Background file monitoring with auto-README updates
-- Proactive insights when patterns detected
-- Scheduled cross-experiment analysis
-- Literature updates for active experiments
-- Automated weekly reports from READMEs
+- WebSocket notifications for conversion progress
+- MinerU integration for advanced PDF processing
+- Batch file conversion for multiple uploads
+- Conversion quality settings (fast/accurate)
+- Support for more formats (EPUB, Markdown with images)
+- Background re-conversion with improved models
 
-**Key Principle**: Build on the memory foundation - READMEs enable all intelligence.
+**Key Principle**: Make document processing invisible to users while maintaining quality.
 
 ---
 
-**Status**: ✅ v2.2 Memory-Enhanced and Operational  
-**Architecture**: React agent + README memory system  
-**Focus**: Transparent memory, continuous learning, pattern recognition
+**Status**: ✅ v3.0 Unified File Processing Operational  
+**Architecture**: React agent + Auto-conversion + Registry tracking  
+**Focus**: Transparent document handling, any format to Markdown, seamless analysis

@@ -21,6 +21,10 @@ from pydantic import BaseModel
 from src.memory.memory_tools import update_file_registry, append_insight
 from src.memory.file_summarizer import summarize_uploaded_file
 
+# Import file conversion and registry
+from src.api.file_conversion import FileConversionPipeline
+from src.api.file_registry import FileRegistry
+
 logger = logging.getLogger(__name__)
 
 # Create API router
@@ -167,21 +171,67 @@ async def upload_files(
             raise HTTPException(status_code=400, detail="Destination is not a directory")
 
         uploaded_files = []
+        
+        # Initialize conversion pipeline and registry
+        conversion_pipeline = FileConversionPipeline(project_root)
+        file_registry = FileRegistry(project_root)
 
         for file in files:
             # Sanitize filename
             filename = Path(file.filename).name
-            file_path = dest_dir / filename
+            
+            # Determine if this is an experiment folder
+            relative_path = str(dest_dir.relative_to(project_root))
+            path_parts = relative_path.split('/')
+            experiment_id = None
+            for part in path_parts:
+                if part.startswith('exp_'):
+                    experiment_id = part
+                    break
+            
+            # Determine where to save the file
+            if experiment_id and conversion_pipeline.needs_conversion(filename):
+                # For convertible files in experiments, save to originals/
+                originals_dir = Path(project_root) / experiment_id / "originals"
+                originals_dir.mkdir(parents=True, exist_ok=True)
+                file_path = originals_dir / filename
+            else:
+                # For other files, save to requested location
+                file_path = dest_dir / filename
 
             # Save file
             async with aiofiles.open(file_path, 'wb') as f:
                 content = await file.read()
                 await f.write(content)
+            
+            file_size = len(content)
+            relative_file_path = str(file_path.relative_to(project_root))
+
+            # Process conversion if needed and in experiment
+            conversion_result = None
+            if experiment_id:
+                conversion_result = await conversion_pipeline.process_upload(
+                    file_path, 
+                    experiment_id
+                )
+                
+                # Update registry with full information
+                file_registry.add_file(
+                    experiment_id=experiment_id,
+                    filename=filename,
+                    original_path=relative_file_path,
+                    converted_path=conversion_result.get("converted_path"),
+                    file_size=file_size,
+                    conversion_status=conversion_result.get("conversion_status", "not_needed"),
+                    conversion_method=conversion_result.get("conversion_method")
+                )
 
             uploaded_files.append({
                 "name": filename,
-                "path": str(file_path.relative_to(project_root)),
-                "size": len(content)
+                "path": relative_file_path,
+                "size": file_size,
+                "converted": conversion_result.get("converted_path") if conversion_result else None,
+                "conversion_status": conversion_result.get("conversion_status") if conversion_result else "not_needed"
             })
         
         # Auto-update README if uploading to an experiment folder
@@ -221,13 +271,16 @@ async def upload_files(
                                 file_type = "File"
                             
                             # Use LLM to generate context-aware summary
-                            # Build correct file path based on upload location
-                            if "/" in file_info["path"]:
-                                # File is in a subfolder
-                                file_full_path = Path(project_root) / file_info["path"]
-                            else:
-                                # File is in experiment root
-                                file_full_path = Path(f"data/alice_projects/{experiment_id}/{filename}")
+                            # Use converted file if available for better analysis
+                            file_full_path = Path(project_root) / file_info["path"]
+                            
+                            # Check if we have a converted version
+                            if file_info.get("converted"):
+                                # Use converted markdown for analysis
+                                analysis_path = Path(project_root) / file_info["converted"]
+                                if analysis_path.exists():
+                                    file_full_path = analysis_path
+                                    logger.info(f"Using converted file for analysis: {analysis_path}")
                             
                             # Get intelligent summary with experiment context
                             try:

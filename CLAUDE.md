@@ -18,6 +18,7 @@ AI-powered autonomous laboratory assistant for wet-lab biologists to analyze exp
 - ✅ `CLAUDE.md` - THIS FILE - Development guidelines
 - ✅ `STATUS.md` - Current system status
 - ❌ **NO OTHER .md FILES IN ROOT!**
+- Delete temperatory test file
 
 **Documentation Folders**
 ```

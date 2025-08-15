@@ -199,6 +199,107 @@ async def list_folder_contents(folder_path: str) -> str:
 
 
 @tool
+async def read_file(file_path: str) -> str:
+    """Read file contents, automatically using converted version if available.
+    
+    This tool transparently handles both original and converted files.
+    For PDFs, Office docs, it returns the markdown-converted content.
+    For text files, CSVs, it returns the original content.
+    
+    Args:
+        file_path: Path to the file (can be relative to experiment or absolute)
+    
+    Returns:
+        File contents as string (markdown for converted docs, raw for text)
+    """
+    try:
+        from src.api.file_registry import get_file_registry
+        
+        # Resolve path similar to analyze_data
+        if file_path.startswith("/"):
+            file_path = file_path.lstrip("/")
+        
+        # Determine project root and relative path
+        if file_path.startswith("bob_projects/"):
+            project_root = "data/bob_projects"
+            relative_path = file_path.replace("bob_projects/", "")
+            full_path = Path(project_root) / relative_path
+        elif file_path.startswith("alice_projects/"):
+            project_root = "data/alice_projects"
+            relative_path = file_path.replace("alice_projects/", "")
+            full_path = Path(project_root) / relative_path
+        elif Path(file_path).is_absolute():
+            full_path = Path(file_path)
+            # Determine project root from absolute path
+            if "alice_projects" in str(full_path):
+                project_root = "data/alice_projects"
+            elif "bob_projects" in str(full_path):
+                project_root = "data/bob_projects"
+            else:
+                project_root = "data/alice_projects"  # Default
+        else:
+            # Try both locations
+            alice_path = Path("data/alice_projects") / file_path
+            bob_path = Path("data/bob_projects") / file_path
+            if alice_path.exists():
+                full_path = alice_path
+                project_root = "data/alice_projects"
+            elif bob_path.exists():
+                full_path = bob_path
+                project_root = "data/bob_projects"
+            else:
+                # Default to alice_projects
+                full_path = alice_path
+                project_root = "data/alice_projects"
+        
+        # Extract experiment ID if in an experiment folder
+        experiment_id = None
+        path_str = str(full_path)
+        if "/exp_" in path_str:
+            parts = path_str.split("/")
+            for part in parts:
+                if part.startswith("exp_"):
+                    experiment_id = part
+                    break
+        
+        # Check file registry for converted version
+        if experiment_id:
+            registry = get_file_registry(project_root)
+            
+            # Try to find file in registry by path
+            relative_to_project = str(full_path.relative_to(Path(project_root)))
+            file_info = registry.get_file_by_path(experiment_id, relative_to_project)
+            
+            if file_info:
+                # Use converted version if available and successful
+                if (file_info.get("converted_path") and 
+                    file_info.get("conversion", {}).get("status") == "success"):
+                    converted_path = Path(project_root) / file_info["converted_path"]
+                    if converted_path.exists():
+                        logger.info(f"Reading converted version: {converted_path}")
+                        with open(converted_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        return f"# Content of {Path(file_path).name} (converted to Markdown)\n\n{content}"
+        
+        # Fallback to reading original file
+        if not full_path.exists():
+            return f"File not found: {file_path}"
+        
+        # Check if it's a binary file
+        try:
+            with open(full_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            return f"# Content of {full_path.name}\n\n{content}"
+        except UnicodeDecodeError:
+            # Binary file, return basic info
+            return f"Binary file: {full_path.name} ({full_path.stat().st_size} bytes)\nUse analyze_data tool for detailed analysis."
+        
+    except Exception as e:
+        logger.error(f"Error reading file: {e}")
+        return f"Error reading file: {str(e)}"
+
+
+@tool
 async def analyze_data(file_path: str) -> str:
     """Analyze experimental data file. Context is automatically loaded if in an experiment folder.
     
@@ -400,6 +501,7 @@ def create_memory_agent():
     tools = [
         scan_project,
         list_folder_contents,
+        read_file,
         analyze_data,
         diagnose_issue,
         suggest_optimization,

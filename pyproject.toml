@@ -36,6 +36,11 @@ dependencies = [
     
     # File processing
     "python-frontmatter>=1.0.0",
+    
+    # Document conversion
+    "markitdown>=0.0.1a2",  # Microsoft's tool for Office → Markdown
+    # Note: MinerU requires separate installation due to complex dependencies
+    # Install with: pip install magic-pdf[full] --extra-index-url https://myhloli.github.io/wheels/
 ]
 
 [project.optional-dependencies]
@@ -48,6 +53,22 @@ gradio = ["gradio>=4.0.0"]
 
 # Observability
 observability = ["langfuse<3"]
+
+# Enhanced document conversion
+pdf = [
+    # Note: MinerU (magic-pdf) requires special installation:
+    # pip install magic-pdf[full] --extra-index-url https://myhloli.github.io/wheels/
+    # We cannot add it here due to the custom index URL requirement
+]
+
+# Office document support (enhanced MarkItDown features)
+office = [
+    "python-docx>=0.8.11",  # Better Word support
+    "python-pptx>=0.6.21",  # Better PowerPoint support
+    "openpyxl>=3.1.0",      # Already in main deps for Excel
+    "beautifulsoup4>=4.12.0",  # HTML parsing
+    "lxml>=4.9.0",          # XML processing
+]
 
 # Development dependencies
 dev = [
@@ -64,6 +85,10 @@ all = [
     "langchain-google-genai>=0.1.0",
     "gradio>=4.0.0",
     "langfuse<3",
+    "python-docx>=0.8.11",
+    "python-pptx>=0.6.21",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=4.9.0",
 ]
 
 [project.scripts]

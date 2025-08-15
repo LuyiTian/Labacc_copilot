@@ -163,16 +163,70 @@ exp_XXX_[type]_YYYY-MM-DD/
 - Data quality assessment
 - Protocol validation
 
-### 2.4 Proactive Context Gathering (NEW in v2.3)
+### 2.4 Automatic File Conversion (NEW in v3.0)
 **Status**: 🚧 To Be Implemented
 
-#### Workflow:
-1. **File Upload Detection**: When files are uploaded via left panel (max 3 files)
-2. **Automatic Analysis**: Agent analyzes file content (blocks chat, shows tool indicators)
-3. **Context Summary**: Agent naturally describes file and its potential role
-4. **Natural Questions**: Agent asks 1-2 questions in user's language based on understanding
-5. **User Response**: Waits for user to provide additional context (2 min timeout)
-6. **Memory Synthesis**: Agent combines insights → README update
+#### Conversion Pipeline:
+When files are uploaded, the backend automatically converts non-text formats before agent analysis:
+
+```python
+# Backend automatic conversion flow
+async def process_uploaded_file(file: UploadFile, experiment_id: str):
+    # 1. Save original file
+    original_path = f"{experiment_id}/originals/{file.filename}"
+    await save_file(file, original_path)
+    
+    # 2. Detect format and convert if needed
+    if file.filename.endswith(('.pdf', '.docx', '.pptx', '.xlsx')):
+        converted_path = f"{experiment_id}/.labacc/converted/{stem}.md"
+        
+        if file.filename.endswith('.pdf'):
+            # Use MinerU for PDF conversion
+            await convert_pdf_to_markdown_internal(original_path, converted_path)
+        else:
+            # Use MarkItDown for Office formats
+            await convert_office_to_markdown_internal(original_path, converted_path)
+        
+        # 3. Update file registry
+        update_registry(experiment_id, {
+            "original": original_path,
+            "converted": converted_path,
+            "status": "converted",
+            "timestamp": datetime.now()
+        })
+    
+    # 4. Trigger agent analysis on converted content
+    await notify_agent_for_analysis(experiment_id, file.filename)
+```
+
+#### File Storage Structure:
+```
+exp_XXX_[name]/
+├── .labacc/                    # Hidden metadata folder
+│   ├── file_registry.json      # Tracks all files and conversions
+│   ├── converted/               # Markdown versions of documents
+│   │   ├── protocol.md         # Converted from PDF
+│   │   └── results.md          # Converted from Excel
+│   └── archive/                # Previous versions
+├── originals/                  # Original uploaded files (unchanged)
+│   ├── protocol.pdf
+│   └── results.xlsx
+├── data/                       # User-organized data
+├── analysis/                   # Analysis results
+└── README.md                   # Experiment memory
+```
+
+### 2.5 Proactive Context Gathering (v3.0 Enhanced)
+**Status**: 🚧 To Be Implemented
+
+#### Enhanced Workflow with Conversion:
+1. **File Upload**: User uploads files (max 3) via frontend
+2. **Automatic Conversion**: Backend converts PDF/Office → Markdown
+3. **Registry Update**: Track original and converted paths
+4. **Agent Analysis**: Agent reads converted content via `read_file` tool
+5. **Context Questions**: Agent asks natural questions in user's language
+6. **User Response**: User provides experimental context
+7. **Memory Update**: Agent updates README with file info + context
 
 #### Implementation Details:
 ```python
@@ -348,7 +402,49 @@ if file_exists(path):
 }
 ```
 
-### 3.4 Proactive Analysis Response (NEW in v2.3)
+### 3.4 File Registry Format (NEW in v3.0)
+```json
+{
+  "files": {
+    "protocol.pdf": {
+      "original_path": "originals/protocol.pdf",
+      "converted_path": ".labacc/converted/protocol.md",
+      "upload_time": "2025-08-15T10:00:00Z",
+      "file_size": 245632,
+      "conversion": {
+        "status": "success",
+        "method": "MinerU",
+        "timestamp": "2025-08-15T10:00:05Z"
+      },
+      "analysis": {
+        "analyzed": true,
+        "summary": "PCR protocol with modified annealing temperature",
+        "context": "User indicated this is for gene X amplification"
+      }
+    },
+    "results.xlsx": {
+      "original_path": "originals/results.xlsx",
+      "converted_path": ".labacc/converted/results.md",
+      "upload_time": "2025-08-15T10:05:00Z",
+      "file_size": 89456,
+      "conversion": {
+        "status": "success",
+        "method": "MarkItDown",
+        "timestamp": "2025-08-15T10:05:02Z"
+      },
+      "analysis": {
+        "analyzed": true,
+        "summary": "qPCR Ct values, 96 wells with triplicates",
+        "context": "Optimization run #3 with new primers"
+      }
+    }
+  },
+  "last_updated": "2025-08-15T10:05:02Z",
+  "total_files": 2
+}
+```
+
+### 3.5 Proactive Analysis Response (v3.0 Enhanced)
 ```json
 {
   "type": "proactive_analysis",
@@ -469,6 +565,13 @@ uv run python src/agents/react_agent.py
 
 ---
 
-**Version**: 2.3 (Proactive Context Gathering)  
-**Date**: 2025-01-14  
+**Version**: 3.0 (Unified File Processing & Memory System)  
+**Date**: 2025-08-15  
 **Status**: 🚧 SPECIFICATION UPDATED - IMPLEMENTATION PENDING
+
+**Key v3.0 Changes**:
+- Automatic file conversion pipeline (PDF/Office → Markdown)
+- File registry system for tracking originals and conversions
+- Separation of backend conversion from agent analysis
+- Agent tools work with converted content transparently
+- Complete audit trail in hidden .labacc folder
