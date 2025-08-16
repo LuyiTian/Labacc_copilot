@@ -270,7 +270,7 @@
 }
 
 .tool-calls-list {
-  max-height: 120px;
+  max-height: 250px;  /* Increased from 120px for better visibility */
   overflow-y: auto;
 }
 

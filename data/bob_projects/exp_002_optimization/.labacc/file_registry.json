@@ -1,0 +1,24 @@
+{
+  "version": "3.0",
+  "experiment_id": "exp_002_optimization",
+  "files": {
+    "For lung cancer tissue dissociation.pdf": {
+      "original_path": "exp_002_optimization/originals/For lung cancer tissue dissociation.pdf",
+      "converted_path": "exp_002_optimization/For lung cancer tissue dissociation.md",
+      "upload_time": "2025-08-16T17:20:58.784285",
+      "file_size": 237892,
+      "conversion": {
+        "status": "success",
+        "method": "MinerU",
+        "timestamp": "2025-08-16T17:20:58.784292"
+      },
+      "analysis": {
+        "analyzed": false,
+        "summary": null,
+        "context": null
+      }
+    }
+  },
+  "last_updated": "2025-08-16T17:20:58.784334",
+  "total_files": 1
+}

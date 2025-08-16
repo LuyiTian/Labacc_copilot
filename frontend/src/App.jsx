@@ -20,6 +20,8 @@ function App() {
   const [showFiles, setShowFiles] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   const API_BASE = 'http://localhost:8002';
 
@@ -107,6 +109,17 @@ function App() {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    // Check if any files need conversion
+    const needsConversion = Array.from(files).some(file => {
+      const ext = file.name.split('.').pop().toLowerCase();
+      return ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(ext);
+    });
+
+    if (needsConversion) {
+      setUploadStatus('Converting documents to Markdown...');
+      setIsUploading(true);
+    }
+
     const formData = new FormData();
     formData.append('path', currentPath);
     for (let file of files) {
@@ -126,12 +139,33 @@ function App() {
       });
       
       if (response.ok) {
+        const result = await response.json();
+        
+        // Check if files were converted
+        const convertedFiles = result.files?.filter(f => f.conversion_status === 'success');
+        if (convertedFiles && convertedFiles.length > 0) {
+          setUploadStatus('Files converted! Agent is analyzing...');
+          
+          // Clear status after 3 seconds
+          setTimeout(() => {
+            setUploadStatus('');
+            setIsUploading(false);
+          }, 3000);
+        } else {
+          setUploadStatus('');
+          setIsUploading(false);
+        }
+        
         loadFiles(currentPath); // Reload files
       } else {
         setError('Upload failed');
+        setUploadStatus('');
+        setIsUploading(false);
       }
     } catch (err) {
       setError('Upload error: ' + err.message);
+      setUploadStatus('');
+      setIsUploading(false);
     }
   };
 
@@ -289,6 +323,19 @@ function App() {
             </button>
           </div>
 
+          {/* Upload Status */}
+          {uploadStatus && (
+            <div className="upload-status" style={{
+              padding: '10px',
+              backgroundColor: '#e3f2fd',
+              color: '#1976d2',
+              textAlign: 'center',
+              borderBottom: '1px solid #bbdefb'
+            }}>
+              {uploadStatus}
+            </div>
+          )}
+
           {/* File List */}
           <div className="file-list">
             {loading && <div className="loading">Loading...</div>}
@@ -340,6 +387,8 @@ function App() {
             showFiles={showFiles}
             sessionId={sessionId}
             selectedProject={selectedProject}
+            isUploading={isUploading}
+            uploadStatus={uploadStatus}
           />
         )}
         

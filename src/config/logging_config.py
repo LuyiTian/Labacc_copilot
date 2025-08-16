@@ -32,14 +32,14 @@ def setup_logging(log_dir: str = "logs", log_level: str = "INFO"):
         datefmt='%H:%M:%S'
     )
     
-    # File handler for all logs
+    # File handler for all logs (only INFO and above for cleaner logs)
     file_handler = logging.handlers.RotatingFileHandler(
         log_path / f"labacc_copilot_{datetime.now().strftime('%Y%m%d')}.log",
         maxBytes=10*1024*1024,  # 10MB
         backupCount=5,
         encoding='utf-8'
     )
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(logging.INFO)  # Changed from DEBUG to INFO
     file_handler.setFormatter(detailed_formatter)
     
     # File handler for agent conversations
@@ -59,7 +59,7 @@ def setup_logging(log_dir: str = "logs", log_level: str = "INFO"):
     
     # Configure root logger
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
+    root_logger.setLevel(logging.INFO)  # Changed from DEBUG to INFO
     root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
     
@@ -68,31 +68,55 @@ def setup_logging(log_dir: str = "logs", log_level: str = "INFO"):
     conversation_logger.addHandler(conversation_handler)
     conversation_logger.setLevel(logging.INFO)
     
-    # Reduce noise from libraries
-    logging.getLogger('httpx').setLevel(logging.WARNING)
-    logging.getLogger('httpcore').setLevel(logging.WARNING)
-    logging.getLogger('uvicorn.access').setLevel(logging.WARNING)
+    # Reduce noise from libraries - Only show ERRORS for most external libraries
+    # HTTP/Web libraries
+    logging.getLogger('httpx').setLevel(logging.ERROR)
+    logging.getLogger('httpcore').setLevel(logging.ERROR)
+    logging.getLogger('uvicorn.access').setLevel(logging.ERROR)
+    logging.getLogger('uvicorn.error').setLevel(logging.WARNING)
+    logging.getLogger('urllib3').setLevel(logging.ERROR)
+    logging.getLogger('aiohttp').setLevel(logging.ERROR)
     
-    # Reduce noise from PDF processing libraries (very verbose!)
-    logging.getLogger('pdfminer').setLevel(logging.WARNING)
-    logging.getLogger('pdfminer.psparser').setLevel(logging.ERROR)
-    logging.getLogger('pdfminer.pdfdocument').setLevel(logging.ERROR)
-    logging.getLogger('pdfminer.pdfinterp').setLevel(logging.ERROR)
-    logging.getLogger('pdfminer.converter').setLevel(logging.WARNING)
+    # PDF processing libraries (extremely verbose!)
+    logging.getLogger('pdfminer').setLevel(logging.ERROR)
+    logging.getLogger('pdfminer.psparser').setLevel(logging.CRITICAL)
+    logging.getLogger('pdfminer.pdfdocument').setLevel(logging.CRITICAL)
+    logging.getLogger('pdfminer.pdfinterp').setLevel(logging.CRITICAL)
+    logging.getLogger('pdfminer.converter').setLevel(logging.ERROR)
+    logging.getLogger('pdfminer.layout').setLevel(logging.ERROR)
+    logging.getLogger('pdfminer.pdfpage').setLevel(logging.ERROR)
     
-    # Reduce noise from MinerU/magic-pdf
-    logging.getLogger('magic_pdf').setLevel(logging.WARNING)
-    logging.getLogger('magic_pdf.libs').setLevel(logging.WARNING)
-    logging.getLogger('magic_pdf.model').setLevel(logging.WARNING)
-    logging.getLogger('magic_pdf.pipe').setLevel(logging.WARNING)
+    # MinerU/magic-pdf
+    logging.getLogger('magic_pdf').setLevel(logging.ERROR)
+    logging.getLogger('magic_pdf.libs').setLevel(logging.ERROR)
+    logging.getLogger('magic_pdf.model').setLevel(logging.ERROR)
+    logging.getLogger('magic_pdf.pipe').setLevel(logging.ERROR)
     
-    # Reduce noise from language detection
-    logging.getLogger('fast_langdetect').setLevel(logging.ERROR)
+    # Language detection
+    logging.getLogger('fast_langdetect').setLevel(logging.CRITICAL)
     
-    # Reduce noise from other common verbose libraries
-    logging.getLogger('urllib3').setLevel(logging.WARNING)
-    logging.getLogger('transformers').setLevel(logging.WARNING)
-    logging.getLogger('torch').setLevel(logging.WARNING)
+    # ML/AI libraries
+    logging.getLogger('transformers').setLevel(logging.ERROR)
+    logging.getLogger('torch').setLevel(logging.ERROR)
+    logging.getLogger('sentence_transformers').setLevel(logging.ERROR)
+    
+    # OpenAI/LangChain libraries
+    logging.getLogger('openai').setLevel(logging.WARNING)
+    logging.getLogger('openai._base_client').setLevel(logging.ERROR)
+    logging.getLogger('langchain').setLevel(logging.WARNING)
+    logging.getLogger('langgraph').setLevel(logging.WARNING)
+    
+    # Other verbose libraries
+    logging.getLogger('PIL').setLevel(logging.ERROR)
+    logging.getLogger('python_multipart').setLevel(logging.ERROR)
+    logging.getLogger('multipart').setLevel(logging.ERROR)
+    logging.getLogger('watchfiles').setLevel(logging.ERROR)
+    
+    # Our app components - keep at INFO level for important messages
+    logging.getLogger('src.api').setLevel(logging.INFO)
+    logging.getLogger('src.agents').setLevel(logging.INFO)
+    logging.getLogger('src.memory').setLevel(logging.INFO)
+    logging.getLogger('src.components').setLevel(logging.INFO)
     
     return root_logger
 

@@ -10,7 +10,7 @@ import '../styles/ChatPanel.css';
 
 const API_SERVER = 'http://localhost:8002/api/chat';
 
-const ChatPanel = ({ currentFolder, selectedFiles, showFiles, sessionId, selectedProject }) => {
+const ChatPanel = ({ currentFolder, selectedFiles, showFiles, sessionId, selectedProject, isUploading, uploadStatus }) => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isConnected, setIsConnected] = useState(false);
@@ -50,6 +50,16 @@ const ChatPanel = ({ currentFolder, selectedFiles, showFiles, sessionId, selecte
           if (data.type === 'tool_call') {
             console.log('Tool call update:', data);
             // Tool call indicators will be handled by ToolCallIndicator component
+          } else if (data.type === 'agent_message') {
+            // Handle agent messages (e.g., from file upload analysis)
+            const newMessage = {
+              id: `agent-${Date.now()}`,
+              content: data.content,
+              author: data.author || 'Assistant',
+              createdAt: data.timestamp || new Date().toISOString(),
+              type: 'ai_message'
+            };
+            setMessages(prevMessages => [...prevMessages, newMessage]);
           }
         } catch (err) {
           console.error('WebSocket message parse error:', err);
@@ -361,19 +371,21 @@ const ChatPanel = ({ currentFolder, selectedFiles, showFiles, sessionId, selecte
           onChange={(e) => setInputValue(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder={
-            isConnected 
-              ? "Ask me about your experiments, data analysis, or file organization..." 
-              : "Chat unavailable - Chainlit server not running"
+            isUploading 
+              ? uploadStatus || "Processing file upload..."
+              : isConnected 
+                ? "Ask me about your experiments, data analysis, or file organization..." 
+                : "Chat unavailable - Chainlit server not running"
           }
-          disabled={!isConnected || isLoading}
+          disabled={!isConnected || isLoading || isUploading}
           rows={2}
         />
         <button
           className="chat-send-button"
           onClick={handleSendMessage}
-          disabled={!inputValue.trim() || !isConnected || isLoading}
+          disabled={!inputValue.trim() || !isConnected || isLoading || isUploading}
         >
-          {isLoading ? '...' : '➤'}
+          {isLoading ? '...' : isUploading ? '⏳' : '➤'}
         </button>
       </div>
     </div>

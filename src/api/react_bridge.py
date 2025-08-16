@@ -248,3 +248,103 @@ async def delete_session(session_id: str,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete session"
         )
+
+
+async def notify_agent_of_upload(
+    session_id: str,
+    file_path: str,
+    experiment_id: str,
+    original_name: str,
+    conversion_status: str = "success"
+) -> str:
+    """Notify agent about a newly uploaded file and get proactive analysis
+    
+    Args:
+        session_id: Current session ID
+        file_path: Path to the converted file (or original if no conversion)
+        experiment_id: Experiment folder name
+        original_name: Original filename that was uploaded
+        conversion_status: Status of the conversion (success/failed/not_needed)
+    
+    Returns:
+        Agent's analysis response with follow-up questions
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        # Set current session context for the agent
+        set_current_session(session_id)
+        
+        # Load experiment context from README
+        from src.memory.memory import SimpleMemoryManager
+        from src.projects.session import session_manager
+        
+        session = session_manager.get_session(session_id)
+        if session:
+            memory_manager = SimpleMemoryManager(session.project_path)
+            experiment_memory = memory_manager.load_memory(experiment_id)
+            
+            if experiment_memory:
+                experiment_context = f"""
+## Experiment Context from README:
+{experiment_memory.raw_content[:1000]}  # First 1000 chars for context
+"""
+            else:
+                experiment_context = "\n## Note: No README found for this experiment yet.\n"
+        else:
+            experiment_context = ""
+        
+        # Construct a comprehensive message with context
+        if conversion_status == "success":
+            message = f"""A new file was uploaded and converted to {experiment_id}:
+• Original file: {original_name}
+• Converted location: {file_path}
+{experiment_context}
+
+Please:
+1. Analyze this file in the context of the experiment
+2. Provide a brief summary of the content (2-3 sentences)
+3. Identify any important findings or patterns
+4. Generate 1-2 specific follow-up questions to clarify:
+   - The purpose or context of this file
+   - Any experimental parameters or conditions
+   - How this relates to other experiment data
+
+Format your response with clear sections:
+**Summary:** [your summary]
+**Key Findings:** [findings]
+**Questions for User:** [numbered questions]
+
+Focus on practical insights relevant to the experiment."""
+        else:
+            message = f"""A new file was uploaded to {experiment_id}:
+• File: {original_name}
+• Location: {experiment_id}/originals/{original_name}
+{experiment_context}
+
+Please analyze this file and provide a brief summary, then ask 1-2 clarifying questions about its purpose or experimental context."""
+        
+        # Get analysis from agent
+        logger.info(f"Requesting contextual analysis for uploaded file: {original_name}")
+        ai_response = await handle_user_message(
+            message=message,
+            session_id=session_id
+        )
+        
+        # Store that we asked questions (for tracking user responses)
+        if session:
+            if not hasattr(session, 'pending_questions'):
+                session.pending_questions = {}
+            session.pending_questions[experiment_id] = {
+                'file': original_name,
+                'timestamp': datetime.now().isoformat(),
+                'asked': True
+            }
+        
+        logger.info(f"Agent analysis with questions complete for {original_name}")
+        return ai_response
+        
+    except Exception as e:
+        logger.error(f"Failed to notify agent of upload: {e}")
+        return f"File uploaded successfully but analysis failed: {str(e)}"

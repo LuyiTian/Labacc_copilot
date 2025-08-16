@@ -1,55 +1,27 @@
-"""
-Memory System for LabAcc Copilot
-README-based memory with context management
-"""
+"""Memory management system for LabAcc Copilot"""
 
-from src.memory.readme_memory import (
-    MemoryManager,
-    ExperimentMemory,
-    ReadmeParser,
-    ReadmeWriter
-)
-
+from src.memory.memory import SimpleMemory
 from src.memory.memory_tools import (
-    read_memory,
-    write_memory,
-    search_memories,
-    append_insight,
+    get_experiment_info,
+    update_experiment_readme,
+    list_all_experiments,
+    search_experiments,
+    get_experiment_summary,
+    init_memory_tools,
     update_file_registry,
-    compare_experiments,
     create_experiment,
     get_project_insights
 )
 
-from src.memory.context_manager import (
-    ContextBuilder,
-    ContextAwareRouter,
-    EnrichedContext,
-    ProjectContext,
-    SessionContext
-)
-
 __all__ = [
-    # Memory management
-    'MemoryManager',
-    'ExperimentMemory',
-    'ReadmeParser',
-    'ReadmeWriter',
-    
-    # Memory tools
-    'read_memory',
-    'write_memory',
-    'search_memories',
-    'append_insight',
+    'SimpleMemory',
+    'get_experiment_info',
+    'update_experiment_readme',
+    'list_all_experiments',
+    'search_experiments',
+    'get_experiment_summary',
+    'init_memory_tools',
     'update_file_registry',
-    'compare_experiments',
     'create_experiment',
-    'get_project_insights',
-    
-    # Context management
-    'ContextBuilder',
-    'ContextAwareRouter',
-    'EnrichedContext',
-    'ProjectContext',
-    'SessionContext'
+    'get_project_insights'
 ]

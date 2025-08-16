@@ -58,6 +58,33 @@ class ConnectionManager:
                 self.active_connections[session_id].discard(ws)
         else:
             logger.warning(f"No active WebSocket connections for session {session_id}")
+    
+    async def send_agent_message(self, session_id: str, content: str, author: str = "Assistant"):
+        """Send agent message to chat via WebSocket"""
+        from datetime import datetime
+        logger.info(f"Attempting to send agent message to session {session_id}")
+        if session_id in self.active_connections:
+            message = json.dumps({
+                "type": "agent_message",
+                "content": content,
+                "author": author,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+            disconnected = set()
+            for websocket in self.active_connections[session_id]:
+                try:
+                    await websocket.send_text(message)
+                    logger.info(f"Sent agent message to WebSocket for session {session_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to send message to WebSocket: {e}")
+                    disconnected.add(websocket)
+            
+            # Clean up disconnected websockets
+            for ws in disconnected:
+                self.active_connections[session_id].discard(ws)
+        else:
+            logger.warning(f"No active WebSocket connections for session {session_id} to send agent message")
 
 # Create global connection manager
 manager = ConnectionManager()
@@ -131,6 +158,23 @@ async def send_tool_update(request: ToolUpdateRequest):
         request.tool_name, 
         request.status, 
         request.args
+    )
+    return {"status": "sent"}
+
+# Pydantic model for agent message requests
+class AgentMessageRequest(BaseModel):
+    session_id: str
+    content: str
+    author: str = "Assistant"
+
+# HTTP endpoint for agent to send messages to chat
+@app.post("/api/agent-message")
+async def send_agent_message(request: AgentMessageRequest):
+    """HTTP endpoint for agent to send messages to chat"""
+    await manager.send_agent_message(
+        request.session_id,
+        request.content,
+        request.author
     )
     return {"status": "sent"}
 

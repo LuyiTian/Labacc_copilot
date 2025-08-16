@@ -1,0 +1,21 @@
+{
+  "file_analysis": {
+    "default": "**Summary:** This is a test protocol document describing experimental procedures.\n\n**Key Findings:**\n- Temperature: 37°C\n- Duration: 45 minutes\n- Sample size: n=10\n\n**Questions for User:**\n1. What specific tissue type is this protocol designed for?\n2. Have you observed any issues with the current parameters?",
+    
+    "with_context": "**Summary:** This protocol appears to be related to the ongoing optimization experiments in {experiment_id}.\n\n**Key Findings:**\n- Matches previous temperature settings\n- Duration is consistent with exp_001\n- Sample size appropriate for validation\n\n**Questions for User:**\n1. Is this a refinement of the previous protocol?\n2. What specific improvements are you testing?",
+    
+    "error_case": "I encountered an issue analyzing this file. The file appears to be corrupted or in an unsupported format."
+  },
+  
+  "memory_update": {
+    "default": "# {experiment_id}\n\n## Overview\n{existing_content}\n\n## File Upload Analysis ({date})\n\n**File:** {filename}\n**Analysis:** {analysis}\n\n**User Context:**\n{user_response}\n\n---",
+    
+    "simple": "README updated with file analysis and user context."
+  },
+  
+  "tool_responses": {
+    "read_file": "File content: {content}",
+    "scan_project": "Found {count} experiments in project",
+    "list_folder_contents": "Folder contains: {files}"
+  }
+}

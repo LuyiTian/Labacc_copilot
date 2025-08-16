@@ -14,6 +14,7 @@ Memory is handled AUTOMATICALLY - no explicit memory tools needed!
 import os
 from pathlib import Path
 from typing import List, Optional
+from datetime import datetime
 import asyncio
 import logging
 import aiohttp
@@ -25,10 +26,15 @@ from langgraph.prebuilt import create_react_agent
 from src.components.llm import get_llm_instance
 from src.components.file_analyzer import QuickFileAnalyzer
 
-# Import memory functions for AUTOMATIC use (not as tools!)
+# Setup logger early
+logger = logging.getLogger(__name__)
+
+# Import memory functions
 from src.memory.memory_tools import (
     read_memory,
     append_insight,
+    scan_project,
+    get_experiment_summary,
     update_file_registry,
     get_project_insights,
     create_experiment
@@ -44,8 +50,6 @@ try:
 except ImportError:
     # Fallback if logging config not available
     pass
-
-logger = logging.getLogger(__name__)
 
 # ============= Tool Call Notification System =============
 
@@ -192,6 +196,7 @@ async def list_folder_contents(folder_path: str = ".") -> str:
 @tool
 async def read_file(file_path: str) -> str:
     """Read file contents within current project.
+    Automatically uses converted version if available.
     
     Args:
         file_path: Path to file relative to project root (e.g., 'experiments/exp_001/README.md')
@@ -204,14 +209,28 @@ async def read_file(file_path: str) -> str:
         session = require_session()
         full_path = session.resolve_path(file_path)
         
+        # Smart check for converted markdown files
+        # If user asks for a PDF in originals/, check if .md exists in experiment root
+        if full_path.suffix.lower() == '.pdf' and 'originals' in str(full_path):
+            # Look for converted .md file in experiment root
+            path_parts = Path(file_path).parts
+            if len(path_parts) >= 1 and path_parts[0].startswith('exp_'):
+                experiment_id = path_parts[0]
+                exp_root = session.resolve_path(experiment_id)
+                md_path = exp_root / f"{full_path.stem}.md"
+                
+                if md_path.exists():
+                    logger.info(f"Found converted markdown: {md_path}")
+                    with open(md_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    return f"# {full_path.name} (Converted to Markdown)\n\n{content}"
+        
+        # Fall back to original file
         if not full_path.exists():
             return f"File not found: {file_path}"
         
         if not full_path.is_file():
             return f"Not a file: {file_path}"
-        
-        # TODO: File conversion registry needs to be adapted for new project structure
-        # For now, read original file directly
         
         # Check if it's a binary file
         try:
@@ -219,8 +238,8 @@ async def read_file(file_path: str) -> str:
                 content = f.read()
             return f"# Content of {full_path.name}\n\n{content}"
         except UnicodeDecodeError:
-            # Binary file, return basic info
-            return f"Binary file: {full_path.name} ({full_path.stat().st_size} bytes)\nUse analyze_data tool for detailed analysis."
+            # Binary file - check if conversion failed
+            return f"Binary file: {full_path.name} ({full_path.stat().st_size} bytes)\nNote: File conversion may have failed. Try re-uploading or use analyze_data tool."
         
     except RuntimeError as e:
         return f"Error: {str(e)}"
@@ -389,6 +408,18 @@ def create_memory_agent():
     llm = get_llm_instance(model_name)
     logger.info(f"React agent using model: {model_name}")
     
+    # Initialize memory tools with LLM
+    from src.memory.memory_tools import init_memory_tools
+    # Get project root from session if available
+    try:
+        session = get_current_session()
+        project_root = session.get_project_root() if session else "data/alice_projects"
+    except:
+        project_root = "data/alice_projects"
+    
+    init_memory_tools(project_root=project_root, llm=llm)
+    logger.info(f"Initialized memory tools for {project_root}")
+    
     # Use original tools without wrapping to avoid async/sync issues
     tools = [
         scan_project,
@@ -547,13 +578,44 @@ All file paths are relative to the project root.{readme_context}
                 else:
                     response = "I encountered an issue processing your request. Please try rephrasing your question."
         
-        # TODO: Memory update system needs to be adapted for new project structure
-        # For now, we'll skip memory updates until the memory system is adapted
-        # to work with session-based project contexts instead of experiment folders
-        
-        # The memory system was designed around experiment folders (exp_*) within data/
-        # but now we have project-based storage with different structure
-        logger.debug(f"Memory updates temporarily disabled for project-based system")
+        # Check if user is responding to file upload questions and update memory
+        if session and hasattr(session, 'pending_questions'):
+            # Look for any pending questions
+            for exp_id, question_info in list(session.pending_questions.items()):
+                if question_info.get('asked'):
+                    # User's current message is likely answering our questions
+                    logger.info(f"User responding to questions about {question_info['file']}")
+                    
+                    # Prepare memory update with complete context
+                    memory_update = f"""
+## File Upload Analysis ({datetime.now().strftime('%Y-%m-%d')})
+
+**File:** {question_info['file']}
+**Analysis:** {response[:500]}  # First 500 chars of agent's analysis
+
+**User's Additional Context:**
+{message}
+
+**Integration Notes:**
+- File uploaded and analyzed with user clarifications
+- Context captured for future reference
+"""
+                    
+                    # Update experiment memory
+                    try:
+                        from src.memory.memory_tools import update_experiment_readme
+                        update_result = await update_experiment_readme.ainvoke({
+                            "experiment_id": exp_id,
+                            "updates": memory_update
+                        })
+                        logger.info(f"Memory updated for {exp_id}: {update_result}")
+                        
+                        # Clear the pending questions
+                        del session.pending_questions[exp_id]
+                    except Exception as e:
+                        logger.error(f"Failed to update memory: {e}")
+                    
+                    break  # Only process one set of questions at a time
         
         # Enhanced conversation logging with tool calls
         try:

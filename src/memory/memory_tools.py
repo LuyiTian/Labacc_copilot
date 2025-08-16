@@ -1,559 +1,307 @@
 """
-Memory Tools for React Agent
-Tools that interact with the README memory system
+Memory tools for the React agent.
+LLM-based extraction for multi-language support - NO pattern matching!
 """
 
-import os
-import json
-from typing import Optional, List, Dict, Any
-from datetime import datetime
-from pathlib import Path
-
 from langchain_core.tools import tool
-
-from src.memory.readme_memory import MemoryManager, ExperimentMemory
-from src.components.llm import get_llm_instance
 from langchain_core.messages import HumanMessage
+from typing import Optional
+from pathlib import Path
+import json
+import logging
+from datetime import datetime
+
+from src.memory.memory import SimpleMemory
+from src.components.llm import get_llm_instance
+
+logger = logging.getLogger(__name__)
+
+# Module-level storage for initialization
+_memory_manager = None
+_llm_instance = None
 
 
-def get_memory_manager(experiment_id: str = None) -> MemoryManager:
-    """
-    Get the appropriate memory manager based on context.
-    
-    Supports both alice_projects (production) and bob_projects (testing).
-    """
-    # Check if we should use bob_projects
-    use_bob_projects = False
-    
-    # Check environment variable for test mode
-    if os.environ.get("TEST_MODE") == "true":
-        use_bob_projects = True
-    
-    # Check if experiment_id suggests bob_projects
-    if experiment_id:
-        # Check if the experiment exists in bob_projects
-        bob_path = Path("data/bob_projects") / experiment_id
-        if bob_path.exists():
-            use_bob_projects = True
-    
-    # Determine project root
-    if use_bob_projects:
-        project_root = os.path.join(os.getcwd(), "data", "bob_projects")
-    else:
-        project_root = os.path.join(os.getcwd(), "data", "alice_projects")
-    
-    return MemoryManager(project_root)
-
-# ============= Memory Tools =============
-
-@tool
-async def read_memory(
-    experiment_id: str,
-    section: Optional[str] = None
-) -> str:
-    """
-    Read experiment memory from README file.
-    
-    Args:
-        experiment_id: Experiment folder name (e.g., 'exp_001_pcr_optimization')
-        section: Optional section to read ('overview', 'results', 'files', 'insights', etc.)
-                If None, returns the full README content
-    
-    Returns:
-        The requested memory content as formatted text
-    """
-    try:
-        memory_manager = get_memory_manager(experiment_id)
-        memory = memory_manager.read_memory(experiment_id)
-        
-        if memory is None:
-            return f"No README memory found for experiment '{experiment_id}'. The experiment may not exist or lacks a README.md file."
-        
-        # If specific section requested
-        if section:
-            section_lower = section.lower()
-            
-            if section_lower == "overview":
-                if memory.overview:
-                    return f"**Overview for {experiment_id}:**\n" + \
-                           f"Motivation: {memory.overview.get('motivation', 'Not specified')}\n" + \
-                           f"Key Question: {memory.overview.get('key_question', 'Not specified')}\n" + \
-                           f"Hypothesis: {memory.overview.get('hypothesis', 'Not specified')}"
-                return "No overview section found"
-            
-            elif section_lower == "files":
-                if memory.files:
-                    files_str = f"**Files in {experiment_id}:**\n"
-                    for file in memory.files:
-                        files_str += f"- {file.get('name', 'Unknown')} ({file.get('type', 'Unknown')}): {file.get('summary', 'No summary')}\n"
-                    return files_str
-                return "No files documented"
-            
-            elif section_lower == "results":
-                if memory.results:
-                    results_str = f"**Results for {experiment_id}:**\n"
-                    if memory.results.get('key_findings'):
-                        results_str += "Key Findings:\n"
-                        for finding in memory.results['key_findings']:
-                            results_str += f"- {finding}\n"
-                    if memory.results.get('statistics'):
-                        results_str += "\nStatistics:\n"
-                        for key, value in memory.results['statistics'].items():
-                            results_str += f"- {key}: {value}\n"
-                    return results_str
-                return "No results documented"
-            
-            elif section_lower == "insights":
-                if memory.insights:
-                    insights_str = f"**Insights for {experiment_id}:**\n"
-                    for insight in memory.insights:
-                        insights_str += f"- [{insight.get('timestamp', 'Unknown time')}] {insight.get('insight', '')}\n"
-                    return insights_str
-                return "No insights documented"
-            
-            elif section_lower == "methods":
-                if memory.methods:
-                    return f"**Methods for {experiment_id}:**\n{memory.methods}"
-                return "No methods documented"
-            
-            elif section_lower == "parameters":
-                if memory.parameters:
-                    params_str = f"**Parameters for {experiment_id}:**\n"
-                    for param_type, params in memory.parameters.items():
-                        if params:
-                            params_str += f"\n{param_type.title()} Variables:\n"
-                            for key, value in params.items():
-                                params_str += f"- {key}: {value}\n"
-                    return params_str
-                return "No parameters documented"
-            
-            else:
-                return f"Unknown section '{section}'. Available sections: overview, files, results, insights, methods, parameters"
-        
-        # Return full content
-        return f"**Full README for {experiment_id}:**\n\n{memory.raw_content}"
-    
-    except Exception as e:
-        return f"Error reading memory: {str(e)}"
+def init_memory_tools(project_root: str = "data/alice_projects", llm=None):
+    """Initialize memory tools with project root and LLM instance."""
+    global _memory_manager, _llm_instance
+    from src.memory.memory import SimpleMemoryManager
+    _memory_manager = SimpleMemoryManager(project_root)
+    _llm_instance = llm or get_llm_instance()
+    logger.info(f"Initialized memory tools with root: {project_root}")
 
 
 @tool
-async def write_memory(
-    experiment_id: str,
-    section: str,
-    content: str,
-    preserve_rest: bool = True
-) -> str:
-    """
-    Update a section of the experiment README memory.
+async def get_experiment_info(experiment_id: str, what_info: str) -> str:
+    """Get specific information from an experiment's README using LLM extraction.
+    Works in ANY language - no pattern matching!
     
     Args:
-        experiment_id: Experiment folder name
-        section: Section to update ('overview', 'results', 'files', 'insights', 'notes', etc.)
-        content: New content for the section (can be text or JSON string for structured data)
-        preserve_rest: If True, preserves other sections (default: True)
+        experiment_id: The experiment folder name (e.g., 'exp_001_pcr')
+        what_info: Natural language description of what info you need
     
     Returns:
-        Confirmation of the update
+        Extracted information from the README
     """
-    try:
-        # Parse content if it's JSON
-        try:
-            parsed_content = json.loads(content)
-        except:
-            parsed_content = content
-        
-        # Update the section
-        memory_manager = get_memory_manager(experiment_id)
-        success = memory_manager.update_section(experiment_id, section, parsed_content)
-        
-        if success:
-            return f"Successfully updated {section} section in {experiment_id} README memory"
-        else:
-            return f"Failed to update {section} section in {experiment_id}"
+    if not _memory_manager:
+        return "Memory system not initialized"
     
-    except Exception as e:
-        return f"Error writing memory: {str(e)}"
+    memory = _memory_manager.read_memory(experiment_id)
+    if not memory:
+        return f"No README found for {experiment_id}"
+    
+    # Use LLM to extract the requested information
+    prompt = f"""From this experiment README, extract: {what_info}
+
+README content:
+{memory.raw_content}
+
+Provide only the requested information, be concise."""
+    
+    response = _llm_instance.invoke([HumanMessage(content=prompt)])
+    return response.content
+
+# Alias for backward compatibility
+read_memory = get_experiment_info
 
 
 @tool
-async def search_memories(
-    query: str,
-    scope: str = "all"
-) -> str:
-    """
-    Search across all experiment README memories.
+async def update_experiment_readme(experiment_id: str, updates: str) -> str:
+    """Update an experiment's README with new information.
+    The LLM will figure out how to integrate the updates naturally.
     
     Args:
-        query: Search query text
-        scope: Search scope ('all', 'recent', 'active')
+        experiment_id: The experiment folder name
+        updates: What information to add/update in natural language
     
     Returns:
-        Search results with matching experiments and context
+        Confirmation message
     """
-    try:
-        # For search, we might need to search both alice and bob projects
-        # Start with default (alice) unless TEST_MODE is set
-        memory_manager = get_memory_manager()
-        results = memory_manager.search_memories(query, scope)
-        
-        # If in test mode or no results, also check bob_projects
-        if os.environ.get("TEST_MODE") == "true" or not results:
-            bob_manager = MemoryManager(os.path.join(os.getcwd(), "data", "bob_projects"))
-            bob_results = bob_manager.search_memories(query, scope)
-            if bob_results:
-                results = results + "\n\n" + bob_results if results else bob_results
-        
-        if not results:
-            return f"No experiments found matching '{query}'"
-        
-        output = f"Found {len(results)} experiments matching '{query}':\n\n"
-        
-        for result in results[:5]:  # Limit to first 5 results
-            output += f"**{result['experiment_id']}:**\n"
-            for match in result.get('matches', []):
-                output += f"  - {match}\n"
-            output += "\n"
-        
-        if len(results) > 5:
-            output += f"\n...and {len(results) - 5} more experiments"
-        
-        return output
+    if not _memory_manager:
+        return "Memory system not initialized"
     
-    except Exception as e:
-        return f"Error searching memories: {str(e)}"
+    result = _memory_manager.update_memory(experiment_id, updates, _llm_instance)
+    return result
+
+# Alias for backward compatibility  
+append_insight = update_experiment_readme
 
 
 @tool
-async def append_insight(
-    experiment_id: str,
-    insight: str,
-    source: str = "agent"
-) -> str:
-    """
-    Add a new insight to the experiment README.
-    
-    Args:
-        experiment_id: Experiment folder name
-        insight: The insight text to add
-        source: Source of the insight ('agent', 'user', 'analysis')
+def list_all_experiments() -> str:
+    """List all experiments in the project with their current status.
+    Simple directory listing - no complex parsing.
     
     Returns:
-        Confirmation of the insight addition
+        List of experiments with basic info
     """
-    try:
-        # Read current memory
-        memory_manager = get_memory_manager(experiment_id)
-        memory = memory_manager.read_memory(experiment_id)
-        
-        if memory is None:
-            return f"Cannot add insight: experiment '{experiment_id}' not found"
-        
-        # Create insight entry
-        new_insight = {
-            'timestamp': datetime.now().isoformat(),
-            'insight': f"[{source}] {insight}"
-        }
-        
-        # Append to insights
-        memory.insights.append(new_insight)
-        
-        # Add to change log
-        memory.change_log.append({
-            'timestamp': datetime.now().isoformat(),
-            'change': f"Added insight from {source}"
-        })
-        
-        # Write back
-        success = memory_manager.write_memory(memory)
-        
-        if success:
-            return f"Added insight to {experiment_id}: {insight}"
-        else:
-            return f"Failed to add insight to {experiment_id}"
+    if not _memory_manager:
+        return "Memory system not initialized"
     
-    except Exception as e:
-        return f"Error adding insight: {str(e)}"
+    experiments = _memory_manager.list_experiments()
+    if not experiments:
+        return "No experiments found"
+    
+    result = "Experiments in this project:\n"
+    for exp in experiments:
+        result += f"- {exp['name']}: {exp['status']}\n"
+    
+    return result
+
+# Alias for backward compatibility
+scan_project = list_all_experiments
+
+
+@tool
+async def search_experiments(search_query: str) -> str:
+    """Search across all experiments using semantic search.
+    The LLM understands the query in ANY language.
+    
+    Args:
+        search_query: What to search for (any language)
+    
+    Returns:
+        Relevant experiments and information
+    """
+    if not _memory_manager or not _llm_instance:
+        return "Memory system not initialized"
+    
+    experiments = _memory_manager.list_experiments()
+    if not experiments:
+        return "No experiments to search"
+    
+    # Collect all README contents
+    all_readmes = []
+    for exp in experiments:
+        memory = _memory_manager.read_memory(exp['name'])
+        if memory:
+            all_readmes.append({
+                'name': exp['name'],
+                'content': memory.raw_content[:1000]  # First 1000 chars
+            })
+    
+    if not all_readmes:
+        return "No experiment READMEs found"
+    
+    # Use LLM to search
+    prompt = f"""Search query: {search_query}
+
+Experiments:
+"""
+    for exp in all_readmes:
+        prompt += f"\n{exp['name']}:\n{exp['content']}\n---\n"
+    
+    prompt += f"\nFind experiments relevant to the search query and explain why they match."
+    
+    response = _llm_instance.invoke([HumanMessage(content=prompt)])
+    return response.content
+
+
+@tool  
+async def get_experiment_summary(experiment_id: str) -> str:
+    """Generate a concise summary of an experiment.
+    
+    Args:
+        experiment_id: The experiment folder name
+    
+    Returns:
+        AI-generated summary
+    """
+    if not _memory_manager or not _llm_instance:
+        return "Memory system not initialized"
+    
+    memory = _memory_manager.read_memory(experiment_id)
+    if not memory:
+        return f"No README found for {experiment_id}"
+    
+    prompt = f"""Provide a brief 2-3 sentence summary of this experiment:
+{memory.raw_content[:2000]}"""
+    
+    response = _llm_instance.invoke([HumanMessage(content=prompt)])
+    return response.content
 
 
 @tool
 async def update_file_registry(
     experiment_id: str,
-    file_name: str,
+    file_name: str, 
     file_type: str,
     file_size: str,
     summary: str
 ) -> str:
-    """
-    Add or update a file entry in the experiment README.
+    """Update the file registry in experiment README.
     
     Args:
         experiment_id: Experiment folder name
         file_name: Name of the file
-        file_type: Type of file ('data', 'image', 'document', etc.)
+        file_type: Type of file (Data/Image/Document/etc)
         file_size: Size of the file
-        summary: Brief description of the file content
-    
-    Returns:
-        Confirmation of the file registry update
+        summary: Brief description of the file
     """
-    try:
-        # Read current memory
-        memory_manager = get_memory_manager(experiment_id)
-        memory = memory_manager.read_memory(experiment_id)
-        
-        if memory is None:
-            # Create new experiment if doesn't exist
-            memory_manager.create_experiment_readme(experiment_id)
-            memory = memory_manager.read_memory(experiment_id)
-        
-        # Check if file already exists
-        existing_file = None
-        for i, file in enumerate(memory.files):
-            if file.get('name') == file_name:
-                existing_file = i
-                break
-        
-        # Create file entry
-        file_entry = {
-            'name': file_name,
-            'type': file_type,
-            'size': file_size,
-            'summary': summary,
-            'added': datetime.now().isoformat()
-        }
-        
-        # Update or append
-        if existing_file is not None:
-            memory.files[existing_file] = file_entry
-            action = "Updated"
-        else:
-            memory.files.append(file_entry)
-            action = "Added"
-        
-        # Add to change log
-        memory.change_log.append({
-            'timestamp': datetime.now().isoformat(),
-            'change': f"{action} file entry: {file_name}"
-        })
-        
-        # Write back
-        success = memory_manager.write_memory(memory)
-        
-        if success:
-            return f"{action} file '{file_name}' in {experiment_id} registry"
-        else:
-            return f"Failed to update file registry for {experiment_id}"
+    update_text = f"""
+Add this file to the file registry:
+- File: {file_name}
+- Type: {file_type}
+- Size: {file_size}
+- Summary: {summary}
+"""
     
-    except Exception as e:
-        return f"Error updating file registry: {str(e)}"
-
-
-@tool
-async def compare_experiments(
-    experiment_ids: str,
-    aspect: str = "all"
-) -> str:
-    """
-    Compare multiple experiments based on their README memories.
-    
-    Args:
-        experiment_ids: Comma-separated list of experiment IDs
-        aspect: What to compare ('results', 'methods', 'parameters', 'all')
-    
-    Returns:
-        Comparative analysis of the experiments
-    """
-    try:
-        exp_list = [e.strip() for e in experiment_ids.split(',')]
-        
-        if len(exp_list) < 2:
-            return "Please provide at least 2 experiment IDs to compare (comma-separated)"
-        
-        # Read all experiment memories
-        memories = {}
-        for exp_id in exp_list:
-            memory_manager = get_memory_manager(exp_id)
-            memory = memory_manager.read_memory(exp_id)
-            if memory:
-                memories[exp_id] = memory
-        
-        if len(memories) < 2:
-            return f"Could not read enough experiments. Found: {list(memories.keys())}"
-        
-        # Build comparison
-        comparison = f"**Comparing {len(memories)} experiments:**\n\n"
-        
-        # Compare based on aspect
-        if aspect in ["all", "results"]:
-            comparison += "**Results Comparison:**\n"
-            for exp_id, memory in memories.items():
-                comparison += f"\n{exp_id}:\n"
-                if memory.results.get('key_findings'):
-                    for finding in memory.results['key_findings'][:2]:
-                        comparison += f"  - {finding}\n"
-                else:
-                    comparison += "  - No results documented\n"
-        
-        if aspect in ["all", "methods"]:
-            comparison += "\n**Methods Comparison:**\n"
-            for exp_id, memory in memories.items():
-                comparison += f"\n{exp_id}:\n"
-                if memory.methods:
-                    # First 200 chars of methods
-                    comparison += f"  {memory.methods[:200]}...\n"
-                else:
-                    comparison += "  - No methods documented\n"
-        
-        if aspect in ["all", "parameters"]:
-            comparison += "\n**Parameters Comparison:**\n"
-            for exp_id, memory in memories.items():
-                comparison += f"\n{exp_id}:\n"
-                if memory.parameters:
-                    for param_type, params in memory.parameters.items():
-                        if params:
-                            comparison += f"  {param_type}: {', '.join(params.keys())}\n"
-                else:
-                    comparison += "  - No parameters documented\n"
-        
-        # Use LLM to generate insights
-        llm = get_llm_instance()
-        prompt = f"""Based on this experiment comparison, identify patterns and key differences:
-
-{comparison}
-
-Provide 2-3 key insights about what makes experiments successful or different."""
-        
-        response = llm.invoke([HumanMessage(content=prompt)])
-        comparison += f"\n**Insights from comparison:**\n{response.content}"
-        
-        return comparison
-    
-    except Exception as e:
-        return f"Error comparing experiments: {str(e)}"
+    return await update_experiment_readme(experiment_id, update_text)
 
 
 @tool
 async def create_experiment(
     experiment_name: str,
-    motivation: str = "",
-    key_question: str = ""
+    motivation: str,
+    key_question: str
 ) -> str:
-    """
-    Create a new experiment with initial README memory.
+    """Create a new experiment with initial README.
     
     Args:
-        experiment_name: Name for the experiment (will be converted to exp_XXX format)
-        motivation: Why this experiment is being conducted
-        key_question: The main research question
-    
-    Returns:
-        Confirmation of experiment creation
+        experiment_name: Name for the experiment
+        motivation: Why this experiment
+        key_question: Main research question
     """
-    try:
-        # Generate experiment ID
-        name_clean = experiment_name.lower().replace(' ', '_')
-        name_clean = ''.join(c for c in name_clean if c.isalnum() or c == '_')
-        
-        # Find next available number
-        memory_manager = get_memory_manager()
-        existing = [d.name for d in Path(memory_manager.project_root).iterdir() 
-                   if d.is_dir() and d.name.startswith("exp_")]
-        
-        if existing:
-            numbers = []
-            for exp in existing:
-                try:
-                    num = int(exp.split('_')[1])
-                    numbers.append(num)
-                except:
-                    pass
-            next_num = max(numbers) + 1 if numbers else 1
-        else:
-            next_num = 1
-        
-        experiment_id = f"exp_{next_num:03d}_{name_clean}"
-        
-        # Create the experiment
-        success = memory_manager.create_experiment_readme(experiment_id, experiment_name)
-        
-        if success and (motivation or key_question):
-            # Update with provided information
-            memory = memory_manager.read_memory(experiment_id)
-            if motivation:
-                memory.overview['motivation'] = motivation
-            if key_question:
-                memory.overview['key_question'] = key_question
-            memory_manager.write_memory(memory)
-        
-        if success:
-            return f"Created new experiment '{experiment_id}' with initial README memory"
-        else:
-            return f"Failed to create experiment '{experiment_id}'"
+    from src.projects.session import get_current_session
     
+    try:
+        session = get_current_session()
+        if not session:
+            return "No active session. Please select a project first."
+        
+        # Create experiment folder
+        exp_folder = f"exp_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{experiment_name.lower().replace(' ', '_')}"
+        exp_path = session.resolve_path(exp_folder)
+        exp_path.mkdir(parents=True, exist_ok=True)
+        
+        # Create initial README
+        readme_content = f"""# Experiment: {experiment_name}
+
+## Overview
+**Created**: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+**Status**: Active
+**Motivation**: {motivation}
+**Key Question**: {key_question}
+
+## Methods
+To be documented...
+
+## Results
+No results yet.
+
+## Files
+No files uploaded yet.
+
+## Issues & Troubleshooting
+None reported.
+
+## Next Steps
+1. Set up experimental protocol
+2. Begin data collection
+"""
+        
+        readme_path = exp_path / "README.md"
+        readme_path.write_text(readme_content)
+        
+        return f"Created experiment: {exp_folder}"
+        
     except Exception as e:
+        logger.error(f"Failed to create experiment: {e}")
         return f"Error creating experiment: {str(e)}"
 
 
 @tool
 async def get_project_insights() -> str:
-    """
-    Get cross-experiment insights from all README memories.
+    """Get insights across all experiments in the project.
     
     Returns:
-        Summary of patterns and learnings across all experiments
+        Cross-experiment patterns and learnings
     """
-    try:
-        # Get all experiments
-        memory_manager = get_memory_manager()
-        exp_dirs = [d for d in Path(memory_manager.project_root).iterdir() 
-                   if d.is_dir() and d.name.startswith("exp_")]
-        
-        if not exp_dirs:
-            return "No experiments found in project"
-        
-        # Collect insights from all experiments
-        all_insights = []
-        successful_experiments = []
-        failed_experiments = []
-        
-        for exp_dir in exp_dirs:
-            memory = memory_manager.read_memory(exp_dir.name)
-            if memory:
-                # Collect insights
-                for insight in memory.insights:
-                    all_insights.append(f"{exp_dir.name}: {insight.get('insight', '')}")
-                
-                # Track status
-                if memory.status == "completed":
-                    successful_experiments.append(exp_dir.name)
-                elif memory.status == "failed":
-                    failed_experiments.append(exp_dir.name)
-        
-        # Build summary
-        summary = f"**Project Insights Summary:**\n\n"
-        summary += f"Total experiments: {len(exp_dirs)}\n"
-        summary += f"Successful: {len(successful_experiments)}\n"
-        summary += f"Failed: {len(failed_experiments)}\n\n"
-        
-        if all_insights:
-            summary += "**Recent Insights:**\n"
-            for insight in all_insights[-5:]:  # Last 5 insights
-                summary += f"- {insight}\n"
-        
-        # Use LLM to find patterns
-        if len(all_insights) > 3:
-            llm = get_llm_instance()
-            prompt = f"""Analyze these experimental insights and identify 2-3 key patterns or learnings:
-
-{chr(10).join(all_insights[:10])}
-
-What patterns emerge? What works consistently?"""
-            
-            response = llm.invoke([HumanMessage(content=prompt)])
-            summary += f"\n**Patterns Identified:**\n{response.content}"
-        
-        return summary
+    if not _memory_manager or not _llm_instance:
+        return "Memory system not initialized"
     
-    except Exception as e:
-        return f"Error getting project insights: {str(e)}"
+    experiments = _memory_manager.list_experiments()
+    if not experiments:
+        return "No experiments found"
+    
+    # Collect successful patterns
+    all_insights = []
+    for exp in experiments[:5]:  # Limit to 5 for performance
+        memory = _memory_manager.read_memory(exp['name'])
+        if memory and len(memory.raw_content) > 100:
+            all_insights.append(f"{exp['name']}: {memory.raw_content[:500]}")
+    
+    if not all_insights:
+        return "No experiment data available for insights"
+    
+    prompt = f"""Based on these experiments, identify:
+1. Common successful approaches
+2. Recurring issues and solutions
+3. Best practices emerging
+
+Experiments:
+{chr(10).join(all_insights)}
+
+Provide actionable insights for future experiments."""
+    
+    response = _llm_instance.invoke([HumanMessage(content=prompt)])
+    return response.content

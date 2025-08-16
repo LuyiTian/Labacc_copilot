@@ -31,18 +31,39 @@ class FileConversionPipeline:
         # Lazy import conversion libraries to avoid startup overhead
         self._markitdown = None
         self._mineru_available = False
+        self._mineru_cmd = "mineru"  # Default, will be updated in check
         self._check_mineru_availability()
     
     def _check_mineru_availability(self):
-        """Check if MinerU (magic-pdf) is available."""
+        """Check if MinerU v2 is available."""
         try:
-            import magic_pdf
-            self._mineru_available = True
-            logger.info("MinerU (magic-pdf) is available for PDF conversion")
-        except ImportError:
+            # Check for mineru CLI command
+            import subprocess
+            import sys
+            
+            # Try direct venv path first
+            venv_mineru = Path(sys.prefix) / "bin" / "mineru"
+            if venv_mineru.exists():
+                self._mineru_cmd = str(venv_mineru)
+            else:
+                # Fallback to system mineru
+                self._mineru_cmd = "mineru"
+            
+            result = subprocess.run(
+                [self._mineru_cmd, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=15  # Increased timeout for model loading
+            )
+            if result.returncode == 0 and "mineru" in result.stdout.lower():
+                self._mineru_available = True
+                logger.info(f"MinerU v2 is available at {self._mineru_cmd}")
+            else:
+                self._mineru_available = False
+                logger.warning("MinerU not available or not working properly")
+        except (subprocess.TimeoutExpired, FileNotFoundError, Exception) as e:
             self._mineru_available = False
-            logger.warning("MinerU not available. PDF conversion will be limited. "
-                         "Install with: pip install magic-pdf[full]")
+            logger.warning(f"MinerU not available: {e}")
     
     def _get_markitdown(self):
         """Lazy load MarkItDown."""
@@ -120,67 +141,77 @@ class FileConversionPipeline:
         Returns:
             True if conversion successful, False otherwise
         """
-        # Try MinerU first if available (better quality for complex PDFs)
+        # Try MinerU v2 first if available (better quality for complex PDFs)
         if self._mineru_available:
             try:
-                import magic_pdf
-                from magic_pdf.pipe.UNIPipe import UNIPipe
-                from magic_pdf.rw.DiskReaderWriter import DiskReaderWriter
+                import subprocess
                 
                 # Create temporary directory for MinerU output
                 with tempfile.TemporaryDirectory() as temp_dir:
-                    # Read PDF file
-                    with open(file_path, 'rb') as f:
-                        pdf_bytes = f.read()
-                    
-                    # Set up image directory structure (MinerU standard)
                     temp_dir_path = Path(temp_dir)
-                    images_dir = temp_dir_path / "images"
-                    images_dir.mkdir(parents=True, exist_ok=True)
+                    output_dir = temp_dir_path / "mineru_output"
+                    output_dir.mkdir()
                     
-                    # Initialize MinerU pipeline with image directory
-                    image_writer = DiskReaderWriter(str(images_dir))
+                    # Run MinerU CLI command
+                    cmd = [
+                        self._mineru_cmd,
+                        "-p", str(file_path),
+                        "-o", str(output_dir),
+                        "-m", "auto",  # Auto-detect method
+                        "-b", "pipeline"  # Use pipeline backend
+                    ]
                     
-                    # Run pipeline (auto-detects GPU)
-                    # MinerU requires model_list in config
-                    config = {
-                        "_pdf_type": "",
-                        "model_list": []  # Empty list uses default models
-                    }
-                    pipe = UNIPipe(pdf_bytes, config, image_writer)
+                    logger.info(f"Running MinerU v2: {' '.join(cmd)}")
                     
-                    # Execute MinerU pipeline
-                    pipe.pipe_classify()  # Document classification
+                    # Run with timeout (synchronous for now since we're not in async context)
+                    result = await asyncio.to_thread(
+                        subprocess.run,
+                        cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=60  # 1 minute timeout should be enough
+                    )
                     
-                    # pipe_analyze() may call exit(1) if models aren't available
-                    # We need to catch SystemExit and convert to regular exception
-                    try:
-                        pipe.pipe_analyze()   # Document analysis  
-                    except SystemExit as e:
-                        raise RuntimeError(f"MinerU models not available: {e}")
+                    if result.returncode != 0:
+                        error_msg = result.stderr if result.stderr else "Unknown error"
+                        raise RuntimeError(f"MinerU failed with code {result.returncode}: {error_msg[:500]}")
                     
-                    parse_result = pipe.pipe_parse()  # Content parsing
+                    # Find the generated markdown file
+                    # MinerU v2 creates: output_dir/pdf_name/auto/pdf_name.md
+                    pdf_name_no_ext = file_path.stem
+                    expected_md = output_dir / pdf_name_no_ext / "auto" / f"{pdf_name_no_ext}.md"
                     
-                    # Check if parsing was successful
-                    if not parse_result or len(parse_result) == 0:
-                        raise ValueError("MinerU parsing returned no content")
+                    # Check the expected location first
+                    if expected_md.exists():
+                        md_content = expected_md.read_text(encoding='utf-8', errors='ignore')
+                    else:
+                        # Fallback to searching for any markdown file
+                        md_files = list(output_dir.glob("**/*.md"))
+                        if not md_files:
+                            # List all files for debugging
+                            all_files = list(output_dir.rglob("*"))
+                            logger.warning(f"MinerU output files: {[str(f.relative_to(output_dir)) for f in all_files if f.is_file()]}")
+                            raise ValueError("MinerU did not generate markdown output")
+                        else:
+                            # Use the first markdown file found
+                            md_content = md_files[0].read_text(encoding='utf-8', errors='ignore')
+                            logger.info(f"Found markdown at: {md_files[0].relative_to(output_dir)}")
                     
-                    # Get markdown content (pass basename of image directory)
-                    image_dir_basename = images_dir.name  # Just "images"
-                    md_content = pipe.pipe_mk_markdown(image_dir_basename, drop_mode="none")
-                    
-                    # Save markdown
+                    # Save to target location
                     output_path.parent.mkdir(parents=True, exist_ok=True)
-                    with open(output_path, 'w', encoding='utf-8') as f:
-                        f.write(md_content)
+                    output_path.write_text(md_content, encoding='utf-8')
                     
-                    logger.info(f"Successfully converted {file_path.name} to Markdown using MinerU")
+                    logger.info(f"Successfully converted {file_path.name} to Markdown using MinerU v2")
                     return True
                     
+            except subprocess.TimeoutExpired:
+                logger.error(f"MinerU conversion TIMED OUT for {file_path}")
+                print(f"ERROR: MinerU timed out for {file_path.name}")
             except Exception as e:
-                logger.warning(f"MinerU conversion failed for {file_path}, trying MarkItDown: {e}")
+                logger.error(f"MinerU conversion FAILED for {file_path}: {e}")
+                print(f"ERROR: MinerU failed for {file_path.name}: {e}")
         
-        # Fallback to MarkItDown (simpler but works for basic PDFs)
+        # Try MarkItDown as alternative (not a silent fallback)
         try:
             markitdown = self._get_markitdown()
             
@@ -195,12 +226,14 @@ class FileConversionPipeline:
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(result.text_content)
             
-            logger.info(f"Successfully converted {file_path.name} to Markdown using MarkItDown")
+            logger.info(f"Successfully converted {file_path.name} to Markdown using MarkItDown (MinerU was unavailable or failed)")
             return True
             
         except Exception as e:
-            logger.error(f"Failed to convert PDF {file_path}: {e}")
-            return False
+            logger.error(f"MarkItDown also FAILED to convert PDF {file_path}: {e}")
+            print(f"ERROR: Both MinerU and MarkItDown failed for {file_path.name}")
+            # FAIL LOUDLY
+            raise RuntimeError(f"PDF conversion completely failed: {e}")
     
     async def process_upload(self, file_path: Path, experiment_id: str) -> Dict:
         """Process an uploaded file, converting if necessary.
@@ -228,15 +261,17 @@ class FileConversionPipeline:
             await self.update_registry(experiment_id, result)
             return result
         
-        # Determine conversion output path
+        # FAIL EARLY if no experiment_id
+        if not experiment_id:
+            error_msg = f"No experiment_id provided for file conversion"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
+            
+        # Converted files go to the experiment folder root (visible to user)
+        # Original PDFs are in originals/, converted .md goes to experiment root
         exp_dir = self.project_root / experiment_id
-        labacc_dir = exp_dir / ".labacc"
-        converted_dir = labacc_dir / "converted"
-        converted_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Create markdown filename
         md_filename = f"{file_path.stem}.md"
-        converted_path = converted_dir / md_filename
+        converted_path = exp_dir / md_filename
         
         # Determine file type and convert
         ext = file_path.suffix.lower()
@@ -256,8 +291,14 @@ class FileConversionPipeline:
         
         # Update result based on conversion outcome
         if conversion_success:
-            result["converted_path"] = str(converted_path.relative_to(self.project_root))
-            result["conversion_status"] = "success"
+            # Verify the file was actually created
+            if converted_path.exists():
+                result["converted_path"] = str(converted_path.relative_to(self.project_root))
+                result["conversion_status"] = "success"
+                logger.info(f"Successfully created converted file: {converted_path}")
+            else:
+                result["conversion_status"] = "failed"
+                logger.error(f"Conversion claimed success but file not created: {converted_path}")
         else:
             result["conversion_status"] = "failed"
             logger.error(f"Conversion failed for {file_path.name}")

@@ -13,6 +13,7 @@ import asyncio
 import logging
 
 import aiofiles
+import aiohttp
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -101,8 +102,13 @@ def get_project_root(request: Request) -> str:
     if not session:
         raise HTTPException(status_code=403, detail="Invalid or expired session")
     
-    # Return the session-specific project path
-    return str(session.project_path)
+    # Return the session-specific project path as absolute path
+    project_path = Path(session.project_path)
+    if not project_path.is_absolute():
+        # Make it absolute relative to current working directory
+        project_path = Path.cwd() / project_path
+    
+    return str(project_path)
 
 
 # File operation endpoints
@@ -168,6 +174,7 @@ async def list_files(
 
 @router.post("/upload")
 async def upload_files(
+    request: Request,
     files: list[UploadFile] = File(...),
     path: str = Form("/"),
     project_root: str = Depends(get_project_root)
@@ -201,6 +208,12 @@ async def upload_files(
                 if part.startswith('exp_'):
                     experiment_id = part
                     break
+            
+            # Log the detected experiment_id for debugging
+            if experiment_id:
+                logger.info(f"Detected experiment_id: {experiment_id} from path: {relative_path}")
+            else:
+                logger.warning(f"No experiment_id detected from path: {relative_path}")
             
             # Determine where to save the file
             if experiment_id and conversion_pipeline.needs_conversion(filename):
@@ -248,6 +261,81 @@ async def upload_files(
                 "conversion_status": conversion_result.get("conversion_status") if conversion_result else "not_needed"
             })
         
+        # Notify agent about uploaded files for proactive analysis
+        try:
+            # Get session ID from request headers
+            session_id = request.headers.get("X-Session-ID")
+            
+            if session_id and experiment_id:
+                from src.api.react_bridge import notify_agent_of_upload
+                
+                # Notify agent about each uploaded file and trigger analysis
+                for file_info in uploaded_files:
+                    if file_info.get("conversion_status") in ["success", "not_needed"]:
+                        # Use converted path if available, otherwise original
+                        analysis_path = file_info.get("converted") or file_info["path"]
+                        
+                        # Create task for background analysis
+                        async def trigger_analysis(file_data, exp_id, sess_id):
+                            try:
+                                # First send a notification that file was uploaded
+                                notification = f"📎 File uploaded: **{file_data['name']}**"
+                                if file_data["conversion_status"] == "success":
+                                    notification += f"\n✅ Successfully converted to Markdown and saved to {exp_id}/{file_data['name'].rsplit('.', 1)[0]}.md"
+                                else:
+                                    notification += f"\n📁 Saved to {exp_id}/originals/"
+                                
+                                # Send notification via HTTP endpoint
+                                async with aiohttp.ClientSession() as session:
+                                    url = "http://localhost:8002/api/agent-message"
+                                    data = {
+                                        "session_id": sess_id,
+                                        "content": notification,
+                                        "author": "System"
+                                    }
+                                    async with session.post(url, json=data) as resp:
+                                        if resp.status != 200:
+                                            logger.warning(f"Failed to send notification: {resp.status}")
+                                
+                                # Now trigger actual agent analysis
+                                logger.info(f"Triggering agent analysis for {file_data['name']}")
+                                analysis_response = await notify_agent_of_upload(
+                                    session_id=sess_id,
+                                    file_path=file_data["analysis_path"],
+                                    experiment_id=exp_id,
+                                    original_name=file_data["name"],
+                                    conversion_status=file_data["conversion_status"]
+                                )
+                                
+                                # Send the analysis as a message to the chat
+                                async with aiohttp.ClientSession() as session:
+                                    url = "http://localhost:8002/api/agent-message"
+                                    data = {
+                                        "session_id": sess_id,
+                                        "content": analysis_response,
+                                        "author": "Assistant"
+                                    }
+                                    async with session.post(url, json=data) as resp:
+                                        if resp.status != 200:
+                                            logger.warning(f"Failed to send analysis: {resp.status}")
+                                        else:
+                                            logger.info(f"Analysis sent to chat for {file_data['name']}")
+                                
+                            except Exception as e:
+                                logger.error(f"Failed to trigger analysis: {e}")
+                        
+                        # Create task for background analysis
+                        file_data = {
+                            "name": file_info["name"],
+                            "analysis_path": analysis_path,
+                            "conversion_status": file_info["conversion_status"]
+                        }
+                        asyncio.create_task(trigger_analysis(file_data, experiment_id, session_id))
+                        logger.info(f"Started analysis task for {file_info['name']}")
+        except Exception as e:
+            logger.error(f"Error notifying agent about upload: {e}")
+            # Don't fail the upload if notification fails
+        
         # Auto-update README if uploading to an experiment folder
         try:
             # Check if this is an experiment folder
@@ -261,6 +349,14 @@ async def upload_files(
                     experiment_id = part
                     break
             
+            # FAIL if no valid experiment_id found
+            if not experiment_id:
+                logger.error(f"Cannot determine experiment_id from path: {relative_path}")
+                # Don't fail silently - this is important info
+                print(f"WARNING: Upload to non-experiment folder: {relative_path}")
+                # Skip README update for non-experiment folders
+                return
+                
             if experiment_id:
                 # Update README in background
                 async def update_readme_background():
@@ -308,7 +404,10 @@ async def upload_files(
                                 # Fallback to simple summary
                                 summary = f"Uploaded {file_type.lower()} file"
                             
-                            # Update file registry
+                            # Update file registry - FAIL if invalid experiment_id
+                            if not experiment_id:
+                                raise ValueError(f"No experiment_id for file upload to {relative_path}")
+                                
                             await update_file_registry.ainvoke({
                                 "experiment_id": experiment_id,
                                 "file_name": filename,

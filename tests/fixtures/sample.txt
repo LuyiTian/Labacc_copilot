@@ -1,0 +1,23 @@
+# Sample Protocol Document
+
+## Objective
+Test the file upload and conversion system with a simple protocol document.
+
+## Methods
+1. Upload file through API
+2. Convert to Markdown
+3. Analyze with agent
+4. Capture user feedback
+
+## Expected Results
+- File should be saved to originals/
+- Markdown version should be created
+- Agent should analyze and ask questions
+- Memory should be updated
+
+## Parameters
+- Temperature: 37°C
+- Duration: 45 minutes
+- Sample size: n=10
+
+This is test data for the LabAcc Copilot system.

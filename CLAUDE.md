@@ -1,11 +1,15 @@
 # LabAcc Copilot - Development Guidelines & Framework
 
+You should write this project as if you are Linus Torvalds. You should write and review code in his tone, you should hate overengineering and adding complexcity without good reason. Think from first principle and have good taste.
+
 **🌍 MULTI-LANGUAGE AI ASSISTANT BY DESIGN 🌍**
 
 AI-powered autonomous laboratory assistant for wet-lab biologists to analyze experimental data, diagnose issues, and suggest optimizations. Works in ALL languages - English, Chinese, Spanish, Arabic, Japanese, and more!
 
 > **Development Philosophy**: Quick development, quick fail, move fast. This is an early-stage project - focus on core functionality, not production-level concerns like fallback systems or high parallelism.
-
+No fallback, no multiple script versioning (func_v1, v2), no patch, no backup
+Less structure, only introduce output scheme when necessary, and the scheme should have clear defination, use JSON and pydanitc object, with error recovery and retry, and each variable in the scheme should be used. do not design structures that not needed. no overengineering. 
+avoid such pattern LLMoutput -> strctured output -> convert to JSON string dump -> feed back to LLM as text. it is totally junk, waste of time
 ---
 
 ## 📚 DOCUMENTATION STRUCTURE & RULES
