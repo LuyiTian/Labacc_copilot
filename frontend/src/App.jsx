@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import ChatPanel from './components/ChatPanel';
+import QuickHelp from './components/QuickHelp';
 import './App.css';
 import './styles/ChatPanel.css';
 import './styles/Auth.css';
@@ -291,6 +292,8 @@ function App() {
           Modern file management for wet-lab biologists
         </div>
       </div>
+      
+      <QuickHelp />
       
       <div className="app-content">
         {/* Original File Manager - Left Side */}

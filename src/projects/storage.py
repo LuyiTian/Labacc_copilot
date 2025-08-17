@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 class StorageManager:
     """Manages external storage for LabAcc Copilot projects"""
     
-    def __init__(self, storage_root: str = "external_storage/lab_data/projects/"):
+    def __init__(self, storage_root: str = "data/"):
+        # Future: This will be configurable from a config file
         self.storage_root = Path(storage_root).resolve()
         self._ensure_storage_exists()
     

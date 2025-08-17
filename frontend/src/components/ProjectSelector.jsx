@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import ProjectCreationModal from './ProjectCreationModal';
 
 const ProjectSelector = ({ onProjectSelected, sessionId }) => {
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const API_BASE = 'http://localhost:8002';
 
@@ -65,33 +67,12 @@ const ProjectSelector = ({ onProjectSelected, sessionId }) => {
     }
   };
 
-  const createDemoProject = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const headers = {};
-      if (sessionId) {
-        headers['X-Session-ID'] = sessionId;
-      }
-      
-      const response = await fetch(`${API_BASE}/api/projects/create-demo`, {
-        method: 'POST',
-        headers
-      });
-      const data = await response.json();
-      
-      if (data.status === 'success') {
-        // Reload projects to include the new one
-        await loadProjects();
-        // Auto-select the demo project
-        await selectProject(data.project_id);
-      }
-    } catch (err) {
-      setError('Failed to create demo project: ' + err.message);
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const handleProjectCreated = async (projectId) => {
+    // Reload projects to include the new one
+    await loadProjects();
+    // Auto-select the new project
+    await selectProject(projectId);
+    setShowCreateModal(false);
   };
 
   if (selectedProject) {
@@ -123,8 +104,8 @@ const ProjectSelector = ({ onProjectSelected, sessionId }) => {
               {projects.length === 0 ? (
                 <div className="no-projects">
                   <p>No projects found.</p>
-                  <button onClick={createDemoProject} className="create-demo-btn">
-                    Create Demo Project
+                  <button onClick={() => setShowCreateModal(true)} className="create-project-btn">
+                    ➕ Create Project
                   </button>
                 </div>
               ) : (
@@ -143,15 +124,23 @@ const ProjectSelector = ({ onProjectSelected, sessionId }) => {
             </div>
             
             {projects.length > 0 && (
-              <div className="demo-section">
-                <button onClick={createDemoProject} className="create-demo-btn secondary">
-                  + Create Demo Project
+              <div className="project-actions">
+                <button onClick={() => setShowCreateModal(true)} className="create-project-btn">
+                  ➕ Create New Project
                 </button>
               </div>
             )}
           </>
         )}
       </div>
+      
+      {showCreateModal && (
+        <ProjectCreationModal
+          sessionId={sessionId}
+          onClose={() => setShowCreateModal(false)}
+          onProjectCreated={handleProjectCreated}
+        />
+      )}
     </div>
   );
 };

@@ -42,7 +42,13 @@ const ToolCallIndicator = ({ sessionId }) => {
                 timestamp: new Date().toLocaleTimeString()
               };
               console.log(`Tool starting: ${data.tool}`);
-              return [...prev, toolCall];
+              
+              // Keep only the 3 most recent tools
+              const newCalls = [...prev, toolCall];
+              if (newCalls.length > 3) {
+                return newCalls.slice(-3);
+              }
+              return newCalls;
               
             } else if (data.status === 'completed' || data.status === 'error') {
               // Find and update the existing tool call, or add new if not found
@@ -59,13 +65,13 @@ const ToolCallIndicator = ({ sessionId }) => {
                   completedAt: new Date().toLocaleTimeString()
                 };
                 
-                // Auto-remove after 3 seconds for completed tools
+                // Auto-remove after 10 seconds for completed tools
                 if (data.status === 'completed') {
                   setTimeout(() => {
                     setToolCalls(current => 
                       current.filter(c => c.id !== updated[existingIndex].id)
                     );
-                  }, 3000);
+                  }, 10000);  // Changed from 3000ms to 10000ms
                 }
                 
                 console.log(`Tool ${data.status}: ${data.tool}`);
@@ -80,14 +86,19 @@ const ToolCallIndicator = ({ sessionId }) => {
                   timestamp: new Date().toLocaleTimeString()
                 };
                 
-                // Auto-remove after 3 seconds
+                // Auto-remove after 10 seconds
                 if (data.status === 'completed') {
                   setTimeout(() => {
                     setToolCalls(current => current.filter(c => c.id !== toolCall.id));
-                  }, 3000);
+                  }, 10000);  // Changed from 3000ms to 10000ms
                 }
                 
-                return [...prev, toolCall];
+                // Keep only the 3 most recent tools
+                const newCalls = [...prev, toolCall];
+                if (newCalls.length > 3) {
+                  return newCalls.slice(-3);
+                }
+                return newCalls;
               }
             }
             
@@ -137,16 +148,32 @@ const ToolCallIndicator = ({ sessionId }) => {
   // Always show if connected, even with no tool calls (for debugging)
   if (!isConnected) {
     return (
-      <div className="tool-call-indicator" style={{opacity: 0.5}}>
+      <div className="tool-call-indicator connecting">
         <div className="tool-calls-header">
-          <span className="tool-calls-title">🔧 Agent Tools (Connecting...)</span>
+          <span className="tool-calls-title">
+            <span className="connecting-spinner">⚡</span>
+            Agent Tools
+          </span>
+          <span className="tool-calls-status">Connecting...</span>
+        </div>
+        <div className="tool-calls-connecting-body">
+          <div className="connecting-message">
+            Establishing connection to agent tools...
+          </div>
         </div>
       </div>
     );
   }
   
   if (toolCalls.length === 0) {
-    return null; // Hide when no active tool calls
+    return (
+      <div className="tool-call-indicator ready">
+        <div className="tool-calls-header">
+          <span className="tool-calls-title">🔧 Agent Tools</span>
+          <span className="tool-calls-status ready">Ready</span>
+        </div>
+      </div>
+    );
   }
 
   return (

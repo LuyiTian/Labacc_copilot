@@ -73,7 +73,8 @@ class User:
 class AuthenticationManager:
     """Manages user authentication and authorization"""
     
-    def __init__(self, storage_root: str = "external_storage/lab_data/"):
+    def __init__(self, storage_root: str = "data/"):
+        # Future: This will be configurable from a config file
         self.storage_root = Path(storage_root)
         self.storage_root.mkdir(parents=True, exist_ok=True)
         

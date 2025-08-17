@@ -86,14 +86,18 @@ Resolution: project_path / "experiments/" = "/external/lab_data/projects/project
 Result: ✅ ALWAYS CORRECT, NO GUESSING
 ```
 
-### 1. Project Storage (Outside Codebase)
+### 1. Project Storage (Configurable Location)
 ```
-/external/lab_data/projects/
-├── project_001_mike_pcr/          (owned by mike, private)
-├── project_002_lisa_cancer/       (owned by lisa, private)
-├── project_003_shared_protocols/  (owned by sarah, shared with all)
-├── project_004_collaboration/     (owned by mike, shared with lisa)
-└── project_005_teaching/          (owned by sarah, shared with students)
+# Current (temporary): data/ folder within codebase
+data/
+├── alice_projects/     # Alice's experiments
+├── bob_projects/       # Bob's test data
+└── projects_metadata.json  # Project metadata
+
+# Future (configurable via config file or env variable):
+# - Set via LABACC_STORAGE_ROOT environment variable
+# - Or via ~/.labacc/config.json
+# - Could be anywhere: /external/lab_data/, /mnt/shared/, ~/Documents/lab_data/, etc.
 ```
 
 ### 2. Simple Permission Model
@@ -221,7 +225,15 @@ def get_current_project_path() -> Path:
 ```python
 # project_manager.py 
 class ProjectManager:
-    def __init__(self, storage_root: str = "/external/lab_data/projects/"):
+    def __init__(self, storage_root: str = None):
+        # Storage root is configurable:
+        # 1. From parameter if provided
+        # 2. From LABACC_STORAGE_ROOT env variable
+        # 3. From ~/.labacc/config.json
+        # 4. Default to "data/" for backward compatibility
+        if storage_root is None:
+            from src.config.storage_config import storage_config
+            storage_root = storage_config.projects_root
         self.storage_root = Path(storage_root)
         
     def create_project(self, user_id: str, project_name: str) -> str:

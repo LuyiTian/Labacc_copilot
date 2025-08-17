@@ -138,9 +138,17 @@ Current README:
 New Information to Add:
 {updates}
 
+IMPORTANT RULES:
+1. Only add information that is explicitly stated in the "New Information to Add" section
+2. Do NOT make up or invent any collaborations, institutions, or data that isn't mentioned
+3. Do NOT create fictional narratives or backstories
+4. Use the EXACT filenames provided, do not change them
+5. If the new information references a file, use the actual filename given
+
 Return the complete updated README, preserving the existing structure and language.
 Add the new information in the appropriate section or create a new section if needed.
-Keep the markdown formatting clean and readable."""
+Keep the markdown formatting clean and readable.
+Be factual and accurate - only include what is explicitly provided."""
         
         try:
             response = await llm.ainvoke(prompt)

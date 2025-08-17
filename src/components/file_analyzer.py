@@ -225,10 +225,20 @@ class QuickFileAnalyzer:
     async def _analyze_image_content(self, file_path: str) -> str:
         """Analyze image content using vision LLM"""
         try:
-            # This would be implemented for vision-capable LLMs
-            # For now, return placeholder
-            return "Laboratory image detected"
-        except:
+            # Use the new image analyzer with GLM-4.5V
+            from src.components.image_analyzer import analyze_lab_image
+            
+            result = await analyze_lab_image(
+                image_path=file_path,
+                vision_model="GLM-4.5V"
+            )
+            
+            if result.success and result.content_description:
+                return result.content_description
+            else:
+                return "Laboratory image (content analysis unavailable)"
+        except Exception as e:
+            logger.debug(f"Image content analysis failed: {e}")
             return ""
 
     async def _analyze_text(self, file_path: str, file_name: str, size_bytes: int) -> FileAnalysis:

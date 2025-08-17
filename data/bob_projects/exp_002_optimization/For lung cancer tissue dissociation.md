@@ -1,66 +1,73 @@
-For lung cancer tissue dissociation, digestion time is one of the most critical variables affecting both cell yield and the biological quality of your scRNA-seq data. The consequences of going too long or too short differ, and the trade-offs are particularly important for lung because of its high immune infiltration, mucin content, and heterogeneous matrix composition.
+For **lung cancer tissue dissociation**, digestion time is one of the most critical variables affecting both cell yield and the biological quality of your scRNA-seq data. The consequences of going too long or too short differ, and the trade-offs are particularly important for lung because of its high immune infiltration, mucin content, and heterogeneous matrix composition.
 
-# 1. If digestion time is too long
+---
 
-# a. Cell viability loss
+## 1. If digestion time is **too long**
 
-Extended exposure to collagenase, dispase, or proteases will damage cell membranes.   
-• Epithelial cells, especially tumor epithelial cells, are more fragile and will lyse first, reducing the representation of tumor cells.
+### a. **Cell viability loss**
 
-# b. Transcriptional artifacts
+* Extended exposure to collagenase, dispase, or proteases will damage cell membranes.
+* Epithelial cells, especially tumor epithelial cells, are more fragile and will lyse first, reducing the representation of tumor cells.
 
-Prolonged warm digestion $( 3 7 ~ ^ { \circ } \mathsf { C } )$ induces a conserved enzymatic dissociation stress program (FOS, JUN, HSPs, MHC-I upregulation) in many cell types. This makes cells from different samples more similar in the “stress” dimension, masking true biological differences.
+### b. **Transcriptional artifacts**
 
-# c. Shift in cell composition
+* Prolonged warm digestion (37 °C) induces a **conserved enzymatic dissociation stress program** (FOS, JUN, HSPs, MHC-I upregulation) in many cell types.
+* This makes cells from different samples more similar in the “stress” dimension, masking true biological differences.
 
-More resistant populations (e.g., myeloid cells, fibroblasts) become enriched as fragile cells die. • This biases downstream cell type proportion analysis.
+### c. **Shift in cell composition**
 
-# d. Increased debris and ambient RNA
+* More resistant populations (e.g., myeloid cells, fibroblasts) become enriched as fragile cells die.
+* This biases downstream cell type proportion analysis.
 
-Dead and lysed cells release RNA into the supernatant, increasing ambient RNA contamination in $1 0 \times$ data. Leads to higher background gene counts and “soup” effect in all barcodes.
+### d. **Increased debris and ambient RNA**
 
-# 2. If digestion time is too short
+* Dead and lysed cells release RNA into the supernatant, increasing ambient RNA contamination in 10x data.
+* Leads to higher background gene counts and “soup” effect in all barcodes.
 
-# a. Low cell yield
+---
 
-• Tissue remains in chunks, trapping cells inside. • You may get disproportionately high immune cell content (since they are easier
+## 2. If digestion time is **too short**
 
-to release) and under-representation of tumor epithelial and stromal cells.
+### a. **Low cell yield**
 
-# b. Incomplete dissociation clumps
+* Tissue remains in chunks, trapping cells inside.
+* You may get disproportionately high immune cell content (since they are easier to release) and under-representation of tumor epithelial and stromal cells.
 
-• Clumps cannot be loaded efficiently into the $1 0 \times$ microfluidics system, causing: o Reduced actual cell recovery. o Higher multiplet rate if clumps partially enter droplets.
+### b. **Incomplete dissociation → clumps**
 
-# c. Biased composition
+* Clumps cannot be loaded efficiently into the 10x microfluidics system, causing:
 
-Large stromal and epithelial clusters remain trapped, so the single-cell suspension skews toward smaller, more easily liberated cells (T cells, macrophages).
+  * Reduced actual cell recovery.
+  * Higher multiplet rate if clumps partially enter droplets.
 
-![](images/85ceac81379b66c8d5a049b026a8fcefcff13399fe3f83fe8f3e5f0aef333209.jpg)
+### c. **Biased composition**
 
-# 3. Practical recommendations for lung cancer
+* Large stromal and epithelial clusters remain trapped, so the single-cell suspension skews toward smaller, more easily liberated cells (T cells, macrophages).
 
-# 1. Monitor dissociation in real time
+---
 
-Every 10–15 min, pipette a small aliquot, dilute, and check under a microscope for:
+## 3. Practical recommendations for lung cancer
 
-o Proportion of single cells vs. clumps.   
-o Presence of intact epithelial-like cells.   
-o Dead cell debris.
+1. **Monitor dissociation in real time**
+   Every 10–15 min, pipette a small aliquot, dilute, and check under a microscope for:
 
-2. Stop at “just enough”
+   * Proportion of single cells vs. clumps.
+   * Presence of intact epithelial-like cells.
+   * Dead cell debris.
 
-For lung tumors, 25–45 min at $3 7 ~ ^ { \circ } \mathrm { C }$ with gentleMACS (Miltenyi “medium” program) is typical, but adjust:
+2. **Stop at “just enough”**
+   For lung tumors, 25–45 min at 37 °C with gentleMACS (Miltenyi “medium” program) is typical, but adjust:
 
-o Softer/more necrotic tissue $\longrightarrow$ shorter time.   
-o Very fibrotic tissue $\longrightarrow$ slightly longer but watch viability.
+   * Softer/more necrotic tissue → shorter time.
+   * Very fibrotic tissue → slightly longer but watch viability.
 
-# 3. If aiming to preserve native transcriptomes
+3. **If aiming to preserve native transcriptomes**
+   Use **cold protease** (6 °C) to allow longer digestion without inducing heat-shock transcripts.
+   This allows you to extend time for tough tumor matrix while limiting stress artifacts.
 
-Use cold protease $( 6 ~ ^ { \circ } \mathrm { C } )$ to allow longer digestion without inducing heat-shock transcripts.   
-This allows you to extend time for tough tumor matrix while limiting stress artifacts.
+4. **Post-dissociation cleanup**
+   If you suspect over-digestion or high debris, include a DNase wash and possibly a debris removal step to reduce ambient RNA before 10x.
 
-# 4. Post-dissociation cleanup
+---
 
-If you suspect over-digestion or high debris, include a DNase wash and possibly a debris removal step to reduce ambient RNA before $1 0 \times$ .
-
-If you want, I can prepare a time–outcome matrix specifically for lung cancer scRNAseq, showing the trade-offs in yield, viability, cell type bias, and transcriptional artifacts at different digestion durations for both warm and cold protocols. This makes it easier to optimize your digestion window empirically.
+If you want, I can prepare a **time–outcome matrix** specifically for lung cancer scRNA-seq, showing the trade-offs in yield, viability, cell type bias, and transcriptional artifacts at different digestion durations for both warm and cold protocols. This makes it easier to optimize your digestion window empirically.

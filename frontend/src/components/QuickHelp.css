@@ -1,0 +1,178 @@
+.quick-help {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  margin: 0.5rem 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.quick-help.expanded {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.quick-help.collapsed {
+  max-height: 40px;
+  overflow: hidden;
+}
+
+.quick-help-header {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 7px 7px 0 0;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.quick-help-header:hover {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b4299 100%);
+}
+
+.help-icon {
+  font-size: 1.2rem;
+  margin-right: 0.5rem;
+}
+
+.help-title {
+  flex: 1;
+  font-size: 0.95rem;
+}
+
+.toggle-icon {
+  font-size: 0.8rem;
+  transition: transform 0.2s;
+}
+
+.quick-help-content {
+  padding: 1rem;
+  background: white;
+  border-radius: 0 0 7px 7px;
+}
+
+.capabilities-section {
+  margin-bottom: 1.5rem;
+}
+
+.capabilities-section h4 {
+  color: #333;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.capability-group {
+  margin-bottom: 1rem;
+}
+
+.capability-group h5 {
+  color: #495057;
+  font-size: 0.85rem;
+  margin: 0.5rem 0;
+  font-weight: 500;
+}
+
+.capability-group ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style: none;
+}
+
+.capability-group li {
+  position: relative;
+  color: #666;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  padding-left: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.capability-group li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #28a745;
+  font-weight: bold;
+}
+
+.commands-section h4 {
+  color: #333;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.command-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.command-example {
+  background: #f1f3f5;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.command-example:hover {
+  background: #e9ecef;
+}
+
+.command-example code {
+  font-size: 0.75rem;
+  color: #495057;
+  font-family: 'Courier New', monospace;
+}
+
+.help-footer {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.help-footer p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #666;
+  text-align: center;
+}
+
+.help-footer strong {
+  color: #333;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .command-list {
+    grid-template-columns: 1fr;
+  }
+  
+  .quick-help.expanded {
+    max-height: 400px;
+  }
+}
+
+/* Scrollbar styling */
+.quick-help.expanded::-webkit-scrollbar {
+  width: 6px;
+}
+
+.quick-help.expanded::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.quick-help.expanded::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.quick-help.expanded::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

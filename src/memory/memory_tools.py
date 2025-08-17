@@ -79,7 +79,8 @@ async def update_experiment_readme(experiment_id: str, updates: str) -> str:
     if not _memory_manager:
         return "Memory system not initialized"
     
-    result = _memory_manager.update_memory(experiment_id, updates, _llm_instance)
+    # CRITICAL FIX: Must await async function!
+    result = await _memory_manager.update_memory(experiment_id, updates, _llm_instance)
     return result
 
 # Alias for backward compatibility  

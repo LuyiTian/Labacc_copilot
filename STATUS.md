@@ -1,8 +1,8 @@
 # LabAcc Copilot - System Status
 
-**Version**: 3.2.0  
+**Version**: 3.3.1  
 **Last Updated**: 2025-01-16  
-**Status**: ✅ Operational with Enhanced File Upload Workflow
+**Status**: ✅ Operational with Configurable Storage
 
 ## 🚦 Service Status
 
@@ -45,6 +45,34 @@
 | **Tool: suggest_optimization** | ✅ Active | 3-5s | Learn from successes |
 
 ## 📝 Recent Changes
+
+### v3.3.1 - Storage Configuration (2025-01-16)
+**Configurable Storage Location**
+- **REMOVED**: `external_storage/lab_data/` folder (unused)
+- **ADDED**: `src/config/storage_config.py` for future storage configuration
+- **UPDATED**: Auth, ProjectManager, and Storage to use configurable paths
+- **PRINCIPLE**: Storage location configurable via:
+  - Environment variable: `LABACC_STORAGE_ROOT`
+  - Config file: `~/.labacc/config.json`
+  - Default: `data/` folder (current behavior maintained)
+
+### v3.3.0 - Project Creation System (2025-01-16)
+**Full Project Creation & Import Implementation**
+- **ADDED**: Two-path project creation modal (Start New / Import Existing)
+- **ADDED**: `/api/projects/create-new` for hypothesis-driven projects
+- **ADDED**: `/api/projects/import-data` with automatic document conversion
+- **ADDED**: Bulk PDF/DOCX/PPTX conversion during import
+- **ADDED**: Auto-generated README for each experiment folder
+- **ADDED**: Enhanced file registry tracking all conversions
+- **IMPROVED**: Tool status bar visibility (10s display, max 3 tools)
+- **REMOVED**: Demo project button, replaced with Create Project
+
+**Key Features**:
+1. Hypothesis-driven project creation with planned experiments
+2. Data import with ZIP support and folder preservation
+3. Automatic document conversion for all imported files
+4. README generation at project and experiment levels
+5. Full conversion tracking and user feedback
 
 ### v3.2.1 - Code Cleanup (2025-01-16)
 **Removed Version Suffixes & Cleaned Structure**
@@ -90,6 +118,16 @@
 
 ## ✅ Working Features
 
+**🚀 Project Creation System** ✨ NEW v3.3.0
+- Two-path creation: Start New Research or Import Existing Data
+- Hypothesis-driven projects with planned experiment folders
+- Bulk import from ZIP files with folder preservation
+- Automatic PDF/DOCX/PPTX conversion during import
+- README generation for main project and each experiment
+- File registry tracks all conversions with timestamps
+- Shows conversion results (✅ success, ⚠️ failed)
+- Works in any language without pattern matching
+
 **📄 Automatic Document Conversion** ✨ v3.0.1 with MinerU v2
 - PDFs convert with MinerU v2 (OCR, formulas) → fallback to MarkItDown
 - Office docs (Word, PowerPoint, Excel) convert with MarkItDown
@@ -100,6 +138,7 @@
 - Support for: PDF, Word, PowerPoint, Excel, HTML, RTF, OpenOffice
 - Conversion speed: 1-3 seconds per document
 - All files tracked in registry (including non-converted)
+- **NEW**: Bulk conversion during project import
 
 **🧠 Simplified Memory System** 🆕 v3.1
 - Just stores README.md as raw text - NO PARSING!

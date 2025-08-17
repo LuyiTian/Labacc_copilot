@@ -6,7 +6,7 @@
       "password_hash": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
       "email": "admin@lab.com",
       "role": "admin",
-      "created_at": "2025-08-15T21:26:33.180324",
+      "created_at": "2025-08-16T21:52:21.639453",
       "last_login": null,
       "is_active": true
     },
@@ -16,7 +16,7 @@
       "password_hash": "4e40e8ffe0ee32fa53e139147ed559229a5930f89c2204706fc174beb36210b3",
       "email": "alice@lab.com",
       "role": "user",
-      "created_at": "2025-08-15T21:26:33.180336",
+      "created_at": "2025-08-16T21:52:21.639466",
       "last_login": null,
       "is_active": true
     },
@@ -26,10 +26,10 @@
       "password_hash": "8d059c3640b97180dd2ee453e20d34ab0cb0f2eccbe87d01915a8e578a202b11",
       "email": "bob@lab.com",
       "role": "user",
-      "created_at": "2025-08-15T21:26:33.180341",
+      "created_at": "2025-08-16T21:52:21.639471",
       "last_login": null,
       "is_active": true
     }
   ],
-  "last_updated": "2025-08-15T21:26:33.180347"
+  "last_updated": "2025-08-16T21:52:21.639477"
 }

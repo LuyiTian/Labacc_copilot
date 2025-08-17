@@ -1,6 +1,7 @@
-# File Management System Specification v3.3
+# File Management System Specification v3.4
 
 **Status**: ✅ FULLY WORKING - All features implemented  
+**Last Updated**: 2025-01-16  
 **Philosophy**: Keep it simple. Connect what exists. No overengineering.
 
 ## Current State (What Works)
@@ -135,7 +136,43 @@ Just connecting what already exists with simple function calls.
 
 ---
 
-**Version**: 3.3  
+## New in v3.4: Project Import Enhancements
+
+### Automatic Document Conversion on Import
+When importing existing projects with data:
+- **Auto-detects** PDF, DOCX, PPTX files in imported folders
+- **Batch converts** all documents to Markdown during import
+- **Preserves originals** while creating .md versions
+- **Shows progress** with conversion results (✅ success, ⚠️ failed)
+
+### README Generation for Imported Projects
+- **Main README**: Auto-generated with full project structure
+- **Experiment READMEs**: Each folder gets its own README
+- **File listings**: Documents all files and conversions
+- **Template sections**: Provides areas for user notes
+
+### Enhanced File Registry
+```json
+{
+  "version": "3.0",
+  "project_id": "project_name_abc123",
+  "files": {
+    "protocol.pdf": {
+      "experiment": "Jan15_experiment",
+      "needs_conversion": true,
+      "conversion": {
+        "status": "success",
+        "markdown_path": "protocol.md",
+        "timestamp": "2025-01-16T10:30:00"
+      }
+    }
+  }
+}
+```
+
+---
+
+**Version**: 3.4  
 **Date**: 2025-01-16  
-**Status**: ✅ All features implemented and working  
+**Status**: ✅ All features implemented including bulk import conversion  
 **Philosophy**: "Perfection is achieved when there is nothing left to take away"

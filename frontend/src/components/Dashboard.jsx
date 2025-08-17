@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import QuickHelp from './QuickHelp';
 
 const Dashboard = ({ user, onProjectSelect, onLogout }) => {
   const [projects, setProjects] = useState([]);
@@ -96,6 +97,8 @@ const Dashboard = ({ user, onProjectSelect, onLogout }) => {
         </button>
       </div>
 
+      <QuickHelp />
+      
       <div className="dashboard-content">
         <div className="dashboard-stats">
           <div className="stat-card">

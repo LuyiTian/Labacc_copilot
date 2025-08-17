@@ -32,17 +32,35 @@ export MINERU_MODEL_SOURCE=modelscope  # or huggingface (default)
 # Open http://localhost:5173
 ```
 
-## 💡 Features
+## 🎯 What You Can Do
 
-- **Automatic Document Conversion**: PDFs and Office files convert to Markdown on upload
-- **Multi-language Support**: Works in English, Chinese, Spanish, etc.
-- **Memory System**: Each experiment has persistent README memory
-- **Real-time Tool Visibility**: See which tools are running live
-- **Literature Search**: Integrated Tavily API for research papers
-- **Smart Context**: Pre-loads relevant data to reduce tool calls
-- **Proactive Analysis**: Automatically analyzes uploaded files and asks contextual questions
+### Project Management
+- **Create new project** - Start from hypothesis or import existing data
+- **Import experiments** - Upload ZIP files with automatic PDF/Office conversion
+- **Browse experiments** - Navigate your project structure visually
 
-## 📝 Example Usage
+### File Operations  
+- **Upload any document** - PDFs, Word, PowerPoint auto-convert to readable format
+- **Read files** - "Show me protocol.pdf" or "读取实验记录"
+- **Select multiple files** - Ctrl+click to analyze together
+
+### Data Analysis
+- **Analyze experiments** - "What went wrong with exp_001?"
+- **Compare results** - "Compare all PCR experiments"
+- **Diagnose issues** - "Why did my cells die?"
+- **Get optimization tips** - "How to improve RNA extraction yield?"
+
+### Research & Learning
+- **Search literature** - "Find recent CRISPR papers"
+- **Get protocols** - "Standard Western blot protocol"
+- **Ask questions** - Works in any language!
+
+### Memory & Insights
+- **Track learnings** - Agent remembers your experimental insights
+- **Update notes** - "Add note: 62°C worked best for PCR"
+- **Get summaries** - "Summarize this week's experiments"
+
+## 📝 Example Commands
 
 ```
 "列出我的实验"               → Lists all experiments
@@ -51,6 +69,36 @@ export MINERU_MODEL_SOURCE=modelscope  # or huggingface (default)
 "PCR optimization tips"     → Provides optimization suggestions
 "Research CRISPR methods"   → Searches scientific literature
 "创建新实验文件夹"            → Creates new experiment folder
+```
+
+## 🚀 Project Creation System (v3.3) ✨ NEW
+
+### Two Ways to Create Projects:
+
+#### 1. Start New Research (Hypothesis-Driven)
+- Click "➕ Create Project" → "🧪 Start New Research"
+- Enter your research question/hypothesis
+- List planned experiments (auto-creates folders)
+- System creates project structure with README
+
+#### 2. Import Existing Data (Data-Driven)
+- Click "➕ Create Project" → "📁 Import Existing Data"
+- Drag & drop folders or ZIP files
+- **Automatic conversion**: All PDFs, DOCX, PPTX → Markdown
+- **README generation**: Main project + each experiment folder
+- **Preserves structure**: Your original folder organization maintained
+- Shows conversion results: ✅ success, ⚠️ failed
+
+### Import Example:
+```
+Upload: experiment_data.zip containing:
+├── Jan15_PCR/
+│   ├── protocol.docx
+│   └── results.pdf
+└── Jan22_sequencing/
+    └── analysis.pptx
+
+Result: All documents converted, READMEs created, ready for AI analysis!
 ```
 
 ## 📄 Document Processing Workflow (v3.0)

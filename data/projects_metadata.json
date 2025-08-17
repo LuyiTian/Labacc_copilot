@@ -5,7 +5,7 @@
       "name": "Alice PCR Optimization",
       "owner_id": "alice",
       "description": "PCR protocol optimization experiments",
-      "created_at": "2025-08-15T21:26:33.177413",
+      "created_at": "2025-08-16T21:52:21.636892",
       "shared_with": [],
       "admins": []
     },
@@ -14,7 +14,7 @@
       "name": "Bob Cancer Research",
       "owner_id": "bob",
       "description": "Cancer cell line studies",
-      "created_at": "2025-08-15T21:26:33.177425",
+      "created_at": "2025-08-16T21:52:21.636907",
       "shared_with": [],
       "admins": []
     },
@@ -23,7 +23,7 @@
       "name": "Shared Lab Protocols",
       "owner_id": "admin",
       "description": "Lab-wide protocols and procedures",
-      "created_at": "2025-08-15T21:26:33.177429",
+      "created_at": "2025-08-16T21:52:21.636911",
       "shared_with": [
         "alice",
         "bob"
@@ -31,5 +31,5 @@
       "admins": []
     }
   ],
-  "last_updated": "2025-08-15T21:26:33.177437"
+  "last_updated": "2025-08-16T21:52:21.636920"
 }

@@ -111,8 +111,8 @@
   color: #666;
 }
 
-.create-demo-btn {
-  background: linear-gradient(45deg, #007bff, #0056b3);
+.create-project-btn {
+  background: linear-gradient(45deg, #28a745, #218838);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -121,27 +121,16 @@
   font-size: 16px;
   font-weight: 500;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+  box-shadow: 0 2px 8px rgba(40,167,69,0.3);
 }
 
-.create-demo-btn:hover {
-  background: linear-gradient(45deg, #0056b3, #004085);
+.create-project-btn:hover {
+  background: linear-gradient(45deg, #218838, #1e7e34);
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0,123,255,0.4);
+  box-shadow: 0 4px 15px rgba(40,167,69,0.4);
 }
 
-.create-demo-btn.secondary {
-  background: #6c757d;
-  box-shadow: 0 2px 8px rgba(108,117,125,0.3);
-  font-size: 14px;
-  padding: 10px 20px;
-}
-
-.create-demo-btn.secondary:hover {
-  background: #5a6268;
-}
-
-.demo-section {
+.project-actions {
   text-align: center;
   padding-top: 15px;
   border-top: 1px solid #dee2e6;

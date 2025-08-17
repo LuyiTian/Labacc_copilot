@@ -302,28 +302,34 @@ async def notify_agent_of_upload(
 • Converted location: {file_path}
 {experiment_context}
 
-Please:
-1. Analyze this file in the context of the experiment
-2. Provide a brief summary of the content (2-3 sentences)
-3. Identify any important findings or patterns
+IMPORTANT: First, use the read_file tool to read the actual content of {file_path}
+
+After reading the file, please:
+1. Analyze the ACTUAL content you read (do not make up information)
+2. Provide a brief summary of the content (2-3 sentences) based on what you actually read
+3. Identify any important findings or patterns from the real content
 4. Generate 1-2 specific follow-up questions to clarify:
    - The purpose or context of this file
    - Any experimental parameters or conditions
    - How this relates to other experiment data
 
 Format your response with clear sections:
-**Summary:** [your summary]
-**Key Findings:** [findings]
+**Summary:** [your summary based on actual file content]
+**Key Findings:** [findings from the real file]
 **Questions for User:** [numbered questions]
 
-Focus on practical insights relevant to the experiment."""
+Focus on practical insights relevant to the experiment. Base everything on the actual file content, not assumptions."""
         else:
             message = f"""A new file was uploaded to {experiment_id}:
 • File: {original_name}
 • Location: {experiment_id}/originals/{original_name}
 {experiment_context}
 
-Please analyze this file and provide a brief summary, then ask 1-2 clarifying questions about its purpose or experimental context."""
+IMPORTANT: First, try to use the read_file tool to read {experiment_id}/originals/{original_name}
+
+If you can read it, analyze the actual content. If it's a binary file that cannot be read as text, note that and provide context based on the filename and experiment.
+
+Please provide a brief summary, then ask 1-2 clarifying questions about its purpose or experimental context."""
         
         # Get analysis from agent
         logger.info(f"Requesting contextual analysis for uploaded file: {original_name}")
@@ -332,14 +338,35 @@ Please analyze this file and provide a brief summary, then ask 1-2 clarifying qu
             session_id=session_id
         )
         
-        # Store that we asked questions (for tracking user responses)
+        # Store uploaded file info in session for context
         if session:
+            # Track recent uploads (keep last 10)
+            if not hasattr(session, 'recent_uploads'):
+                session.recent_uploads = []
+            
+            upload_info = {
+                'file': original_name,
+                'path': file_path,
+                'experiment': experiment_id,
+                'timestamp': datetime.now().isoformat(),
+                'converted': conversion_status == 'success',
+                'analysis': ai_response[:200]  # Store first 200 chars of analysis
+            }
+            session.recent_uploads.append(upload_info)
+            
+            # Keep only last 10 uploads
+            if len(session.recent_uploads) > 10:
+                session.recent_uploads = session.recent_uploads[-10:]
+            
+            # Also track pending questions for memory update
             if not hasattr(session, 'pending_questions'):
                 session.pending_questions = {}
             session.pending_questions[experiment_id] = {
                 'file': original_name,
+                'path': file_path,
                 'timestamp': datetime.now().isoformat(),
-                'asked': True
+                'asked': True,
+                'initial_analysis': ai_response
             }
         
         logger.info(f"Agent analysis with questions complete for {original_name}")

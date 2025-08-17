@@ -56,12 +56,14 @@ class Project:
 class ProjectManager:
     """Core project management system"""
     
-    def __init__(self, storage_root: str = "external_storage/lab_data/projects/"):
+    def __init__(self, storage_root: str = "data/"):
+        # Future: This will be configurable from a config file
+        # For now, projects are stored in data/ folder
         self.storage_root = Path(storage_root)
         self.storage_root.mkdir(parents=True, exist_ok=True)
         
         # Project metadata file
-        self.metadata_file = self.storage_root.parent / "projects_metadata.json"
+        self.metadata_file = self.storage_root / "projects_metadata.json"
         self.projects: Dict[str, Project] = {}
         self._load_projects()
     

@@ -74,6 +74,82 @@ async def notify_tool_call(session_id: str, tool_name: str, status: str, args: d
 # ============= Analysis Tools (with automatic memory updates) =============
 
 @tool
+async def analyze_image(image_path: str, experiment_context: str = "") -> str:
+    """Analyze an experimental image using vision AI to understand its content.
+    
+    Use this tool when users ask about images or when you need to understand
+    visual data like plots, microscopy images, gel electrophoresis, etc.
+    
+    Args:
+        image_path: Path to the image file relative to project root
+        experiment_context: Optional context about the experiment
+    
+    Returns:
+        Detailed analysis of the image content and scientific relevance
+    """
+    try:
+        # Get current session for path resolution
+        session = require_session()
+        full_path = session.resolve_path(image_path)
+        
+        if not full_path.exists():
+            return f"Image not found: {image_path}"
+        
+        # Check if it's an image file
+        image_extensions = {'.png', '.jpg', '.jpeg', '.tiff', '.tif', '.bmp', '.gif', '.webp'}
+        if full_path.suffix.lower() not in image_extensions:
+            return f"Not an image file: {image_path} (supported: {', '.join(image_extensions)})"
+        
+        # Use the image analyzer
+        from src.components.image_analyzer import analyze_lab_image
+        
+        # Extract experiment ID from path if possible
+        experiment_id = None
+        path_parts = Path(image_path).parts
+        for part in path_parts:
+            if part.startswith("exp_"):
+                experiment_id = part
+                break
+        
+        # Analyze the image
+        result = await analyze_lab_image(
+            image_path=str(full_path),
+            context=experiment_context,
+            experiment_id=experiment_id
+        )
+        
+        if not result.success:
+            return f"Failed to analyze image: {result.error_message}"
+        
+        # Format the response
+        response = f"""Image Analysis for {result.file_name}:
+
+**Content**: {result.content_description}
+
+**Experimental Relevance**: {result.experimental_context if result.experimental_context else 'General laboratory image'}
+
+**Image Details**:
+- Size: {result.image_size[0]}×{result.image_size[1]} pixels
+- Format: {result.format}
+"""
+        
+        if result.key_features:
+            response += "\n**Key Observations**:\n"
+            for feature in result.key_features:
+                response += f"- {feature}\n"
+        
+        if result.suggested_tags:
+            response += f"\n**Tags**: {', '.join(result.suggested_tags)}"
+        
+        return response
+        
+    except RuntimeError as e:
+        return f"Error: {str(e)}"
+    except Exception as e:
+        logger.error(f"Error analyzing image: {e}")
+        return f"Error analyzing image: {str(e)}"
+
+@tool
 async def scan_project() -> str:
     """Scan the entire project to get an overview of all experiments, folders, and main data.
     
@@ -426,6 +502,7 @@ def create_memory_agent():
         list_folder_contents,
         read_file,
         analyze_data,
+        analyze_image,  # Vision AI for images
         diagnose_issue,
         suggest_optimization,
         run_deep_research,
@@ -460,6 +537,14 @@ async def handle_message(
         
         # Add project context
         context_parts.append(f"Working in project: {session.selected_project}")
+        
+        # Add recent uploads context if any
+        if hasattr(session, 'recent_uploads') and session.recent_uploads:
+            context_parts.append("\n=== Recently Uploaded Files ===")
+            for upload in session.recent_uploads[-3:]:  # Show last 3 uploads
+                context_parts.append(f"• {upload['file']} in {upload['experiment']} ({upload['timestamp'][:10]})")
+                if upload.get('converted'):
+                    context_parts.append(f"  (Converted to Markdown for analysis)")
         
         # TODO: Load experiment-specific context if needed
         # This will need to be adapted for the new project structure
@@ -579,43 +664,76 @@ All file paths are relative to the project root.{readme_context}
                     response = "I encountered an issue processing your request. Please try rephrasing your question."
         
         # Check if user is responding to file upload questions and update memory
-        if session and hasattr(session, 'pending_questions'):
-            # Look for any pending questions
-            for exp_id, question_info in list(session.pending_questions.items()):
-                if question_info.get('asked'):
-                    # User's current message is likely answering our questions
-                    logger.info(f"User responding to questions about {question_info['file']}")
-                    
-                    # Prepare memory update with complete context
-                    memory_update = f"""
-## File Upload Analysis ({datetime.now().strftime('%Y-%m-%d')})
+        if session and hasattr(session, 'pending_questions') and session.pending_questions:
+            # Check if the user's message seems to be providing context about uploaded files
+            # This is more flexible than assuming only the next message is relevant
+            message_lower = message.lower()
+            is_providing_context = any([
+                # User is explaining something
+                any(word in message_lower for word in ['是', 'is', 'was', 'are', 'for', '用于', '用来', '为了']),
+                # User is answering a what/why/how question
+                any(word in message_lower for word in ['because', '因为', 'since', '由于']),
+                # Message is longer than typical commands (likely explanatory)
+                len(message) > 50
+            ])
+            
+            if is_providing_context:
+                # Process ALL pending questions since user might be providing batch context
+                for exp_id, question_info in list(session.pending_questions.items()):
+                    if question_info.get('asked'):
+                        logger.info(f"Capturing user context for {question_info['file']} in {exp_id}")
+                        
+                        # Prepare comprehensive memory update
+                        memory_update = f"""
+## File Upload: {question_info['file']} ({datetime.now().strftime('%Y-%m-%d %H:%M')})
 
-**File:** {question_info['file']}
-**Analysis:** {response[:500]}  # First 500 chars of agent's analysis
+### Uploaded File (Actual Information Only)
+- **Name:** {question_info['file']}
+- **Location:** {question_info.get('path', 'N/A')}
+- **Experiment:** {exp_id}
 
-**User's Additional Context:**
+### File Analysis
+{question_info.get('initial_analysis', 'No initial analysis available')}
+
+### User-Provided Context
 {message}
 
-**Integration Notes:**
-- File uploaded and analyzed with user clarifications
-- Context captured for future reference
+### Discussion
+{response[:500] if response else 'No response captured'}
+
+Note: All information above is based on actual file content and user-provided context only.
+---
 """
-                    
-                    # Update experiment memory
-                    try:
-                        from src.memory.memory_tools import update_experiment_readme
-                        update_result = await update_experiment_readme.ainvoke({
-                            "experiment_id": exp_id,
-                            "updates": memory_update
-                        })
-                        logger.info(f"Memory updated for {exp_id}: {update_result}")
                         
-                        # Clear the pending questions
-                        del session.pending_questions[exp_id]
-                    except Exception as e:
-                        logger.error(f"Failed to update memory: {e}")
-                    
-                    break  # Only process one set of questions at a time
+                        # Update experiment README
+                        try:
+                            from src.memory.memory_tools import update_experiment_readme
+                            
+                            # Ensure we're updating the correct experiment
+                            update_result = await update_experiment_readme.ainvoke({
+                                "experiment_id": exp_id,
+                                "updates": memory_update
+                            })
+                            logger.info(f"✅ Memory successfully updated for {exp_id}: {update_result[:100]}")
+                            
+                            # Mark as processed but keep for reference (don't delete immediately)
+                            session.pending_questions[exp_id]['processed'] = True
+                            session.pending_questions[exp_id]['processed_at'] = datetime.now().isoformat()
+                            
+                        except Exception as e:
+                            logger.error(f"❌ Failed to update memory for {exp_id}: {e}")
+                            import traceback
+                            traceback.print_exc()
+                
+                # Clean up old processed questions (older than 1 hour)
+                now = datetime.now()
+                for exp_id in list(session.pending_questions.keys()):
+                    q_info = session.pending_questions[exp_id]
+                    if q_info.get('processed'):
+                        processed_time = datetime.fromisoformat(q_info.get('processed_at', now.isoformat()))
+                        if (now - processed_time).seconds > 3600:  # 1 hour
+                            del session.pending_questions[exp_id]
+                            logger.info(f"Cleaned up old processed question for {exp_id}")
         
         # Enhanced conversation logging with tool calls
         try:

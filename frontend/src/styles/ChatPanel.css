@@ -230,6 +230,17 @@
   font-size: 0.8rem;
   overflow: hidden;
   animation: slideIn 0.3s ease-out;
+  min-height: 48px;  /* Ensure minimum height for visibility */
+}
+
+.tool-call-indicator.connecting {
+  background: #fff7e6;
+  border-color: #ffcc66;
+}
+
+.tool-call-indicator.ready {
+  background: #f0fff4;
+  border-color: #66cc88;
 }
 
 @keyframes slideIn {
@@ -269,6 +280,42 @@
   font-weight: 600;
 }
 
+.tool-calls-status {
+  background: #0066cc;
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.tool-calls-status.ready {
+  background: #28a745;
+}
+
+.connecting-spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+  margin-right: 0.25rem;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.tool-calls-connecting-body {
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.connecting-message {
+  color: #856404;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
 .tool-calls-list {
   max-height: 250px;  /* Increased from 120px for better visibility */
   overflow-y: auto;
@@ -299,7 +346,7 @@
 .tool-call-item.completed {
   background: #f0fff4;
   border-left: 3px solid #28a745;
-  animation: fadeOut 0.3s ease-in 4.7s forwards;
+  animation: fadeOut 0.5s ease-in 9.5s forwards;  /* Changed to fade out after 10 seconds */
 }
 
 .tool-call-item.error {
