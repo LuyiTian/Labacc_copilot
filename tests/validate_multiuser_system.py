@@ -15,10 +15,10 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 sys.path.insert(0, str(project_root))
 
-from .utils.multiuser_test_utils import test_manager, create_test_session, cleanup_test_session
-from .utils.compatibility_layer import handle_message_with_compatibility
-from .agent_evaluation.multiuser_test_cases import MultiUserTestGenerator, MultiUserTestCase
-from .agent_evaluation.multiuser_test_runner import MultiUserTestRunner
+from tests.utils.multiuser_test_utils import test_manager, create_test_session, cleanup_test_session
+from tests.utils.compatibility_layer import handle_message_with_compatibility
+from tests.agent_evaluation.multiuser_test_cases import MultiUserTestGenerator, MultiUserTestCase
+from tests.agent_evaluation.multiuser_test_runner import MultiUserTestRunner
 
 
 class MultiUserSystemValidator:

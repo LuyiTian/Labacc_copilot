@@ -11,9 +11,9 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from memory.simple_memory import SimpleMemory, SimpleMemoryManager
-from memory.simple_tools import init_memory_tools, get_experiment_info, update_experiment_readme
-from components.llm import get_llm_instance
+from src.memory.memory import SimpleMemory, SimpleMemoryManager
+from src.memory.memory_tools import init_memory_tools, get_experiment_info, update_experiment_readme
+from src.components.llm import get_llm_instance
 
 
 async def test_simple_memory():
@@ -122,7 +122,7 @@ async def test_comparison():
     # Try old system
     print("\n🔴 OLD SYSTEM (Pattern Matching):")
     try:
-        from memory.readme_memory import ReadmeParser
+        from src.memory.readme_memory import ReadmeParser
         parser = ReadmeParser()
         
         # Japanese README

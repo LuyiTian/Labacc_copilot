@@ -121,6 +121,11 @@ from src.api.project_routes import router as project_router
 
 app.include_router(project_router)
 
+# Mount authentication routes
+from src.api.auth_routes import router as auth_router
+
+app.include_router(auth_router)
+
 # Health check endpoint
 @app.get("/health")
 async def health_check():

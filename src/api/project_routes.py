@@ -2,7 +2,8 @@
 Project management API routes for multi-user system
 """
 
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import logging
@@ -14,12 +15,36 @@ import zipfile
 import shutil
 
 from src.projects.session import session_manager
+from src.projects.project_manager import project_manager
+from src.projects.auth import auth_manager
 from src.projects.temp_manager import get_temp_project_manager
 from src.api.file_conversion import FileConversionPipeline
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
+security = HTTPBearer()
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict:
+    """Get current user from auth token"""
+    try:
+        user_info = auth_manager.verify_token(credentials.credentials)
+        if not user_info:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        return user_info
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+def get_optional_user(request: Request) -> Optional[Dict]:
+    """Get user from auth token if present, otherwise return None"""
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        try:
+            return auth_manager.verify_token(token)
+        except:
+            return None
+    return None
 
 class ProjectInfo(BaseModel):
     project_id: str
@@ -43,30 +68,37 @@ class NewProjectRequest(BaseModel):
 async def list_projects(request: Request) -> ProjectListResponse:
     """Get list of projects accessible to the current user"""
     
-    # Create or get session ID (simplified for development)
+    # Get user from auth token
+    user_info = get_optional_user(request)
+    if not user_info:
+        # Require authentication for project listing
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    user_id = user_info["user_id"]
+    
+    # Create or get session ID
     session_id = request.headers.get("X-Session-ID")
     if not session_id:
         session_id = f"session_{uuid.uuid4().hex[:8]}"
-        # Create session with temp user
-        session_manager.create_session(session_id, "temp_user")
+        # Create session with real user ID
+        session_manager.create_session(session_id, user_id)
     else:
         # Ensure existing session is still valid, recreate if needed
         session_info = session_manager.get_session_info(session_id)
         if not session_info:
-            session_manager.create_session(session_id, "temp_user")
+            session_manager.create_session(session_id, user_id)
     
-    # Get projects from temp manager
-    temp_manager = get_temp_project_manager()
-    projects = temp_manager.get_user_projects("temp_user")
+    # Get projects from real project manager
+    user_projects = project_manager.get_user_projects(user_id)
     
     return ProjectListResponse(
         projects=[
             ProjectInfo(
-                project_id=p["project_id"],
-                name=p["name"],
-                permission=p["permission"]
+                project_id=project.project_id,
+                name=project.name,
+                permission=project_manager.get_user_permission(user_id, project.project_id)
             )
-            for p in projects
+            for project in user_projects
         ],
         current_session=session_id
     )
@@ -117,15 +149,37 @@ async def get_current_project(request: Request) -> Dict[str, Any]:
 async def create_demo_project(request: Request) -> Dict[str, Any]:
     """Create a demo project for testing"""
     
+    # Get user from auth token
+    user_info = get_optional_user(request)
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    user_id = user_info["user_id"]
     session_id = request.headers.get("X-Session-ID", f"session_{uuid.uuid4().hex[:8]}")
     
-    # Ensure session exists
+    # Ensure session exists with real user ID
     if not session_manager.get_session_info(session_id):
-        session_manager.create_session(session_id, "temp_user")
+        session_manager.create_session(session_id, user_id)
     
-    # Create demo project
-    temp_manager = get_temp_project_manager()
-    project_id = temp_manager.create_demo_project()
+    # Create demo project for the actual user
+    from src.projects.project_manager import Project
+    project_id = f"demo_project_{uuid.uuid4().hex[:6]}"
+    project = Project(
+        project_id=project_id,
+        name="Demo Project",
+        owner_id=user_id,
+        description="Demo project for testing"
+    )
+    project_manager.projects[project_id] = project
+    project_manager._save_projects()
+    
+    # Create project directory
+    base_path = Path("data") / f"{user_id}_projects" / project_id
+    base_path.mkdir(parents=True, exist_ok=True)
+    (base_path / ".labacc").mkdir(exist_ok=True)
+    (base_path / "README.md").write_text(f"# Demo Project\n\nCreated for user {user_id}")
+    
+    logger.info(f"Created demo project: {project_id} for user {user_id}")
     
     return {
         "status": "success",
@@ -195,6 +249,17 @@ async def create_new_project(request_data: NewProjectRequest, request: Request) 
             "owner": user_id
         }
         (base_path / ".labacc" / "project_config.json").write_text(json.dumps(config, indent=2))
+        
+        # Register project with project_manager
+        from src.projects.project_manager import Project
+        project = Project(
+            project_id=project_id,
+            name=request_data.name,
+            owner_id=user_id,
+            description=request_data.hypothesis
+        )
+        project_manager.projects[project_id] = project
+        project_manager._save_projects()
         
         logger.info(f"Created new project: {project_id} for user {user_id}")
         
@@ -427,6 +492,17 @@ This experiment folder was imported on {datetime.now().strftime('%Y-%m-%d')}.
                 exp_readme_content += f"\n## Notes\n_Add your experimental notes here_\n"
                 
                 exp_readme.write_text(exp_readme_content)
+        
+        # Register project with project_manager
+        from src.projects.project_manager import Project
+        project = Project(
+            project_id=project_id,
+            name=name,
+            owner_id=user_id,
+            description=description or f"Imported data project: {name}"
+        )
+        project_manager.projects[project_id] = project
+        project_manager._save_projects()
         
         logger.info(f"Imported project: {project_id} with {len(files)} files, {len(conversion_results)} conversions")
         

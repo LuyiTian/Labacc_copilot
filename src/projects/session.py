@@ -11,8 +11,8 @@ from dataclasses import dataclass
 import threading
 import logging
 
-# Temporary: Use simple project manager for development
-from .temp_manager import get_temp_project_manager
+# Use real project manager
+from .project_manager import project_manager
 
 logger = logging.getLogger(__name__)
 
@@ -119,19 +119,18 @@ class SessionManager:
                 user_id = session_data["user_id"]
             
             # Check if user can access this project (SYSTEM-LEVEL PERMISSION CHECK)
-            temp_manager = get_temp_project_manager()
-            if not temp_manager._can_access_project(user_id, project_id):
+            if not project_manager._can_access_project(user_id, project_id):
                 logger.warning(f"User {user_id} denied access to project {project_id}")
                 return None
             
             # Get project path
-            project_path = temp_manager.get_project_path(project_id)
+            project_path = project_manager.get_project_path(project_id)
             if not project_path:
                 logger.error(f"Project {project_id} not found")
                 return None
             
             # Get user permission level
-            permission = temp_manager.get_user_permission(user_id, project_id)
+            permission = project_manager.get_user_permission(user_id, project_id)
             
             # Create project session
             project_session = ProjectSession(

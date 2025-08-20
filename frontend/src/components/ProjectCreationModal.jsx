@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './ProjectCreationModal.css';
 
-const ProjectCreationModal = ({ sessionId, onClose, onProjectCreated }) => {
+const ProjectCreationModal = ({ sessionId, authToken, onClose, onProjectCreated }) => {
   const [mode, setMode] = useState(null); // null, 'new', 'import'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -29,7 +29,8 @@ const ProjectCreationModal = ({ sessionId, onClose, onProjectCreated }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Session-ID': sessionId
+          'X-Session-ID': sessionId,
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({
           name: projectName,
@@ -72,7 +73,8 @@ const ProjectCreationModal = ({ sessionId, onClose, onProjectCreated }) => {
       const response = await fetch(`${API_BASE}/api/projects/import-data`, {
         method: 'POST',
         headers: {
-          'X-Session-ID': sessionId
+          'X-Session-ID': sessionId,
+          'Authorization': `Bearer ${authToken}`
         },
         body: formData
       });

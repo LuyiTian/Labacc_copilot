@@ -21,39 +21,65 @@ async def test_health_check():
         print("✅ Health check passed")
 
 async def test_authentication_flow():
-    """Test basic authentication flow"""
+    """Test basic authentication flow with real users"""
     async with httpx.AsyncClient() as client:
-        # Test login with test credentials
-        login_data = {
-            "username": "test_user",
-            "password": "test_password"
-        }
+        # Test users from the system
+        test_users = [
+            {"username": "alice", "password": "alice123", "role": "user"},
+            {"username": "bob", "password": "bob123", "role": "user"},
+            {"username": "admin", "password": "admin123", "role": "admin"},
+        ]
         
-        response = await client.post(f"{API_BASE}/api/auth/login", json=login_data)
-        print(f"Login response: {response.status_code}")
-        
-        if response.status_code == 200:
-            data = response.json()
-            token = data.get("token")
-            print(f"✅ Login successful, got token: {token[:20]}...")
+        for user in test_users:
+            print(f"\n   Testing user: {user['username']} (role: {user['role']})")
+            login_data = {
+                "username": user["username"],
+                "password": user["password"]
+            }
             
-            # Test token verification
-            headers = {"Authorization": f"Bearer {token}"}
-            verify_response = await client.get(f"{API_BASE}/api/auth/verify", headers=headers)
+            response = await client.post(f"{API_BASE}/api/auth/login", json=login_data)
             
-            if verify_response.status_code == 200:
-                print("✅ Token verification passed")
+            if response.status_code == 200:
+                data = response.json()
+                token = data.get("token")
+                print(f"   ✅ Login successful, got token: {token[:20]}...")
+                
+                # Test token verification
+                headers = {"Authorization": f"Bearer {token}"}
+                verify_response = await client.get(f"{API_BASE}/api/auth/verify", headers=headers)
+                
+                if verify_response.status_code == 200:
+                    verify_data = verify_response.json()
+                    print(f"   ✅ Token verified for user_id: {verify_data.get('user_id')}")
+                else:
+                    print(f"   ❌ Token verification failed: {verify_response.status_code}")
+                    
+                # Return token for admin user for further tests
+                if user["username"] == "admin":
+                    return token
             else:
-                print(f"❌ Token verification failed: {verify_response.status_code}")
-        else:
-            print(f"⚠️ Login failed (might be expected): {response.status_code}")
-            # Try without auth for project endpoints that don't require it
+                print(f"   ❌ Login failed: {response.status_code}")
+                if response.text:
+                    print(f"   Error: {response.text}")
+        
+        return None
 
 async def test_project_management():
-    """Test project management endpoints"""
+    """Test project management endpoints with authentication"""
     async with httpx.AsyncClient() as client:
-        # Test listing projects (should work without auth in temp mode)
-        response = await client.get(f"{API_BASE}/api/projects/list")
+        # First login as alice
+        login_data = {"username": "alice", "password": "alice123"}
+        login_response = await client.post(f"{API_BASE}/api/auth/login", json=login_data)
+        
+        if login_response.status_code != 200:
+            print("❌ Failed to login for project management test")
+            return
+            
+        token = login_response.json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Test listing projects with auth
+        response = await client.get(f"{API_BASE}/api/projects/list", headers=headers)
         print(f"List projects response: {response.status_code}")
         
         if response.status_code == 200:
@@ -62,14 +88,26 @@ async def test_project_management():
             session_id = data.get("current_session")
             print(f"Session ID: {session_id}")
             
-            # Test creating a demo project
-            headers = {"X-Session-ID": session_id} if session_id else {}
-            demo_response = await client.post(f"{API_BASE}/api/projects/create-demo", headers=headers)
+            # Update headers to include both session and auth token
+            headers["X-Session-ID"] = session_id
             
-            if demo_response.status_code == 200:
-                demo_data = demo_response.json()
-                project_id = demo_data["project_id"]
-                print(f"✅ Created demo project: {project_id}")
+            # Test creating a new project (not demo)
+            new_project_data = {
+                "name": "test_project",
+                "hypothesis": "Testing the API endpoints for project creation",
+                "planned_experiments": ["test_exp_1", "test_exp_2"],
+                "expected_outcomes": "Successful project creation and management"
+            }
+            create_response = await client.post(
+                f"{API_BASE}/api/projects/create-new", 
+                json=new_project_data,
+                headers=headers
+            )
+            
+            if create_response.status_code == 200:
+                create_data = create_response.json()
+                project_id = create_data["project_id"]
+                print(f"✅ Created new project: {project_id}")
                 
                 # Test selecting the project
                 select_data = {"project_id": project_id}
@@ -84,7 +122,7 @@ async def test_project_management():
                 else:
                     print(f"❌ Failed to select project: {select_response.status_code}")
             else:
-                print(f"❌ Failed to create demo project: {demo_response.status_code}")
+                print(f"❌ Failed to create project: {create_response.status_code}")
         else:
             print(f"❌ Failed to list projects: {response.status_code}")
 

@@ -7,7 +7,7 @@
       "email": "admin@lab.com",
       "role": "admin",
       "created_at": "2025-08-16T21:52:21.639453",
-      "last_login": null,
+      "last_login": "2025-08-20T17:43:01.683683",
       "is_active": true
     },
     {
@@ -17,7 +17,7 @@
       "email": "alice@lab.com",
       "role": "user",
       "created_at": "2025-08-16T21:52:21.639466",
-      "last_login": null,
+      "last_login": "2025-08-20T11:13:08.264491",
       "is_active": true
     },
     {
@@ -27,9 +27,29 @@
       "email": "bob@lab.com",
       "role": "user",
       "created_at": "2025-08-16T21:52:21.639471",
+      "last_login": "2025-08-20T11:13:06.103229",
+      "is_active": true
+    },
+    {
+      "user_id": "test_user_001",
+      "username": "test_user_001",
+      "password_hash": "fb51c998daedf422f55c177badb066052d99928af0e7bd291579cd90b3559e5a",
+      "email": "",
+      "role": "user",
+      "created_at": "2025-08-20T10:33:03.697757",
+      "last_login": "2025-08-20T10:33:03.699483",
+      "is_active": true
+    },
+    {
+      "user_id": "lala",
+      "username": "lala",
+      "password_hash": "494414ded24da13c451b13b424928821351c78fce49f93d9e1b55f102790c206",
+      "email": "lala@hotmail.com",
+      "role": "user",
+      "created_at": "2025-08-20T17:43:49.022555",
       "last_login": null,
       "is_active": true
     }
   ],
-  "last_updated": "2025-08-16T21:52:21.639477"
+  "last_updated": "2025-08-20T17:43:49.022569"
 }

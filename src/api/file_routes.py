@@ -351,11 +351,13 @@ async def upload_files(
             
             # FAIL if no valid experiment_id found
             if not experiment_id:
-                logger.error(f"Cannot determine experiment_id from path: {relative_path}")
-                # Don't fail silently - this is important info
-                print(f"WARNING: Upload to non-experiment folder: {relative_path}")
-                # Skip README update for non-experiment folders
-                return
+                logger.warning(f"Upload to non-experiment folder: {relative_path}")
+                # Skip README update for non-experiment folders but still return success
+                return {
+                    "success": True,
+                    "uploaded_count": len(uploaded_files),
+                    "files": uploaded_files
+                }
                 
             if experiment_id:
                 # Update README in background

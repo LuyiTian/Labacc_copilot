@@ -259,6 +259,34 @@ async def verify_token(current_user: dict = Depends(get_current_user)):
         "role": current_user["role"]
     }
 
+@router.delete("/users/{user_id}")
+async def delete_user(user_id: str,
+                     admin_user: dict = Depends(require_admin)):
+    """Delete a user (admin only)"""
+    # Prevent deleting admin user
+    user = auth_manager.get_user(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    if user.username == "admin":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete admin user"
+        )
+    
+    success = auth_manager.delete_user(user_id)
+    
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete user"
+        )
+    
+    return {"message": f"User {user_id} deleted successfully"}
+
 @router.post("/cleanup")
 async def cleanup_expired_tokens(admin_user: dict = Depends(require_admin)):
     """Cleanup expired tokens (admin only)"""
