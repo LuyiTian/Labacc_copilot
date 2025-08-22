@@ -192,9 +192,13 @@ Add your project notes and observations here.
     
     def get_project_path(self, project_id: str) -> Optional[Path]:
         """Get filesystem path for project"""
-        if project_id in self.projects:
-            return self.storage_root / project_id
-        return None
+        if project_id not in self.projects:
+            return None
+        
+        project = self.projects[project_id]
+        # Projects are stored in user-specific directories
+        user_projects_dir = self.storage_root / f"{project.owner_id}_projects"
+        return user_projects_dir / project_id
     
     def get_user_projects(self, user_id: str) -> List[Project]:
         """Get all projects accessible to a user"""

@@ -296,6 +296,9 @@ const ProjectCreationModal = ({ sessionId, authToken, onClose, onProjectCreated 
                   required
                   disabled={loading}
                 />
+                <small className="form-hint">
+                  Choose a meaningful name - this cannot be easily changed later
+                </small>
               </div>
               
               <div className="form-group">
