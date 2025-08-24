@@ -3,6 +3,7 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import ChatPanel from './components/ChatPanel';
 import QuickHelp from './components/QuickHelp';
+import AdminPanel from './components/AdminPanel';
 import './App.css';
 import './styles/ChatPanel.css';
 import './styles/Auth.css';
@@ -10,6 +11,7 @@ import './styles/Auth.css';
 function App() {
   // Authentication state
   const [user, setUser] = useState(null);
+  const [authToken, setAuthToken] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   
@@ -23,18 +25,36 @@ function App() {
   const [error, setError] = useState(null);
   const [uploadStatus, setUploadStatus] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   const API_BASE = 'http://localhost:8002';
 
   // Handle login success
   const handleLoginSuccess = (userData) => {
     setUser(userData);
+    setAuthToken(userData.token);
     setSessionId(userData.sessionId);
   };
 
   // Handle logout
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Call logout API if we have a token
+    if (authToken) {
+      try {
+        await fetch(`${API_BASE}/api/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+      } catch (err) {
+        console.error('Logout error:', err);
+      }
+    }
+    
+    // Clear all state
     setUser(null);
+    setAuthToken(null);
     setSelectedProject(null);
     setSessionId(null);
     setCurrentPath('/');
@@ -62,6 +82,9 @@ function App() {
       const headers = {};
       if (sessionId) {
         headers['X-Session-ID'] = sessionId;
+      }
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
       }
       
       const response = await fetch(`${API_BASE}/api/files/list?path=${encodeURIComponent(path)}`, {
@@ -274,11 +297,19 @@ function App() {
 
   if (!selectedProject) {
     // Step 2: Project Management Dashboard  
-    return (
+    return showAdminPanel ? (
+      <AdminPanel 
+        user={user}
+        authToken={authToken}
+        onBack={() => setShowAdminPanel(false)}
+      />
+    ) : (
       <Dashboard 
         user={user}
+        authToken={authToken}
         onProjectSelect={handleProjectSelect}
         onLogout={handleLogout}
+        onAdminPanel={() => setShowAdminPanel(true)}
       />
     );
   }
@@ -290,6 +321,15 @@ function App() {
         <h1>LabAcc Copilot - {selectedProject.replace('project_', '').replace(/_/g, ' ')}</h1>
         <div className="header-info">
           Modern file management for wet-lab biologists
+          {user?.role === 'admin' && (
+            <button 
+              onClick={() => setShowAdminPanel(true)}
+              className="admin-button"
+              style={{ marginLeft: '20px' }}
+            >
+              👤 Admin Panel
+            </button>
+          )}
         </div>
       </div>
       
@@ -426,6 +466,14 @@ function App() {
           </button>
         )}
       </div>
+      
+      {/* Admin Panel Modal */}
+      {showAdminPanel && (
+        <AdminPanel 
+          authToken={authToken}
+          onClose={() => setShowAdminPanel(false)}
+        />
+      )}
     </div>
   );
 }

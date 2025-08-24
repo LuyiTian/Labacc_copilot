@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import QuickHelp from './QuickHelp';
+import ProjectCreationModal from './ProjectCreationModal';
 
-const Dashboard = ({ user, onProjectSelect, onLogout }) => {
+const Dashboard = ({ user, authToken, onProjectSelect, onLogout, onAdminPanel }) => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const API_BASE = 'http://localhost:8002';
 
@@ -20,6 +22,9 @@ const Dashboard = ({ user, onProjectSelect, onLogout }) => {
       if (user.sessionId) {
         headers['X-Session-ID'] = user.sessionId;
       }
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
       
       const response = await fetch(`${API_BASE}/api/projects/list`, { headers });
       const data = await response.json();
@@ -32,30 +37,10 @@ const Dashboard = ({ user, onProjectSelect, onLogout }) => {
     }
   };
 
-  const createDemoProject = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const headers = {};
-      if (user.sessionId) {
-        headers['X-Session-ID'] = user.sessionId;
-      }
-      
-      const response = await fetch(`${API_BASE}/api/projects/create-demo`, {
-        method: 'POST',
-        headers
-      });
-      const data = await response.json();
-      
-      if (data.status === 'success') {
-        await loadProjects(); // Reload projects list
-      }
-    } catch (err) {
-      setError('Failed to create demo project: ' + err.message);
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const handleProjectCreated = async (projectData) => {
+    // Refresh the projects list after creation
+    await loadProjects();
+    setShowCreateModal(false);
   };
 
   const selectProject = async (projectId) => {
@@ -92,9 +77,16 @@ const Dashboard = ({ user, onProjectSelect, onLogout }) => {
           <h1>Welcome, {user.username}! 👋</h1>
           <p>Choose a project to start working with the AI assistant</p>
         </div>
-        <button onClick={onLogout} className="logout-button">
-          🚪 Logout
-        </button>
+        <div className="header-buttons">
+          {user.role === 'admin' && (
+            <button onClick={onAdminPanel} className="admin-button">
+              ⚙️ Admin Panel
+            </button>
+          )}
+          <button onClick={onLogout} className="logout-button">
+            🚪 Logout
+          </button>
+        </div>
       </div>
 
       <QuickHelp />
@@ -126,11 +118,11 @@ const Dashboard = ({ user, onProjectSelect, onLogout }) => {
           <div className="projects-header">
             <h2>📁 Your Projects</h2>
             <button 
-              onClick={createDemoProject}
+              onClick={() => setShowCreateModal(true)}
               className="create-project-btn"
               disabled={loading}
             >
-              {loading ? '⏳' : '+'} Create Demo Project
+              {loading ? '⏳' : '➕'} Create Project
             </button>
           </div>
 
@@ -143,9 +135,9 @@ const Dashboard = ({ user, onProjectSelect, onLogout }) => {
             <div className="no-projects">
               <div className="no-projects-icon">📂</div>
               <h3>No Projects Found</h3>
-              <p>Create a demo project to get started with LabAcc Copilot</p>
+              <p>Create a project to get started with LabAcc Copilot</p>
               <button 
-                onClick={createDemoProject}
+                onClick={() => setShowCreateModal(true)}
                 className="create-first-project-btn"
                 disabled={loading}
               >
@@ -210,6 +202,15 @@ const Dashboard = ({ user, onProjectSelect, onLogout }) => {
           </div>
         </div>
       </div>
+      
+      {showCreateModal && (
+        <ProjectCreationModal
+          sessionId={user.sessionId}
+          authToken={authToken}
+          onClose={() => setShowCreateModal(false)}
+          onProjectCreated={handleProjectCreated}
+        />
+      )}
     </div>
   );
 };

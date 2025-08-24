@@ -2,7 +2,8 @@
 Project management API routes for multi-user system
 """
 
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import logging
@@ -14,12 +15,57 @@ import zipfile
 import shutil
 
 from src.projects.session import session_manager
+from src.projects.project_manager import project_manager
+from src.projects.auth import auth_manager
 from src.projects.temp_manager import get_temp_project_manager
 from src.api.file_conversion import FileConversionPipeline
+from src.config.config import get_project_root, get_user_projects_path
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
+security = HTTPBearer()
+
+async def notify_import_status(session_id: str, status: str, progress: int, message: str):
+    """Send import status update via WebSocket notification system"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = "http://localhost:8002/api/import-status"
+            data = {
+                "session_id": session_id,
+                "type": "import_status",
+                "status": status,
+                "progress": progress,
+                "message": message
+            }
+            async with session.post(url, json=data) as response:
+                if response.status != 200:
+                    logger.warning(f"Failed to send import status: {response.status}")
+    except Exception as e:
+        logger.debug(f"Could not send import status: {e}")
+        # Don't fail if notification fails
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict:
+    """Get current user from auth token"""
+    try:
+        user_info = auth_manager.verify_token(credentials.credentials)
+        if not user_info:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        return user_info
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+def get_optional_user(request: Request) -> Optional[Dict]:
+    """Get user from auth token if present, otherwise return None"""
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        try:
+            return auth_manager.verify_token(token)
+        except:
+            return None
+    return None
 
 class ProjectInfo(BaseModel):
     project_id: str
@@ -43,30 +89,37 @@ class NewProjectRequest(BaseModel):
 async def list_projects(request: Request) -> ProjectListResponse:
     """Get list of projects accessible to the current user"""
     
-    # Create or get session ID (simplified for development)
+    # Get user from auth token
+    user_info = get_optional_user(request)
+    if not user_info:
+        # Require authentication for project listing
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    user_id = user_info["user_id"]
+    
+    # Create or get session ID
     session_id = request.headers.get("X-Session-ID")
     if not session_id:
         session_id = f"session_{uuid.uuid4().hex[:8]}"
-        # Create session with temp user
-        session_manager.create_session(session_id, "temp_user")
+        # Create session with real user ID
+        session_manager.create_session(session_id, user_id)
     else:
         # Ensure existing session is still valid, recreate if needed
         session_info = session_manager.get_session_info(session_id)
         if not session_info:
-            session_manager.create_session(session_id, "temp_user")
+            session_manager.create_session(session_id, user_id)
     
-    # Get projects from temp manager
-    temp_manager = get_temp_project_manager()
-    projects = temp_manager.get_user_projects("temp_user")
+    # Get projects from real project manager
+    user_projects = project_manager.get_user_projects(user_id)
     
     return ProjectListResponse(
         projects=[
             ProjectInfo(
-                project_id=p["project_id"],
-                name=p["name"],
-                permission=p["permission"]
+                project_id=project.project_id,
+                name=project.name,
+                permission=project_manager.get_user_permission(user_id, project.project_id)
             )
-            for p in projects
+            for project in user_projects
         ],
         current_session=session_id
     )
@@ -117,15 +170,37 @@ async def get_current_project(request: Request) -> Dict[str, Any]:
 async def create_demo_project(request: Request) -> Dict[str, Any]:
     """Create a demo project for testing"""
     
+    # Get user from auth token
+    user_info = get_optional_user(request)
+    if not user_info:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    user_id = user_info["user_id"]
     session_id = request.headers.get("X-Session-ID", f"session_{uuid.uuid4().hex[:8]}")
     
-    # Ensure session exists
+    # Ensure session exists with real user ID
     if not session_manager.get_session_info(session_id):
-        session_manager.create_session(session_id, "temp_user")
+        session_manager.create_session(session_id, user_id)
     
-    # Create demo project
-    temp_manager = get_temp_project_manager()
-    project_id = temp_manager.create_demo_project()
+    # Create demo project for the actual user
+    from src.projects.project_manager import Project
+    project_id = f"demo_{uuid.uuid4().hex[:6]}"
+    project = Project(
+        project_id=project_id,
+        name="Demo Project",
+        owner_id=user_id,
+        description="Demo project for testing"
+    )
+    project_manager.projects[project_id] = project
+    project_manager._save_projects()
+    
+    # Create project directory using config path
+    base_path = get_user_projects_path(user_id) / project_id
+    base_path.mkdir(parents=True, exist_ok=True)
+    (base_path / ".labacc").mkdir(exist_ok=True)
+    (base_path / "README.md").write_text(f"# Demo Project\n\nCreated for user {user_id}")
+    
+    logger.info(f"Created demo project: {project_id} for user {user_id}")
     
     return {
         "status": "success",
@@ -149,9 +224,9 @@ async def create_new_project(request_data: NewProjectRequest, request: Request) 
     
     user_id = session_info.get("user_id", "temp_user")
     
-    # Create project directory structure
-    project_id = f"project_{request_data.name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:6]}"
-    base_path = Path("data") / f"{user_id}_projects" / project_id
+    # Create project directory structure using config path
+    project_id = f"{request_data.name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:6]}"
+    base_path = get_user_projects_path(user_id) / project_id
     
     try:
         # Create directories
@@ -196,6 +271,17 @@ async def create_new_project(request_data: NewProjectRequest, request: Request) 
         }
         (base_path / ".labacc" / "project_config.json").write_text(json.dumps(config, indent=2))
         
+        # Register project with project_manager
+        from src.projects.project_manager import Project
+        project = Project(
+            project_id=project_id,
+            name=request_data.name,
+            owner_id=user_id,
+            description=request_data.hypothesis
+        )
+        project_manager.projects[project_id] = project
+        project_manager._save_projects()
+        
         logger.info(f"Created new project: {project_id} for user {user_id}")
         
         return {
@@ -228,11 +314,14 @@ async def import_existing_data(
     
     user_id = session_info.get("user_id", "temp_user")
     
-    # Create project directory
-    project_id = f"project_{name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:6]}"
-    base_path = Path("data") / f"{user_id}_projects" / project_id
+    # Create project directory using config path
+    project_id = f"{name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:6]}"
+    base_path = get_user_projects_path(user_id) / project_id
     
     try:
+        # Send initial status
+        await notify_import_status(session_id, "uploading", 10, "Starting project import...")
+        
         # Create directories
         base_path.mkdir(parents=True, exist_ok=True)
         (base_path / ".labacc").mkdir(exist_ok=True)
@@ -245,6 +334,8 @@ async def import_existing_data(
         # Process uploaded files
         file_structure = {}
         files_to_convert = []  # Track files that need conversion
+        
+        await notify_import_status(session_id, "uploading", 20, "Processing uploaded files...")
         
         for file in files:
             content = await file.read()
@@ -304,23 +395,35 @@ async def import_existing_data(
         
         # Convert PDF/DOCX/PPTX files to Markdown
         conversion_results = []
-        for file_info in files_to_convert:
+        total_conversions = len(files_to_convert)
+        
+        await notify_import_status(session_id, "converting", 30, f"Converting {total_conversions} documents...")
+        
+        for idx, file_info in enumerate(files_to_convert):
             try:
+                # Update status for each file
+                progress = 30 + int((idx / max(total_conversions, 1)) * 20)  # 30-50% for conversions
+                await notify_import_status(session_id, "converting", progress, f"Converting {file_info['filename']}...")
+                
                 logger.info(f"Converting {file_info['filename']} to Markdown...")
                 
                 # Determine experiment folder for conversion
                 exp_folder = experiments_path / file_info['exp_name']
                 
                 # Process the file through conversion pipeline
+                # Pass the full project path, not just experiment name
                 result = await conversion_pipeline.process_upload(
                     file_info['path'],
-                    file_info['exp_name']
+                    str(base_path / "experiments" / file_info['exp_name'])
                 )
                 
                 if result['conversion_status'] == 'success':
+                    # Extract just the filename from the converted_path
+                    converted_filename = Path(result.get('converted_path', '')).name if result.get('converted_path') else 'converted.md'
                     file_structure[file_info['exp_name']]["converted"].append({
                         "original": file_info['filename'],
-                        "markdown": result.get('analysis_path', 'converted.md')
+                        "markdown": converted_filename,
+                        "path": str(base_path / "experiments" / file_info['exp_name'] / converted_filename)
                     })
                     conversion_results.append(f"✅ {file_info['filename']}")
                 else:
@@ -330,35 +433,209 @@ async def import_existing_data(
                 logger.error(f"Failed to convert {file_info['filename']}: {e}")
                 conversion_results.append(f"❌ {file_info['filename']} (error)")
         
-        # Generate README from discovered structure
-        readme_content = f"""# {name}
+        # Use React agent to analyze and generate intelligent README
+        await notify_import_status(session_id, "analyzing", 50, "AI agent analyzing project structure...")
+        
+        # Import React agent components
+        from src.agents.react_agent import create_memory_agent
+        from langchain_core.messages import HumanMessage
+        from src.projects.session import set_current_session
+        
+        # Create a temporary session for the agent with the project context
+        # This allows agent tools to resolve paths correctly
+        temp_session_id = f"import_{project_id}_{uuid.uuid4().hex[:6]}"
+        session_manager.create_session(temp_session_id, user_id)
+        session_manager.select_project(temp_session_id, project_id)
+        set_current_session(temp_session_id)
+        
+        # Create agent for analysis
+        agent = create_memory_agent()
+        
+        # First, have agent analyze the entire project structure
+        await notify_import_status(session_id, "analyzing", 55, "Understanding project organization...")
+        
+        # Build comprehensive file list for agent
+        all_files_info = []
+        for exp_name, exp_data in file_structure.items():
+            all_files_info.append(f"\n**Experiment: {exp_name}**")
+            all_files_info.append(f"  Original files: {', '.join(exp_data['files'][:5])}")
+            if len(exp_data['files']) > 5:
+                all_files_info.append(f"  ... and {len(exp_data['files']) - 5} more files")
+            if exp_data.get('converted'):
+                converted_docs = [conv['markdown'] for conv in exp_data['converted']]
+                all_files_info.append(f"  Converted documents: {', '.join(converted_docs)}")
+        
+        project_overview_prompt = f"""You are analyzing a newly imported research project called '{name}'.
+Project description: {description if description else 'Not provided'}
+
+The project has the following structure:
+{''.join(all_files_info)}
+
+Your task is to create a comprehensive README.md for this project. Follow these steps:
+
+STEP 1: First, use the list_folder_contents tool to explore the 'experiments' folder and understand the project structure.
+
+STEP 2: For each experiment folder that has converted markdown documents, use the read_file tool to read them carefully. Focus on:
+- Protocol documents (usually contain methods)
+- Results files (contain data and findings)
+- Analysis files (contain interpretations)
+- Presentation files (often contain summaries)
+
+STEP 3: After reading all relevant documents, write a comprehensive project README with these sections:
+
+# {name}
+
+## Project Overview
+[Write 2-3 paragraphs explaining the project's goals, hypothesis, and significance based on what you learned from the documents]
+
+## Research Questions
+[List the main research questions being addressed]
+
+## Methodology
+[Describe the main experimental approaches and techniques used across all experiments]
+
+## Experiments
+
+[For each experiment folder, write a detailed section like this:]
+
+### Experiment: [experiment_name]
+**Objective**: [What was this experiment trying to achieve?]
+**Date**: [If mentioned in documents]
+**Status**: [Completed/In Progress/Failed if you can determine]
+
+**Methods**:
+- [List key methods used]
+- [Include important parameters]
+
+**Key Results**:
+- [List main findings with specific numbers when available]
+- [Include statistical significance if mentioned]
+
+**Conclusions**:
+[What did this experiment conclude?]
+
+**Issues/Notes**:
+[Any problems mentioned or things to improve]
+
+## Overall Findings
+[Synthesize findings across all experiments]
+
+## File Organization
+[Brief description of how files are organized]
+
+## Next Steps
+[If mentioned in any documents, what are the planned next experiments?]
+
+---
+*This documentation was generated from imported experimental data on {datetime.now().strftime('%Y-%m-%d')}*
+
+Remember:
+- Be specific and include actual numbers, concentrations, temperatures, etc. when mentioned
+- Use scientific terminology appropriately
+- Maintain professional scientific writing style
+- If information is not available in the documents, don't make it up - just omit that section
+
+Start by exploring the file structure, then read the important documents, then write the comprehensive README."""
+        
+        try:
+            await notify_import_status(session_id, "analyzing", 60, "Agent reading and analyzing documents...")
+            
+            # Get agent's comprehensive analysis
+            result = await agent.ainvoke({"messages": [HumanMessage(content=project_overview_prompt)]})
+            
+            # Extract the comprehensive README
+            project_readme = None
+            if result and "messages" in result:
+                for msg in reversed(result["messages"]):
+                    if hasattr(msg, "content") and msg.content and msg.content.startswith("# "):
+                        project_readme = msg.content
+                        logger.info(f"Agent generated comprehensive project README")
+                        break
+            
+            # If we got a comprehensive README, use it
+            if project_readme:
+                await notify_import_status(session_id, "generating", 80, "Finalizing project documentation...")
+                readme_content = project_readme
+            else:
+                # Fallback to simpler approach if comprehensive analysis failed
+                logger.warning("Comprehensive analysis failed, falling back to simple format")
+                readme_content = f"""# {name}
 
 {description if description else 'Imported experimental data project'}
 
-## Project Structure (Auto-discovered)
+## Project Structure
 """
+                for exp_name, exp_data in file_structure.items():
+                    readme_content += f"\n### {exp_name}\n"
+                    readme_content += f"**Files**: {len(exp_data['files'])} items\n"
+                    if exp_data.get('converted'):
+                        readme_content += f"**Documents converted**: {len(exp_data['converted'])} files\n"
+                readme_content += f"\n---\nImported: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+            
+        except Exception as e:
+            logger.error(f"Agent analysis failed: {e}")
+            # Fallback to basic structure
+            readme_content = f"""# {name}
+
+{description if description else 'Imported experimental data project'}
+
+## Experiments
+"""
+            for exp_name, exp_data in file_structure.items():
+                readme_content += f"\n### {exp_name}\n"
+                readme_content += f"**Files**: {len(exp_data['files'])} items\n"
+            readme_content += f"\n---\nImported: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+        
+        # Also generate individual experiment READMEs with focused analysis
+        experiment_analyses = {}
         for exp_name, exp_data in file_structure.items():
-            readme_content += f"\n### Experiment: {exp_name}\n"
-            readme_content += f"- Files: {len(exp_data['files'])} items\n"
-            
-            # List original files
-            files_list = exp_data['files']
-            if len(files_list) <= 5:
-                for f in files_list:
-                    readme_content += f"  - {f}\n"
-            else:
-                for f in files_list[:3]:
-                    readme_content += f"  - {f}\n"
-                readme_content += f"  - ... and {len(files_list) - 3} more files\n"
-            
-            # List converted files if any
             if exp_data.get('converted'):
-                readme_content += f"\n- **Converted Documents:** {len(exp_data['converted'])} files\n"
-                for conv in exp_data['converted']:
-                    readme_content += f"  - {conv['original']} → Markdown\n"
+                await notify_import_status(session_id, "analyzing", 70, f"Deep analysis of {exp_name}...")
+                
+                converted_files = "\n".join([f"- {conv['markdown']}" for conv in exp_data['converted']])
+                
+                exp_prompt = f"""You are creating documentation for the experiment folder '{exp_name}'.
+
+Available converted documents in experiments/{exp_name}/:
+{converted_files}
+
+Please:
+1. Use read_file to read each of these markdown documents
+2. Write a focused README for this specific experiment with these sections:
+
+## Overview
+[What is this experiment about?]
+
+## Methods
+[Detailed methods used]
+
+## Results
+[Key findings with specific data]
+
+## Analysis
+[Interpretation of results]
+
+## Conclusions
+[What was learned]
+
+## Technical Details
+[Any important parameters, equipment, reagents]
+
+Be specific and include actual values from the documents."""
+
+                try:
+                    result = await agent.ainvoke({"messages": [HumanMessage(content=exp_prompt)]})
+                    if result and "messages" in result:
+                        for msg in reversed(result["messages"]):
+                            if hasattr(msg, "content") and msg.content:
+                                experiment_analyses[exp_name] = msg.content
+                                break
+                except Exception as e:
+                    logger.error(f"Failed to analyze {exp_name}: {e}")
         
-        readme_content += f"\n---\nImported: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+        await notify_import_status(session_id, "generating", 85, "Writing documentation files...")
         
+        # Save the comprehensive README (already generated above)
         (base_path / "README.md").write_text(readme_content)
         
         # Create project config
@@ -373,8 +650,7 @@ async def import_existing_data(
         }
         (base_path / ".labacc" / "project_config.json").write_text(json.dumps(config, indent=2))
         
-        # TODO: Trigger background analysis of imported data
-        # This would normally trigger the agent to analyze the imported files
+        # Analysis is triggered below using React agent for deep content understanding
         
         # Create file registry for tracking conversions
         registry = {
@@ -392,53 +668,101 @@ async def import_existing_data(
                     "needs_conversion": conversion_pipeline.needs_conversion(filename)
                 }
             
-            # Add conversion info
+            # Add conversion info with correct markdown path
             for conv in exp_data.get('converted', []):
                 if conv['original'] in registry["files"]:
                     registry["files"][conv['original']]["conversion"] = {
                         "status": "success",
-                        "markdown_path": conv['markdown'],
+                        "markdown_path": conv['markdown'],  # Now contains the actual filename
                         "timestamp": datetime.now().isoformat()
                     }
         
         (base_path / ".labacc" / "file_registry.json").write_text(json.dumps(registry, indent=2))
         
-        # Generate README for each experiment folder that doesn't have one
+        # Generate README for each experiment folder
         for exp_name in file_structure.keys():
             exp_path = experiments_path / exp_name
             exp_readme = exp_path / "README.md"
             
             if not exp_readme.exists():
-                exp_readme_content = f"""# Experiment: {exp_name}
+                # Use agent's analysis if available
+                if exp_name in experiment_analyses:
+                    exp_readme_content = f"""# Experiment: {exp_name}
+
+{experiment_analyses[exp_name]}
+
+## Files in this folder
+"""
+                    for filename in file_structure[exp_name]['files']:
+                        exp_readme_content += f"- {filename}\n"
+                    
+                    if file_structure[exp_name].get('converted'):
+                        exp_readme_content += f"\n## Converted Documents\n"
+                        for conv in file_structure[exp_name]['converted']:
+                            exp_readme_content += f"- {conv['original']} → {conv['markdown']}\n"
+                    
+                    exp_readme_content += f"\n## Notes\n_AI-generated analysis. Add your own notes below._\n\n"
+                    
+                else:
+                    # Simple README without analysis
+                    exp_readme_content = f"""# Experiment: {exp_name}
 
 ## Overview
 This experiment folder was imported on {datetime.now().strftime('%Y-%m-%d')}.
 
 ## Files
 """
-                for filename in file_structure[exp_name]['files']:
-                    exp_readme_content += f"- {filename}\n"
-                
-                if file_structure[exp_name].get('converted'):
-                    exp_readme_content += f"\n## Converted Documents\n"
-                    for conv in file_structure[exp_name]['converted']:
-                        exp_readme_content += f"- {conv['original']} (converted to Markdown)\n"
-                
-                exp_readme_content += f"\n## Notes\n_Add your experimental notes here_\n"
+                    for filename in file_structure[exp_name]['files']:
+                        exp_readme_content += f"- {filename}\n"
+                    
+                    if file_structure[exp_name].get('converted'):
+                        exp_readme_content += f"\n## Converted Documents\n"
+                        for conv in file_structure[exp_name]['converted']:
+                            exp_readme_content += f"- {conv['original']} (converted to Markdown)\n"
+                    
+                    exp_readme_content += f"\n## Notes\n_Add your experimental notes here_\n"
                 
                 exp_readme.write_text(exp_readme_content)
+        
+        # Register project with project_manager
+        from src.projects.project_manager import Project
+        project = Project(
+            project_id=project_id,
+            name=name,
+            owner_id=user_id,
+            description=description or f"Imported data project: {name}"
+        )
+        project_manager.projects[project_id] = project
+        project_manager._save_projects()
         
         logger.info(f"Imported project: {project_id} with {len(files)} files, {len(conversion_results)} conversions")
         
         # Calculate total files imported
         total_files = sum(len(exp_data['files']) for exp_data in file_structure.values())
         
+        # Clean up temporary session used for agent
+        if 'temp_session_id' in locals():
+            try:
+                session_manager.close_session(temp_session_id)
+            except:
+                pass  # Don't fail if cleanup fails
+        
+        # Send completion status
+        await notify_import_status(session_id, "complete", 100, f"Project '{name}' created successfully!")
+        
+        # Simple summary of what was analyzed
+        analysis_summary = []
+        if experiment_analyses:
+            for exp_name in experiment_analyses.keys():
+                analysis_summary.append(f"Analyzed {exp_name}")
+        
         return {
             "status": "success",
             "project_id": project_id,
             "message": f"Project '{name}' imported successfully",
             "files_imported": total_files,
-            "conversions": conversion_results if conversion_results else None
+            "conversions": conversion_results if conversion_results else None,
+            "analysis_summary": analysis_summary if analysis_summary else None
         }
         
     except Exception as e:

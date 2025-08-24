@@ -29,7 +29,97 @@
         "bob"
       ],
       "admins": []
+    },
+    {
+      "project_id": "project_test_project_017b4b",
+      "name": "test_project",
+      "owner_id": "alice",
+      "description": "Testing the API endpoints for project creation",
+      "created_at": "2025-08-20T11:12:01.317013",
+      "shared_with": [],
+      "admins": []
+    },
+    {
+      "project_id": "project_superscc_e2f648",
+      "name": "superscc",
+      "owner_id": "admin",
+      "description": "I want to optimize the UDA-seq technology to increase its capture efficiency, currently this method only get ~1200 genes per cell on average, which is a bit low",
+      "created_at": "2025-08-20T18:14:08.809959",
+      "shared_with": [],
+      "admins": []
+    },
+    {
+      "project_id": "project_t-cell_exhaustion_aging_study_f0fac4",
+      "name": "T-cell_exhaustion_aging_study",
+      "owner_id": "bob",
+      "description": "Age-related T-cell exhaustion is characterized by increased PD-1 \n  expression and decreased cytokine production, and can be partially \n  reversed by checkpoint inhibitor treatment in aged mouse models",
+      "created_at": "2025-08-21T10:51:19.477320",
+      "shared_with": [],
+      "admins": []
+    },
+    {
+      "project_id": "project_uda_pilot_3483df",
+      "name": "uda_pilot",
+      "owner_id": "admin",
+      "description": "UDA-seq pilot experiment",
+      "created_at": "2025-08-22T09:15:01.377421",
+      "shared_with": [],
+      "admins": []
+    },
+    {
+      "project_id": "uda_pilot_fe57f5",
+      "name": "uda_pilot",
+      "owner_id": "admin",
+      "description": "Imported data project: uda_pilot",
+      "created_at": "2025-08-22T10:57:55.895563",
+      "shared_with": [],
+      "admins": []
+    },
+    {
+      "project_id": "uda_pilot_3f94ff",
+      "name": "uda_pilot",
+      "owner_id": "admin",
+      "description": "Imported data project: uda_pilot",
+      "created_at": "2025-08-22T11:03:46.947693",
+      "shared_with": [],
+      "admins": []
+    },
+    {
+      "project_id": "uda_pilot_new_7ea8a6",
+      "name": "uda_pilot_new",
+      "owner_id": "admin",
+      "description": "Imported data project: uda_pilot_new",
+      "created_at": "2025-08-22T11:20:02.175525",
+      "shared_with": [],
+      "admins": []
+    },
+    {
+      "project_id": "uda_pilot_new1_71e2ca",
+      "name": "uda_pilot_new1",
+      "owner_id": "admin",
+      "description": "Imported data project: uda_pilot_new1",
+      "created_at": "2025-08-22T11:42:35.997901",
+      "shared_with": [],
+      "admins": []
+    },
+    {
+      "project_id": "uda_exp2_77c0df",
+      "name": "uda_exp2",
+      "owner_id": "admin",
+      "description": "Imported data project: uda_exp2",
+      "created_at": "2025-08-22T12:14:04.575722",
+      "shared_with": [],
+      "admins": []
+    },
+    {
+      "project_id": "uda_exp2_new_de7471",
+      "name": "uda_exp2_new",
+      "owner_id": "admin",
+      "description": "Imported data project: uda_exp2_new",
+      "created_at": "2025-08-22T14:59:23.203177",
+      "shared_with": [],
+      "admins": []
     }
   ],
-  "last_updated": "2025-08-16T21:52:21.636920"
+  "last_updated": "2025-08-22T14:59:23.203238"
 }

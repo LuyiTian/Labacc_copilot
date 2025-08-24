@@ -1,26 +1,26 @@
-# Unified Memory-Agent Framework v5.0 (No YAML!)
+# Unified Memory-Agent Framework v5.1 (SIMPLIFIED)
 
 ## Executive Summary
 
-This is the **final consolidated specification** for LabAcc Copilot's unified memory-agent framework. README files are the memory, React agents provide intelligence, and simple markdown format makes it human-friendly.
+This specification documents the CURRENT simplified memory-agent framework implemented in v3.1. README files store raw text, React agents extract information on demand using LLM, no parsing or patterns.
 
-**Key Change**: NO YAML blocks - just simple, forgiving markdown that humans can easily write and agents can robustly parse.
+**Key Implementation**: Raw text storage - NO structured parsing at all. LLM extracts what it needs when asked.
 
-**Status**: Final Unified Specification  
-**Version**: 5.0  
-**Last Updated**: 2025-01-13
+**Status**: ✅ IMPLEMENTED in v3.1  
+**Version**: 5.1  
+**Last Updated**: 2025-01-23
 
-## 🎯 Core Design Principles
+## 🎯 Core Design Principles (IMPLEMENTED)
 
-1. **README as Memory**: Each experiment folder has a README.md that serves as its memory
-2. **Simple Markdown**: No YAML, no complex syntax - just headers, tables, and bullet points
-3. **Context-First**: Every tool receives rich context, not raw data
-4. **Continuous Learning**: Agent reads from memory, performs actions, writes learnings back
-5. **Human-Friendly**: Anyone can edit a README without breaking the system
+1. **README as Memory**: Each experiment folder has a README.md that stores everything as text
+2. **No Structure Enforced**: READMEs can be in ANY format - LLM understands naturally
+3. **LLM Extraction**: When info needed, LLM extracts it from raw text on demand
+4. **Continuous Learning**: Agent reads READMEs, performs actions, updates with insights
+5. **Human-Friendly**: Write READMEs however you want - no format requirements
 
-## 📝 README Memory Format (Simple Markdown)
+## 📝 README Memory Format (NO REQUIREMENTS)
 
-### Standard README Template
+### Example README Template (NOT ENFORCED - just a suggestion)
 
 ```markdown
 # Experiment: PCR Optimization for Gene X

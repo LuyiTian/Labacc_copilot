@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import './ProjectCreationModal.css';
 
-const ProjectCreationModal = ({ sessionId, onClose, onProjectCreated }) => {
+const ProjectCreationModal = ({ sessionId, authToken, onClose, onProjectCreated }) => {
   const [mode, setMode] = useState(null); // null, 'new', 'import'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [importStatus, setImportStatus] = useState(null); // Track import progress
   
   // New Research form state
   const [projectName, setProjectName] = useState('');
@@ -19,6 +20,51 @@ const ProjectCreationModal = ({ sessionId, onClose, onProjectCreated }) => {
   
   const API_BASE = 'http://localhost:8002';
   
+  // Setup WebSocket for import status updates
+  React.useEffect(() => {
+    if (loading && sessionId) {
+      console.log('Setting up WebSocket for import status updates');
+      const ws = new WebSocket(`ws://localhost:8002/ws/agent/${sessionId}`);
+      
+      ws.onopen = () => {
+        console.log('WebSocket connected for import status');
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('Received WebSocket message:', data);
+          if (data.type === 'import_status') {
+            setImportStatus({
+              status: data.status,
+              progress: data.progress,
+              message: data.message
+            });
+            
+            // Clear import status when complete
+            if (data.status === 'complete' && data.progress === 100) {
+              setTimeout(() => setImportStatus(null), 3000);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to parse WebSocket message:', err);
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+      
+      ws.onclose = () => {
+        console.log('WebSocket closed');
+      };
+      
+      return () => {
+        ws.close();
+      };
+    }
+  }, [loading, sessionId]);
+  
   const handleCreateNew = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -29,7 +75,8 @@ const ProjectCreationModal = ({ sessionId, onClose, onProjectCreated }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Session-ID': sessionId
+          'X-Session-ID': sessionId,
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({
           name: projectName,
@@ -56,6 +103,7 @@ const ProjectCreationModal = ({ sessionId, onClose, onProjectCreated }) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setImportStatus(null); // Clear any previous import status
     
     try {
       const formData = new FormData();
@@ -72,7 +120,8 @@ const ProjectCreationModal = ({ sessionId, onClose, onProjectCreated }) => {
       const response = await fetch(`${API_BASE}/api/projects/import-data`, {
         method: 'POST',
         headers: {
-          'X-Session-ID': sessionId
+          'X-Session-ID': sessionId,
+          'Authorization': `Bearer ${authToken}`
         },
         body: formData
       });
@@ -83,11 +132,18 @@ const ProjectCreationModal = ({ sessionId, onClose, onProjectCreated }) => {
       
       const data = await response.json();
       
-      // Show conversion results if any
+      // Show analysis summary if available
+      let successMessage = `Project imported successfully!`;
+      
       if (data.conversions && data.conversions.length > 0) {
-        const conversionSummary = data.conversions.join('\n');
-        alert(`Project imported successfully!\n\nFile conversions:\n${conversionSummary}`);
+        successMessage += `\n\nFile conversions:\n${data.conversions.join('\n')}`;
       }
+      
+      if (data.analysis_summary && data.analysis_summary.length > 0) {
+        successMessage += `\n\nContent Analysis:\n${data.analysis_summary.join('\n')}`;
+      }
+      
+      alert(successMessage);
       
       onProjectCreated(data.project_id);
     } catch (err) {
@@ -294,6 +350,9 @@ const ProjectCreationModal = ({ sessionId, onClose, onProjectCreated }) => {
                   required
                   disabled={loading}
                 />
+                <small className="form-hint">
+                  Choose a meaningful name - this cannot be easily changed later
+                </small>
               </div>
               
               <div className="form-group">
@@ -311,6 +370,19 @@ const ProjectCreationModal = ({ sessionId, onClose, onProjectCreated }) => {
               </div>
               
               {error && <div className="error-message">{error}</div>}
+              
+              {/* Import Progress Display */}
+              {loading && importStatus && (
+                <div className="import-status">
+                  <div className="progress-bar">
+                    <div 
+                      className="progress-fill" 
+                      style={{width: `${importStatus.progress || 0}%`}}
+                    />
+                  </div>
+                  <p className="progress-message">{importStatus.message}</p>
+                </div>
+              )}
               
               <div className="form-actions">
                 <button type="button" onClick={onClose} disabled={loading}>

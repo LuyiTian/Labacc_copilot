@@ -46,13 +46,17 @@ class FileContextSummarizer:
             file_name = full_path.name
             
             # Handle different file types
-            if file_ext in ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.pdf']:
-                # TODO: Implement image/PDF analysis
-                return f"TODO: Implement {file_ext} analysis - {file_name}"
+            if file_ext in ['.png', '.jpg', '.jpeg', '.gif', '.svg']:
+                # Image analysis is implemented in src/components/image_analyzer.py
+                return f"Image file - {file_name} (use analyze_image tool for detailed analysis)"
+            
+            if file_ext == '.pdf':
+                # PDFs are converted to markdown via file_conversion.py
+                return f"PDF file - {file_name} (will be converted to markdown for analysis)"
             
             if file_ext in ['.xlsx', '.xls']:
-                # TODO: Implement Excel analysis
-                return f"TODO: Implement Excel analysis - {file_name}"
+                # Excel analysis is implemented in src/components/file_analyzer.py
+                return f"Excel file - {file_name} (use file analyzer for detailed analysis)"
             
             if file_ext not in ['.txt', '.csv', '.tsv', '.md', '.json', '.yaml', '.yml', 
                                '.py', '.ipynb', '.log', '.dat', '.xml', '.html']:

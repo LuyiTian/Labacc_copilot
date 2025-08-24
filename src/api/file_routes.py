@@ -6,6 +6,7 @@ designed to work with the React frontend file manager.
 
 import os
 import shutil
+import mimetypes
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,7 @@ from src.memory.file_summarizer import summarize_uploaded_file
 # Import file conversion and registry
 from src.api.file_conversion import FileConversionPipeline
 from src.api.file_registry import FileRegistry
+from src.config.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -129,10 +131,22 @@ async def list_files(
         if not dir_path.is_dir():
             raise HTTPException(status_code=400, detail="Path is not a directory")
 
-        # List files
+        # List files (excluding hidden and system folders)
         files = []
+        # Get hidden folders from config
+        hidden_folders = set(config.get("projects.hidden_items.folders", [
+            '.labacc', '.git', '__pycache__', '.venv', '.env'
+        ]))
+        
         for item in sorted(dir_path.iterdir()):
             try:
+                # Skip hidden files and system folders
+                if item.name in hidden_folders:
+                    continue
+                # Skip all dotfiles if configured (default behavior)
+                if item.name.startswith('.'):
+                    continue
+                    
                 stat = item.stat()
                 relative_path = str(item.relative_to(project_root))
 
@@ -351,11 +365,13 @@ async def upload_files(
             
             # FAIL if no valid experiment_id found
             if not experiment_id:
-                logger.error(f"Cannot determine experiment_id from path: {relative_path}")
-                # Don't fail silently - this is important info
-                print(f"WARNING: Upload to non-experiment folder: {relative_path}")
-                # Skip README update for non-experiment folders
-                return
+                logger.warning(f"Upload to non-experiment folder: {relative_path}")
+                # Skip README update for non-experiment folders but still return success
+                return {
+                    "success": True,
+                    "uploaded_count": len(uploaded_files),
+                    "files": uploaded_files
+                }
                 
             if experiment_id:
                 # Update README in background
@@ -662,7 +678,7 @@ async def get_file_metadata(
             "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
             "created": datetime.fromtimestamp(stat.st_ctime).isoformat(),
             "extension": file.suffix if file.is_file() else None,
-            "mime_type": None,  # TODO: Implement mime type detection
+            "mime_type": mimetypes.guess_type(file.name)[0],  # Get MIME type from filename
         }
 
         # Add file-specific metadata

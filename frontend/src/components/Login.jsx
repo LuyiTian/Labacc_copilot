@@ -23,25 +23,31 @@ const Login = ({ onLoginSuccess }) => {
     setError(null);
 
     try {
-      // For development, accept demo credentials or any username/password
-      // In production, this would authenticate against a real auth system
-      const response = await fetch('http://localhost:8002/api/projects/list', {
-        method: 'GET',
+      // Authenticate against the real auth system
+      const response = await fetch('http://localhost:8002/api/auth/login', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password
+        })
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Pass user info and session to parent
+        // Pass user info, token, and session to parent
         onLoginSuccess({
-          username: username.trim(),
-          sessionId: data.current_session,
-          role: 'researcher' // In production, this would come from auth
+          username: data.username || username.trim(),
+          userId: data.user_id,
+          token: data.token,
+          role: data.role || 'user',
+          sessionId: `session_${Date.now()}`
         });
       } else {
-        throw new Error('Authentication failed');
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.detail || 'Authentication failed');
       }
     } catch (err) {
       setError('Login failed. Please check that the server is running.');
@@ -119,8 +125,9 @@ const Login = ({ onLoginSuccess }) => {
         <div className="login-info">
           <h4>Demo Credentials:</h4>
           <ul>
-            <li><strong>Username:</strong> admin</li>
-            <li><strong>Password:</strong> password</li>
+            <li><strong>Admin:</strong> admin / admin123</li>
+            <li><strong>Alice:</strong> alice / alice123</li>
+            <li><strong>Bob:</strong> bob / bob123</li>
           </ul>
           
           <h4>Features:</h4>

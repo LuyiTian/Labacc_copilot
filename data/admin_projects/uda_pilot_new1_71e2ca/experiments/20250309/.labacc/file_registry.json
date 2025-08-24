@@ -1,0 +1,67 @@
+{
+  "version": "3.0",
+  "experiment_id": "data/admin_projects/uda_pilot_new1_71e2ca/experiments/20250309",
+  "files": {
+    "20250309.pptx": {
+      "original_path": "uda_pilot_new1_71e2ca/experiments/20250309/20250309.pptx",
+      "converted_path": "uda_pilot_new1_71e2ca/experiments/20250309/20250309.md",
+      "upload_time": "2025-08-22T11:37:23.477645",
+      "conversion": {
+        "status": "success",
+        "method": "MarkItDown",
+        "timestamp": "2025-08-22T11:37:23.477645"
+      }
+    },
+    "PBMC_20250321.QC_report.html": {
+      "original_path": "uda_pilot_new1_71e2ca/experiments/20250309/PBMC_20250321.QC_report.html",
+      "converted_path": "uda_pilot_new1_71e2ca/experiments/20250309/PBMC_20250321.QC_report.md",
+      "upload_time": "2025-08-22T11:37:23.934109",
+      "conversion": {
+        "status": "success",
+        "method": "MarkItDown",
+        "timestamp": "2025-08-22T11:37:23.934109"
+      }
+    },
+    "processed_RNA_1_fastqc.html": {
+      "original_path": "uda_pilot_new1_71e2ca/experiments/20250309/processed_RNA_1_fastqc.html",
+      "converted_path": "uda_pilot_new1_71e2ca/experiments/20250309/processed_RNA_1_fastqc.md",
+      "upload_time": "2025-08-22T11:37:24.034572",
+      "conversion": {
+        "status": "success",
+        "method": "MarkItDown",
+        "timestamp": "2025-08-22T11:37:24.034572"
+      }
+    },
+    "RNA_2_fastqc.html": {
+      "original_path": "uda_pilot_new1_71e2ca/experiments/20250309/RNA_2_fastqc.html",
+      "converted_path": "uda_pilot_new1_71e2ca/experiments/20250309/RNA_2_fastqc.md",
+      "upload_time": "2025-08-22T11:37:24.056232",
+      "conversion": {
+        "status": "success",
+        "method": "MarkItDown",
+        "timestamp": "2025-08-22T11:37:24.056232"
+      }
+    },
+    "udaseq_paper.pdf": {
+      "original_path": "uda_pilot_new1_71e2ca/experiments/20250309/udaseq_paper.pdf",
+      "converted_path": "uda_pilot_new1_71e2ca/experiments/20250309/udaseq_paper.md",
+      "upload_time": "2025-08-22T11:37:24.081918",
+      "conversion": {
+        "status": "success",
+        "method": "MinerU",
+        "timestamp": "2025-08-22T11:37:24.081918"
+      }
+    },
+    "udaseq_protocol.pdf": {
+      "original_path": "uda_pilot_new1_71e2ca/experiments/20250309/udaseq_protocol.pdf",
+      "converted_path": "uda_pilot_new1_71e2ca/experiments/20250309/udaseq_protocol.md",
+      "upload_time": "2025-08-22T11:40:02.280850",
+      "conversion": {
+        "status": "success",
+        "method": "MinerU",
+        "timestamp": "2025-08-22T11:40:02.280850"
+      }
+    }
+  },
+  "last_updated": "2025-08-22T11:42:03.340080"
+}

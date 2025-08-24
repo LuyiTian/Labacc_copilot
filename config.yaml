@@ -1,0 +1,160 @@
+# LabAcc Copilot Configuration File
+# This file contains all configurable parameters for the system
+
+# Project Data Configuration
+projects:
+  # Root directory where all user projects are stored
+  # Change this path if your projects are stored elsewhere
+  root_path: "/data/luyit/script/git/Labacc_copilot/data"
+  
+  # Default project structure settings
+  structure:
+    # Folders created for each new project
+    default_folders:
+      - "experiments"
+      - ".labacc"
+    
+    # Hidden folder for system metadata
+    metadata_folder: ".labacc"
+  
+  # Files and folders to hide from users in the file manager
+  hidden_items:
+    # These folders will not be shown in the file listing
+    folders:
+      - ".labacc"      # System metadata folder
+      - ".git"         # Git repository data
+      - "__pycache__"  # Python cache
+      - ".venv"        # Virtual environment
+      - ".env"         # Environment files
+    
+    # File patterns to hide (uses glob patterns)
+    file_patterns:
+      - ".*"           # All dotfiles
+      - "*.pyc"        # Python compiled files
+      - "*.pyo"        # Python optimized files
+      - "*.pyd"        # Python DLL files
+      - "Thumbs.db"    # Windows thumbnail cache
+      - ".DS_Store"    # macOS folder attributes
+
+# File Conversion Settings
+conversion:
+  # Timeout for PDF conversion with MinerU (in seconds)
+  mineru_timeout: 120
+  
+  # Maximum file size for conversion (in MB)
+  max_file_size: 100
+  
+  # Supported file types for conversion
+  supported_formats:
+    - ".pdf"
+    - ".docx"
+    - ".doc"
+    - ".pptx"
+    - ".ppt"
+    - ".xlsx"
+    - ".xls"
+    - ".html"
+    - ".htm"
+    - ".rtf"
+    - ".odt"
+    - ".odp"
+    - ".ods"
+
+# API Server Configuration
+server:
+  host: "0.0.0.0"
+  port: 8002
+  reload: true
+  
+  # CORS settings
+  cors:
+    allow_origins:
+      - "http://localhost:5173"
+      - "http://localhost:5174"
+      - "http://127.0.0.1:5173"
+      - "http://127.0.0.1:5174"
+    allow_credentials: true
+    allow_methods: ["*"]
+    allow_headers: ["*"]
+
+# Frontend Configuration
+frontend:
+  host: "0.0.0.0"
+  port: 5173
+  
+# Authentication Settings
+auth:
+  # Token expiry time (in hours)
+  token_expiry_hours: 99
+  
+  # Secret key for JWT tokens (should be changed in production)
+  # In production, use environment variable: LABACC_SECRET_KEY
+  secret_key: "your-secret-key-change-in-production"
+
+# AI Agent Configuration
+agent:
+  # Default model assignments
+  models:
+    react_agent: "openrouter-gpt-oss-120b"
+    memory_agent: "openrouter-gpt-oss-30b"
+    default: "openrouter-gpt-oss-30b"
+  
+  # Temperature settings
+  temperature:
+    creative: 0.8
+    balanced: 0.5
+    precise: 0.2
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Log file settings
+  file:
+    enabled: true
+    path: "logs/labacc.log"
+    max_size_mb: 10
+    backup_count: 5
+
+# Session Management
+session:
+  # Session timeout (in minutes)
+  timeout_minutes: 1440  # 24 hours
+  
+  # Maximum concurrent sessions per user
+  max_per_user: 5
+
+# Deep Research Configuration
+deep_research:
+  # Number of initial search queries to fan out
+  # Lower values = faster but less comprehensive
+  # Higher values = more thorough but slower
+  initial_search_query_count: 3  # Reduced from default 10 for testing
+  
+  # Maximum research loops for refinement
+  # Lower values = faster results
+  # Higher values = more iterative refinement
+  max_research_loops: 1  # Reduced from default 5 for testing
+  
+  # Number of search results to return per query
+  # Lower values = faster but less data
+  # Higher values = more comprehensive but slower
+  search_results_per_query: 3  # Reduced from default 5 for testing
+  
+  # Verbose logging for research progress
+  verbose: true
+  
+  # Force response language (null = auto-detect)
+  response_language: null
+
+# Development Settings
+development:
+  # Enable debug mode
+  debug: false
+  
+  # Enable hot reload
+  hot_reload: true
+  
+  # Show detailed error messages
+  verbose_errors: true

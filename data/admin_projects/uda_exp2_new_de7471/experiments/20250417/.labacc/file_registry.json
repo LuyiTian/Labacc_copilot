@@ -1,0 +1,37 @@
+{
+  "version": "3.0",
+  "experiment_id": "/data/luyit/script/git/Labacc_copilot/data/admin_projects/uda_exp2_new_de7471/experiments/20250417",
+  "files": {
+    "10sample_pbmc_R1_fastqc.html": {
+      "original_path": "uda_exp2_new_de7471/experiments/20250417/10sample_pbmc_R1_fastqc.html",
+      "converted_path": "uda_exp2_new_de7471/experiments/20250417/10sample_pbmc_R1_fastqc.md",
+      "upload_time": "2025-08-22T14:59:07.485907",
+      "conversion": {
+        "status": "success",
+        "method": "MarkItDown",
+        "timestamp": "2025-08-22T14:59:07.485907"
+      }
+    },
+    "10sample_pbmc_R2_fastqc.html": {
+      "original_path": "uda_exp2_new_de7471/experiments/20250417/10sample_pbmc_R2_fastqc.html",
+      "converted_path": "uda_exp2_new_de7471/experiments/20250417/10sample_pbmc_R2_fastqc.md",
+      "upload_time": "2025-08-22T14:59:07.981111",
+      "conversion": {
+        "status": "success",
+        "method": "MarkItDown",
+        "timestamp": "2025-08-22T14:59:07.981111"
+      }
+    },
+    "20250417.pptx": {
+      "original_path": "uda_exp2_new_de7471/experiments/20250417/20250417.pptx",
+      "converted_path": "uda_exp2_new_de7471/experiments/20250417/20250417.md",
+      "upload_time": "2025-08-22T14:59:07.997522",
+      "conversion": {
+        "status": "success",
+        "method": "MarkItDown",
+        "timestamp": "2025-08-22T14:59:07.997522"
+      }
+    }
+  },
+  "last_updated": "2025-08-22T14:59:08.013331"
+}

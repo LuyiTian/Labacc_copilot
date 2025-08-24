@@ -115,11 +115,15 @@ This experiment is being set up.
         if not self.project_root.exists():
             return experiments
         
-        for exp_dir in self.project_root.iterdir():
-            if exp_dir.is_dir() and exp_dir.name.startswith("exp_"):
-                readme_path = exp_dir / "README.md"
+        # Find all folders with README.md files (these are experiments)
+        for item in self.project_root.rglob("*"):
+            if item.is_dir() and not item.name.startswith('.'):
+                readme_path = item / "README.md"
                 if readme_path.exists():
-                    experiments.append(exp_dir.name)
+                    relative_path = item.relative_to(self.project_root)
+                    # Only include nested folders (not top-level project README)
+                    if len(relative_path.parts) >= 2:
+                        experiments.append(str(relative_path))
         
         return sorted(experiments)
     

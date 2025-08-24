@@ -340,6 +340,35 @@ class AuthenticationManager:
         logger.info(f"Password changed for user {user_id}")
         return True
     
+    def delete_user(self, user_id: str) -> bool:
+        """Delete a user from the system
+        
+        Args:
+            user_id: User ID to delete
+            
+        Returns:
+            True if user deleted successfully
+        """
+        if user_id not in self.users:
+            return False
+        
+        # Remove user from active tokens
+        tokens_to_remove = []
+        for token, session_info in self.active_tokens.items():
+            if session_info["user_id"] == user_id:
+                tokens_to_remove.append(token)
+        
+        for token in tokens_to_remove:
+            del self.active_tokens[token]
+        
+        # Remove user
+        username = self.users[user_id].username
+        del self.users[user_id]
+        self._save_users()
+        
+        logger.info(f"User {username} (ID: {user_id}) deleted")
+        return True
+    
     def cleanup_expired_tokens(self):
         """Remove expired tokens"""
         now = datetime.now()

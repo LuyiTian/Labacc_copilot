@@ -490,3 +490,212 @@
     grid-template-columns: 1fr;
   }
 }
+/* Admin Panel Styles */
+.admin-button {
+  background: #ff9800;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-right: 10px;
+}
+
+.admin-button:hover {
+  background: #f57c00;
+  transform: translateY(-1px);
+}
+
+.header-buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.admin-panel {
+  background: white;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 900px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.admin-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.admin-panel-header h2 {
+  margin: 0;
+  color: #333;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 5px 10px;
+}
+
+.close-button:hover {
+  color: #000;
+}
+
+.admin-error {
+  background: #ffe5e5;
+  color: #c82333;
+  padding: 15px 20px;
+  margin: 20px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-panel-actions {
+  padding: 20px 30px;
+  display: flex;
+  gap: 10px;
+}
+
+.create-user-button, .refresh-button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.create-user-button {
+  background: #28a745;
+  color: white;
+}
+
+.create-user-button:hover {
+  background: #218838;
+}
+
+.refresh-button {
+  background: #007bff;
+  color: white;
+}
+
+.refresh-button:hover {
+  background: #0056b3;
+}
+
+.create-user-form {
+  background: #f8f9fa;
+  padding: 20px 30px;
+  margin: 0 20px 20px;
+  border-radius: 10px;
+}
+
+.create-user-form h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.form-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.form-row input,
+.form-row select {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.users-list {
+  padding: 20px 30px;
+}
+
+.users-list h3 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.users-table th {
+  background: #f8f9fa;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.users-table td {
+  padding: 12px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.role-badge.admin {
+  background: #ffc107;
+  color: #000;
+}
+
+.role-badge.user {
+  background: #6c757d;
+  color: white;
+}
+
+.delete-button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.delete-button:hover {
+  background: #c82333;
+}
+
+.no-users {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+}

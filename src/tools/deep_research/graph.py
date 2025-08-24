@@ -8,7 +8,14 @@ from rich import print
 
 from src.components.llm import LLM_QUERY_WRITER, LLM_SMALL, LLM_TRIAGE
 
-from .config import FAN_OUT_QUERIES, MAX_RESEARCH_LOOPS, SEARCH_RESULTS_PER_QUERY
+# Import centralized config instead of local config.py
+from src.config.config import config
+
+# Get deep research settings from config.yaml
+_dr_config = config.get_deep_research_config()
+FAN_OUT_QUERIES = _dr_config["initial_search_query_count"]
+MAX_RESEARCH_LOOPS = _dr_config["max_research_loops"]
+SEARCH_RESULTS_PER_QUERY = _dr_config.get("search_results_per_query", 5)
 from .prompts import (
     answer_instructions,
     get_current_date,

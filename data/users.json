@@ -7,7 +7,7 @@
       "email": "admin@lab.com",
       "role": "admin",
       "created_at": "2025-08-16T21:52:21.639453",
-      "last_login": null,
+      "last_login": "2025-08-22T16:07:20.531736",
       "is_active": true
     },
     {
@@ -17,7 +17,7 @@
       "email": "alice@lab.com",
       "role": "user",
       "created_at": "2025-08-16T21:52:21.639466",
-      "last_login": null,
+      "last_login": "2025-08-20T11:13:08.264491",
       "is_active": true
     },
     {
@@ -27,9 +27,9 @@
       "email": "bob@lab.com",
       "role": "user",
       "created_at": "2025-08-16T21:52:21.639471",
-      "last_login": null,
+      "last_login": "2025-08-21T11:18:35.987743",
       "is_active": true
     }
   ],
-  "last_updated": "2025-08-16T21:52:21.639477"
+  "last_updated": "2025-08-22T16:07:20.531743"
 }

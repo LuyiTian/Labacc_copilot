@@ -1,0 +1,14 @@
+实验日期：20250309
+实验目的：重复文献中高通量多组学技术UDA-seq。
+样本名称：16index PBMC-UDA-seq
+1）实验样本：复苏的PBMC细胞，细胞活率85%。
+2）固定方法：ice-cold 甲醇固定，-20℃10min。
+3）水化试剂：1x PBS 
+4） Index数量：96种
+5）单细胞试剂：10x single cell 5’V2
+6）10x Loading 细胞数量：5w
+7）纯化方式：10x Clean up Mix（Dynabeads）
+7）实验方法：
+一、细胞前处理：PBMC细胞复苏后，分别取100w细胞离心，500g，5min。弃上清，100ul 1x PBS重悬细胞后，加入900ul ice-cold 甲醇，-20℃固定10min。4℃，500g 离心5min，弃上清，加入1mL 1xPBS洗涤细胞2次。细胞计数，取5w细胞载入到10x 5’single cell V2 kit。
+结论：16index PBMC UDA-seq的数据结果还不错，接下里准备测试96index并且增加细胞载入量。
+

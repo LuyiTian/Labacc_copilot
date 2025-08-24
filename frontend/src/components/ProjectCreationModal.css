@@ -316,3 +316,43 @@
     font-size: 36px;
   }
 }
+/* Import Progress Styles */
+.import-status {
+  margin: 20px 0;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e1e4e8;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 24px;
+  background: #e1e4e8;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0366d6, #28a745);
+  transition: width 0.3s ease;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.progress-message {
+  margin: 0;
+  font-size: 14px;
+  color: #586069;
+  text-align: center;
+  font-weight: 500;
+}
+
+.form-hint {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+  display: block;
+}
