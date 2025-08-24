@@ -1,0 +1,92 @@
+{
+  "version": "3.0",
+  "project_id": "uda_pilot_fe57f5",
+  "created_at": "2025-08-22T10:57:55.895186",
+  "files": {
+    "16index -PBMC-UDA-seq cDNA Tapestation.png": {
+      "experiment": "20250309",
+      "upload_time": "2025-08-22T10:57:55.895193",
+      "needs_conversion": false
+    },
+    "16index PBMC-UDA-seq Solo results.png": {
+      "experiment": "20250309",
+      "upload_time": "2025-08-22T10:57:55.895214",
+      "needs_conversion": false
+    },
+    "16index PBMC-UDA-seq-Knee plot.png": {
+      "experiment": "20250309",
+      "upload_time": "2025-08-22T10:57:55.895223",
+      "needs_conversion": false
+    },
+    "16index PBMC-UDA-seq.csv": {
+      "experiment": "20250309",
+      "upload_time": "2025-08-22T10:57:55.895230",
+      "needs_conversion": false
+    },
+    "20250309.pptx": {
+      "experiment": "20250309",
+      "upload_time": "2025-08-22T10:57:55.895236",
+      "needs_conversion": true,
+      "conversion": {
+        "status": "success",
+        "markdown_path": "20250309.md",
+        "timestamp": "2025-08-22T10:57:55.895288"
+      }
+    },
+    "20250309.txt": {
+      "experiment": "20250309",
+      "upload_time": "2025-08-22T10:57:55.895242",
+      "needs_conversion": false
+    },
+    "PBMC_20250321.QC_report.html": {
+      "experiment": "20250309",
+      "upload_time": "2025-08-22T10:57:55.895248",
+      "needs_conversion": true,
+      "conversion": {
+        "status": "success",
+        "markdown_path": "PBMC_20250321.QC_report.md",
+        "timestamp": "2025-08-22T10:57:55.895291"
+      }
+    },
+    "processed_RNA_1_fastqc.html": {
+      "experiment": "20250309",
+      "upload_time": "2025-08-22T10:57:55.895254",
+      "needs_conversion": true,
+      "conversion": {
+        "status": "success",
+        "markdown_path": "processed_RNA_1_fastqc.md",
+        "timestamp": "2025-08-22T10:57:55.895294"
+      }
+    },
+    "RNA_2_fastqc.html": {
+      "experiment": "20250309",
+      "upload_time": "2025-08-22T10:57:55.895263",
+      "needs_conversion": true,
+      "conversion": {
+        "status": "success",
+        "markdown_path": "RNA_2_fastqc.md",
+        "timestamp": "2025-08-22T10:57:55.895296"
+      }
+    },
+    "udaseq_paper.pdf": {
+      "experiment": "20250309",
+      "upload_time": "2025-08-22T10:57:55.895269",
+      "needs_conversion": true,
+      "conversion": {
+        "status": "success",
+        "markdown_path": "udaseq_paper.md",
+        "timestamp": "2025-08-22T10:57:55.895299"
+      }
+    },
+    "udaseq_protocol.pdf": {
+      "experiment": "20250309",
+      "upload_time": "2025-08-22T10:57:55.895280",
+      "needs_conversion": true,
+      "conversion": {
+        "status": "success",
+        "markdown_path": "udaseq_protocol.md",
+        "timestamp": "2025-08-22T10:57:55.895301"
+      }
+    }
+  }
+}

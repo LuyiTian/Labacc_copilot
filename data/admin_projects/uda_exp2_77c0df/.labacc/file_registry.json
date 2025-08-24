@@ -1,0 +1,97 @@
+{
+  "version": "3.0",
+  "project_id": "uda_exp2_77c0df",
+  "created_at": "2025-08-22T12:14:04.575342",
+  "files": {
+    "10sample_pbmc.barcode_rank_plot.png": {
+      "experiment": "20250417",
+      "upload_time": "2025-08-22T12:14:04.575349",
+      "needs_conversion": false
+    },
+    "10sample_pbmc.csv": {
+      "experiment": "20250417",
+      "upload_time": "2025-08-22T12:14:04.575367",
+      "needs_conversion": false
+    },
+    "10sample_pbmc.ElbowPlot.png": {
+      "experiment": "20250417",
+      "upload_time": "2025-08-22T12:14:04.575377",
+      "needs_conversion": false
+    },
+    "10sample_pbmc.FeatureScatterPlot.png": {
+      "experiment": "20250417",
+      "upload_time": "2025-08-22T12:14:04.575383",
+      "needs_conversion": false
+    },
+    "10sample_pbmc.saturation.png": {
+      "experiment": "20250417",
+      "upload_time": "2025-08-22T12:14:04.575389",
+      "needs_conversion": false
+    },
+    "10sample_pbmc.topDEG.dotplot.png": {
+      "experiment": "20250417",
+      "upload_time": "2025-08-22T12:14:04.575395",
+      "needs_conversion": false
+    },
+    "10sample_pbmc.UMAP.png": {
+      "experiment": "20250417",
+      "upload_time": "2025-08-22T12:14:04.575401",
+      "needs_conversion": false
+    },
+    "10sample_pbmc.UMAP_umicounts.png": {
+      "experiment": "20250417",
+      "upload_time": "2025-08-22T12:14:04.575406",
+      "needs_conversion": false
+    },
+    "10sample_pbmc.VariableFeaturePlot_anntop10.png": {
+      "experiment": "20250417",
+      "upload_time": "2025-08-22T12:14:04.575412",
+      "needs_conversion": false
+    },
+    "10sample_pbmc.VlnPlot.filtered.png": {
+      "experiment": "20250417",
+      "upload_time": "2025-08-22T12:14:04.575417",
+      "needs_conversion": false
+    },
+    "10sample_pbmc.VlnPlot.raw.png": {
+      "experiment": "20250417",
+      "upload_time": "2025-08-22T12:14:04.575422",
+      "needs_conversion": false
+    },
+    "10sample_pbmc_R1_fastqc.html": {
+      "experiment": "20250417",
+      "upload_time": "2025-08-22T12:14:04.575428",
+      "needs_conversion": true,
+      "conversion": {
+        "status": "success",
+        "markdown_path": "10sample_pbmc_R1_fastqc.md",
+        "timestamp": "2025-08-22T12:14:04.575452"
+      }
+    },
+    "10sample_pbmc_R2_fastqc.html": {
+      "experiment": "20250417",
+      "upload_time": "2025-08-22T12:14:04.575434",
+      "needs_conversion": true,
+      "conversion": {
+        "status": "success",
+        "markdown_path": "10sample_pbmc_R2_fastqc.md",
+        "timestamp": "2025-08-22T12:14:04.575455"
+      }
+    },
+    "20250417.pptx": {
+      "experiment": "20250417",
+      "upload_time": "2025-08-22T12:14:04.575440",
+      "needs_conversion": true,
+      "conversion": {
+        "status": "success",
+        "markdown_path": "20250417.md",
+        "timestamp": "2025-08-22T12:14:04.575458"
+      }
+    },
+    "20250417.txt": {
+      "experiment": "20250417",
+      "upload_time": "2025-08-22T12:14:04.575445",
+      "needs_conversion": false
+    }
+  }
+}

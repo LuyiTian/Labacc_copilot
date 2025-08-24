@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set
 from datetime import datetime
 import logging
+from src.config.config import get_project_root
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +57,12 @@ class Project:
 class ProjectManager:
     """Core project management system"""
     
-    def __init__(self, storage_root: str = "data/"):
-        # Future: This will be configurable from a config file
-        # For now, projects are stored in data/ folder
-        self.storage_root = Path(storage_root)
+    def __init__(self, storage_root: str = None):
+        # Use config for storage root if not provided
+        if storage_root is None:
+            self.storage_root = get_project_root()
+        else:
+            self.storage_root = Path(storage_root)
         self.storage_root.mkdir(parents=True, exist_ok=True)
         
         # Project metadata file
@@ -102,16 +105,16 @@ class ProjectManager:
         logger.info("Creating initial example projects")
         
         # Alice's PCR project
-        self.projects["project_001_alice_pcr"] = Project(
-            project_id="project_001_alice_pcr",
+        self.projects["alice_pcr_001"] = Project(
+            project_id="alice_pcr_001",
             name="Alice PCR Optimization",
             owner_id="alice",
             description="PCR protocol optimization experiments"
         )
         
         # Bob's cancer research project  
-        self.projects["project_002_bob_cancer"] = Project(
-            project_id="project_002_bob_cancer", 
+        self.projects["bob_cancer_002"] = Project(
+            project_id="bob_cancer_002", 
             name="Bob Cancer Research",
             owner_id="bob",
             description="Cancer cell line studies"
@@ -119,14 +122,14 @@ class ProjectManager:
         
         # Shared protocols project
         shared_project = Project(
-            project_id="project_003_shared_protocols",
+            project_id="shared_protocols_003",
             name="Shared Lab Protocols", 
             owner_id="admin",
             description="Lab-wide protocols and procedures"
         )
         shared_project.shared_with.add("alice")
         shared_project.shared_with.add("bob")
-        self.projects["project_003_shared_protocols"] = shared_project
+        self.projects["shared_protocols_003"] = shared_project
         
         self._save_projects()
     
@@ -142,7 +145,7 @@ class ProjectManager:
             project_id: Unique project identifier
         """
         # Generate unique project ID
-        project_id = f"project_{uuid.uuid4().hex[:8]}_{project_name.lower().replace(' ', '_')}"
+        project_id = f"{project_name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:8]}"
         
         # Create project directory
         project_path = self.storage_root / project_id

@@ -229,9 +229,10 @@ async def create_experiment(
         if not session:
             return "No active session. Please select a project first."
         
-        # Create experiment folder
-        exp_folder = f"exp_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{experiment_name.lower().replace(' ', '_')}"
-        exp_path = session.resolve_path(exp_folder)
+        # Create experiment folder under experiments/ directory
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        exp_folder_name = f"{timestamp}_{experiment_name.lower().replace(' ', '_')}"
+        exp_path = session.resolve_path(f"experiments/{exp_folder_name}")
         exp_path.mkdir(parents=True, exist_ok=True)
         
         # Create initial README

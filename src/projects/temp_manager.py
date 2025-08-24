@@ -6,6 +6,7 @@ This bridges the old data/ structure with the new session system for testing
 from pathlib import Path
 import logging
 from typing import Optional, List, Dict
+from src.config.config import get_project_root
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ class TempProjectManager:
         # Map existing subfolders as projects
         for item in self.data_root.iterdir():
             if item.is_dir() and not item.name.startswith('.'):
-                project_id = f"project_{item.name}"
+                project_id = f"{item.name}_temp"
                 self.projects[project_id] = {
                     "name": item.name.replace('_', ' ').title(),
                     "path": item,
@@ -74,7 +75,7 @@ class TempProjectManager:
         (demo_path / "experiments").mkdir(exist_ok=True)
         (demo_path / "README.md").write_text("# Demo Project\n\nThis is a demo project for testing the new system.")
         
-        project_id = "project_demo_project"
+        project_id = "demo_temp"
         self.projects[project_id] = {
             "name": "Demo Project",
             "path": demo_path,
@@ -92,7 +93,7 @@ def get_temp_project_manager():
     """Get or create the temporary project manager"""
     global temp_project_manager
     if not temp_project_manager:
-        import os
-        data_root = os.environ.get("LABACC_PROJECT_ROOT", "data")
+        # Use config to get project root
+        data_root = str(get_project_root())
         temp_project_manager = TempProjectManager(data_root)
     return temp_project_manager

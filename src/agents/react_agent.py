@@ -11,14 +11,11 @@ This module implements a React agent using LangGraph that can:
 Memory is handled AUTOMATICALLY - no explicit memory tools needed!
 """
 
-import os
-from pathlib import Path
 from typing import List, Optional
 from datetime import datetime
 import asyncio
 import logging
 import aiohttp
-import json
 
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage, AIMessage
@@ -32,10 +29,7 @@ logger = logging.getLogger(__name__)
 # Import memory functions
 from src.memory.memory_tools import (
     read_memory,
-    append_insight,
     scan_project,
-    get_experiment_summary,
-    update_file_registry,
     get_project_insights,
     create_experiment
 )
@@ -103,13 +97,14 @@ async def analyze_image(image_path: str, experiment_context: str = "") -> str:
         # Use the image analyzer
         from src.components.image_analyzer import analyze_lab_image
         
-        # Extract experiment ID from path if possible
+        # Extract experiment ID from path by finding nearest folder with README.md
         experiment_id = None
-        path_parts = Path(image_path).parts
-        for part in path_parts:
-            if part.startswith("exp_"):
-                experiment_id = part
+        current_path = full_path.parent
+        while current_path != session.project_path:
+            if (current_path / "README.md").exists():
+                experiment_id = str(current_path.relative_to(session.project_path))
                 break
+            current_path = current_path.parent
         
         # Analyze the image
         result = await analyze_lab_image(
@@ -169,21 +164,23 @@ async def scan_project() -> str:
         other_folders = []
         
         for item in sorted(project_path.rglob("*")):
-            if item.is_dir():
+            if item.is_dir() and not item.name.startswith('.'):  # Skip hidden folders
                 relative_path = item.relative_to(project_path)
-                if item.name.startswith("exp_"):
-                    # Try to read status from README
+                path_parts = relative_path.parts
+                
+                # Check if this folder contains a README.md (indicates it's an experiment)
+                readme_path = item / "README.md"
+                if readme_path.exists() and len(path_parts) >= 2:  # Not top-level
+                    # This is an experiment folder (has README.md and is nested)
                     status = "No README"
                     try:
-                        readme_path = item / "README.md"
-                        if readme_path.exists():
-                            with open(readme_path, 'r') as f:
-                                first_lines = f.read(500)
-                                status = "Active" if "Active" in first_lines else "Has README"
+                        with open(readme_path, 'r') as f:
+                            first_lines = f.read(500)
+                            status = "Active" if "Active" in first_lines else "Has README"
                     except:
                         pass
                     experiments.append(f"📂 {relative_path}: {status}")
-                elif len(relative_path.parts) == 1:  # Top-level folders only
+                elif len(path_parts) == 1:  # Top-level folders only
                     file_count = len(list(item.iterdir())) if item.exists() else 0
                     other_folders.append(f"📁 {relative_path}/ ({file_count} items)")
         
@@ -198,7 +195,7 @@ async def scan_project() -> str:
             if len(experiments) > 15:
                 result += f"\n... and {len(experiments) - 15} more experiments"
         else:
-            result += "No experiment folders found (folders starting with 'exp_')"
+            result += "No experiment folders found (folders with README.md files)"
         
         return result
         
@@ -273,12 +270,13 @@ async def list_folder_contents(folder_path: str = ".") -> str:
 async def read_file(file_path: str) -> str:
     """Read file contents within current project.
     Automatically uses converted version if available.
+    For long documents (>20000 chars), returns an intelligent summary.
     
     Args:
         file_path: Path to file relative to project root (e.g., 'experiments/exp_001/README.md')
     
     Returns:
-        File contents as string
+        File contents as string (full or summarized if too long)
     """
     try:
         # Bulletproof session-based path resolution!
@@ -286,19 +284,29 @@ async def read_file(file_path: str) -> str:
         full_path = session.resolve_path(file_path)
         
         # Smart check for converted markdown files
-        # If user asks for a PDF in originals/, check if .md exists in experiment root
+        # If user asks for a PDF in originals/, check if .md exists in nearest experiment folder
         if full_path.suffix.lower() == '.pdf' and 'originals' in str(full_path):
-            # Look for converted .md file in experiment root
-            path_parts = Path(file_path).parts
-            if len(path_parts) >= 1 and path_parts[0].startswith('exp_'):
-                experiment_id = path_parts[0]
-                exp_root = session.resolve_path(experiment_id)
-                md_path = exp_root / f"{full_path.stem}.md"
+            # Find the nearest folder with README.md (experiment folder)
+            current_path = full_path.parent
+            experiment_folder = None
+            while current_path != session.project_path:
+                if (current_path / "README.md").exists():
+                    experiment_folder = current_path
+                    break
+                current_path = current_path.parent
+            
+            if experiment_folder:
+                md_path = experiment_folder / f"{full_path.stem}.md"
                 
                 if md_path.exists():
                     logger.info(f"Found converted markdown: {md_path}")
                     with open(md_path, 'r', encoding='utf-8') as f:
                         content = f.read()
+                    
+                    # Check if content is too long
+                    if len(content) > 20000:
+                        content = await _summarize_long_document(content, full_path.name)
+                    
                     return f"# {full_path.name} (Converted to Markdown)\n\n{content}"
         
         # Fall back to original file
@@ -312,6 +320,12 @@ async def read_file(file_path: str) -> str:
         try:
             with open(full_path, 'r', encoding='utf-8') as f:
                 content = f.read()
+            
+            # Check if content is too long and needs summarization
+            if len(content) > 20000:
+                logger.info(f"File {full_path.name} is {len(content)} chars, summarizing...")
+                content = await _summarize_long_document(content, full_path.name)
+            
             return f"# Content of {full_path.name}\n\n{content}"
         except UnicodeDecodeError:
             # Binary file - check if conversion failed
@@ -322,6 +336,63 @@ async def read_file(file_path: str) -> str:
     except Exception as e:
         logger.error(f"Error reading file: {e}")
         return f"Error reading file: {str(e)}"
+
+
+async def _summarize_long_document(content: str, filename: str) -> str:
+    """Summarize long documents - simple approach.
+    
+    Args:
+        content: The full document content
+        filename: Name of the file for context
+        
+    Returns:
+        Summarized content or truncated if too long
+    """
+    try:
+        # Get LLM for summarization
+        llm = get_llm_instance()
+        
+        # Simple prompt - just ask for summary
+        summarization_prompt = f"""Summarize this scientific document '{filename}'. 
+Preserve key information: objectives, methods, results, conclusions.
+
+{content}"""
+
+        # Try to send full document first
+        try:
+            response = await llm.ainvoke([HumanMessage(content=summarization_prompt)])
+            summary = f"""**[SUMMARY of {filename} - Original: {len(content):,} chars]**
+
+{response.content}"""
+            logger.info(f"Summarized {filename}: {len(content)} → {len(summary)} chars")
+            return summary
+            
+        except Exception as token_error:
+            # If it fails (likely token limit), try with half
+            logger.info(f"Full document too long, trying with half: {token_error}")
+            half_content = content[:len(content)//2]
+            
+            summarization_prompt = f"""Summarize this scientific document '{filename}' (showing first half). 
+Preserve key information: objectives, methods, results, conclusions.
+
+{half_content}
+
+[... document continues but truncated for length ...]"""
+            
+            response = await llm.ainvoke([HumanMessage(content=summarization_prompt)])
+            summary = f"""**[PARTIAL SUMMARY of {filename} - Showing first {len(half_content):,} of {len(content):,} chars]**
+
+{response.content}"""
+            return summary
+        
+    except Exception as e:
+        logger.error(f"Failed to summarize: {e}")
+        # Final fallback: just truncate
+        return f"""**[DOCUMENT TOO LONG - Showing first 20000 characters]**
+
+{content[:20000]}
+
+**[... TRUNCATED - Total: {len(content):,} characters ...]**"""
 
 
 @tool
@@ -445,9 +516,41 @@ async def run_deep_research(query: str) -> str:
     """
     try:
         from src.tools.deep_research import run_deep_research as deep_research
-        result = await deep_research(query, max_loops=1)
-        return f"Research Results:\n{result}"
+        from src.config.config import config
+        
+        # Read settings from config.yaml
+        initial_search_query_count = config.get("deep_research.initial_search_query_count", 3)
+        max_research_loops = config.get("deep_research.max_research_loops", 1)
+        verbose = config.get("deep_research.verbose", True)
+        response_language = config.get("deep_research.response_language", None)
+        
+        # Call with configurable parameters
+        # Note: deep_research is synchronous, so we run it in executor to avoid blocking
+        import asyncio
+        from functools import partial
+        
+        # Create a partial function with named arguments
+        deep_research_func = partial(
+            deep_research,
+            initial_search_query_count=initial_search_query_count,
+            max_research_loops=max_research_loops,
+            verbose=verbose,
+            response_language=response_language
+        )
+        
+        result = await asyncio.get_event_loop().run_in_executor(
+            None,
+            deep_research_func,
+            query
+        )
+        
+        # Extract the final text from the result
+        if isinstance(result, dict):
+            return f"Research Results:\n{result.get('final_text', str(result))}"
+        else:
+            return f"Research Results:\n{result}"
     except Exception as e:
+        logger.error(f"Deep research failed: {e}")
         return f"Research unavailable: {str(e)}"
 
 
@@ -469,6 +572,7 @@ async def create_new_experiment(name: str, motivation: str, key_question: str) -
         return result
     except Exception as e:
         return f"Error creating experiment: {str(e)}"
+
 
 
 # ============= Create Agent (without explicit memory tools!) =============
@@ -565,6 +669,17 @@ async def handle_message(
 [SYSTEM CONTEXT]
 You are working within project: {session.selected_project}
 All file paths are relative to the project root.{readme_context}
+
+[PARALLEL EXECUTION - IMPORTANT]
+You can and should call multiple tools simultaneously in ONE response when the user requests multiple operations.
+Do NOT wait for one tool to finish before calling the next - call them all together.
+
+Examples of when to call multiple tools at once:
+• "Analyze data.csv and research PCR" → Call analyze_data AND run_deep_research simultaneously
+• "Scan project and read README" → Call scan_project AND read_file simultaneously  
+• "Research CRISPR and analyze image.png" → Call run_deep_research AND analyze_image simultaneously
+
+This is much faster than calling tools one by one.
 """
         
         if context_parts:
@@ -783,16 +898,20 @@ async def handle_message_with_trajectory(
         # AUTOMATIC CONTEXT INJECTION (same as handle_message)
         context_parts = []
         
-        # 1. Load experiment context automatically if in experiment folder
-        if current_folder and current_folder.startswith("exp_"):
+        # 1. Load experiment context automatically if in a folder with README.md
+        if current_folder:
             try:
-                # Read README automatically (not as a tool!)
-                readme_content = await read_memory.ainvoke({
-                    "experiment_id": current_folder
-                })
-                
-                # Just dump the full README content - no parsing needed
-                rich_context = f"""
+                # Check if current folder has README.md
+                folder_path = session.resolve_path(current_folder)
+                readme_path = folder_path / "README.md"
+                if readme_path.exists():
+                    # Read README automatically (not as a tool!)
+                    readme_content = await read_memory.ainvoke({
+                        "experiment_id": current_folder
+                    })
+                    
+                    # Just dump the full README content - no parsing needed
+                    rich_context = f"""
 === FULL README CONTENT FOR {current_folder.upper()} ===
 This is the complete README.md content from folder {current_folder}:
 {readme_content}
@@ -816,7 +935,7 @@ This is the complete README.md content from folder {current_folder}:
         
         # 3. Build final message with smart instructions based on available context
         system_hint = ""
-        if current_folder and current_folder.startswith("exp_") and context_parts and "CURRENT EXPERIMENT CONTEXT" in str(context_parts):
+        if current_folder and context_parts and "CURRENT EXPERIMENT CONTEXT" in str(context_parts):
             system_hint = f"""
 [SYSTEM INSTRUCTIONS]
 The complete README.md content for {current_folder} is provided above. DO NOT call any tools to read it again:
@@ -967,7 +1086,7 @@ Selected files: {selected_files if selected_files else 'None'}
                     response = "I encountered an issue processing your request. Please try rephrasing your question."
         
         # Background memory update (same as handle_message)
-        if current_folder and current_folder.startswith("exp_"):
+        if current_folder:
             from src.memory.auto_memory_updater import auto_update_memory
             
             async def update_memory_from_conversation():

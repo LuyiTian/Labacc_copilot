@@ -183,6 +183,36 @@ async def send_agent_message(request: AgentMessageRequest):
     )
     return {"status": "sent"}
 
+# HTTP endpoint for import status updates
+@app.post("/api/import-status")
+async def send_import_status(request: Dict):
+    """HTTP endpoint for project import status updates"""
+    session_id = request.get("session_id")
+    if session_id and session_id in manager.active_connections:
+        message = json.dumps({
+            "type": "import_status",
+            "status": request.get("status"),
+            "progress": request.get("progress"),
+            "message": request.get("message")
+        })
+        
+        # Send to all websockets for this session
+        disconnected = set()
+        for websocket in manager.active_connections[session_id]:
+            try:
+                await websocket.send_text(message)
+                logger.info(f"Sent import status to WebSocket for session {session_id}")
+            except Exception as e:
+                logger.warning(f"Failed to send import status to WebSocket: {e}")
+                disconnected.add(websocket)
+        
+        # Clean up disconnected websockets
+        for ws in disconnected:
+            manager.active_connections[session_id].discard(ws)
+    else:
+        logger.warning(f"No active WebSocket connections for session {session_id}")
+    return {"status": "sent"}
+
 
 if __name__ == "__main__":
     import uvicorn

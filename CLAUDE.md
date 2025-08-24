@@ -10,6 +10,20 @@ AI-powered autonomous laboratory assistant for wet-lab biologists to analyze exp
 No fallback, no multiple script versioning (func_v1, v2), no patch, no backup
 Less structure, only introduce output scheme when necessary, and the scheme should have clear defination, use JSON and pydanitc object, with error recovery and retry, and each variable in the scheme should be used. do not design structures that not needed. no overengineering. 
 avoid such pattern LLMoutput -> strctured output -> convert to JSON string dump -> feed back to LLM as text. it is totally junk, waste of time
+
+**Example of BAD design (NEVER DO THIS):**
+```python
+# ❌ WRONG - Extracting structured data then formatting it back
+insights = parse_llm_response(response)  # Extract: type, methods, results
+readme = format_insights(insights)  # Convert back to text
+```
+
+**Example of GOOD design (ALWAYS DO THIS):**
+```python
+# ✅ RIGHT - Let agent generate content directly
+agent_response = await agent.ainvoke("Write a README section...")
+readme = agent_response  # Use natural language directly
+```
 ---
 
 ## 📚 DOCUMENTATION STRUCTURE & RULES

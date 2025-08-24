@@ -299,6 +299,195 @@ def test_preserve_folder_structure():
 - Limit file sizes (500MB default)
 - User isolation (separate project folders)
 
+## Content Analysis System (v1.2 Update)
+
+**Added**: 2025-01-22  
+**Philosophy**: Simple inline processing, no complex background jobs
+
+### Analysis Flow for Imported Data
+
+When user imports existing data:
+
+1. **Upload Phase** (0-5 seconds)
+   - Files uploaded to server
+   - Structure preserved
+   - Status: "Uploading files..."
+
+2. **Conversion Phase** (5-30 seconds)
+   - PDF/DOCX/PPTX → Markdown
+   - MinerU v2 for PDFs, MarkItDown for Office
+   - Status: "Converting documents..." with file names
+
+3. **Analysis Phase** (30-60 seconds) - NEW
+   - React agent analyzes converted markdown files
+   - Extracts key insights per document
+   - Identifies experiment type, methods, results
+   - Status: "Analyzing content..." with progress
+
+4. **README Generation** (60-65 seconds) - ENHANCED
+   - Creates enriched README with actual insights
+   - Not just file listings but real understanding
+   - Includes experiment summaries, key findings
+   - Status: "Generating project documentation..."
+
+5. **Complete** 
+   - Project ready with intelligent documentation
+   - User sees summary of what was found
+
+### Status Tracking Implementation
+
+**Simple WebSocket messages - no new infrastructure:**
+
+```python
+# In project_routes.py during import
+await notify_status(session_id, "uploading", {"progress": 20, "message": "Uploading files..."})
+await notify_status(session_id, "converting", {"progress": 40, "message": f"Converting {file.name}..."})
+await notify_status(session_id, "analyzing", {"progress": 60, "message": f"Analyzing {converted_file}..."})
+await notify_status(session_id, "generating", {"progress": 80, "message": "Generating documentation..."})
+await notify_status(session_id, "complete", {"progress": 100, "message": "Project created successfully!"})
+```
+
+**Frontend display - reuse existing components:**
+
+```jsx
+// In ProjectCreationModal.jsx
+{importStatus && (
+  <div className="import-status">
+    <div className="progress-bar">
+      <div className="progress-fill" style={{width: `${importStatus.progress}%`}} />
+    </div>
+    <p>{importStatus.message}</p>
+  </div>
+)}
+```
+
+### Content Analysis Approach
+
+**Multi-step React agent process:**
+
+1. **Phase 1: Structure Discovery**
+   - Agent uses `list_folder_contents` to understand project structure
+   - Identifies all experiment folders and file organization
+   - Maps out which documents were converted
+
+2. **Phase 2: Deep Document Analysis**
+   - Agent uses `read_file` to read all converted markdown documents
+   - Focuses on protocols, results, analyses, presentations
+   - Extracts actual data, methods, findings (not structured parsing!)
+
+3. **Phase 3: Comprehensive README Generation**
+   - Agent writes professional scientific documentation
+   - Includes: Project Overview, Research Questions, Methodology
+   - Per-experiment sections with objectives, methods, results, conclusions
+   - Overall findings synthesis and next steps
+
+**Key Principles:**
+- NO structured extraction or parsing
+- NO keyword matching or pattern recognition  
+- Agent naturally understands content in ANY language
+- Agent generates README directly in natural language
+- Comprehensive prompts guide agent through research process
+
+### Enhanced README Format
+
+**Before (current - just file listing):**
+```markdown
+### Experiment: Jan15_CD45_enriched
+- Files: 23 items
+- Converted Documents: 3 files
+```
+
+**After (with comprehensive agent analysis):**
+```markdown
+# T-Cell Exhaustion in Aging Study
+
+## Project Overview
+
+This project investigates T-cell exhaustion markers in aging populations, focusing on the differential 
+expression of PD-1, TIM-3, and LAG-3 on CD8+ T cells from young (20-30 years) versus elderly (70-80 years) 
+donors. The hypothesis is that aging leads to increased expression of exhaustion markers, contributing to 
+immunosenescence and reduced vaccine efficacy in elderly populations.
+
+The project employs flow cytometry, single-cell RNA sequencing, and functional assays to characterize 
+exhausted T-cell populations. Initial experiments focus on establishing baseline expression patterns, 
+followed by stimulation assays to assess functional capacity.
+
+## Research Questions
+
+1. Do elderly individuals show higher baseline expression of T-cell exhaustion markers?
+2. Is there a correlation between exhaustion marker expression and cytokine production capacity?
+3. Can exhausted T-cells from elderly donors be rejuvenated through checkpoint blockade?
+4. What transcriptional signatures define exhausted vs functional T-cells in aging?
+
+## Methodology
+
+The project uses peripheral blood mononuclear cells (PBMCs) isolated via Ficoll density gradient 
+centrifugation. CD8+ T cells are enriched using magnetic bead separation (Miltenyi, >95% purity required). 
+Flow cytometry panels include CD3, CD8, CD45RA, CCR7 for subset identification, and PD-1, TIM-3, LAG-3, 
+CTLA-4 for exhaustion markers. Functional assessments use PMA/ionomycin stimulation with intracellular 
+cytokine staining for IFN-γ, TNF-α, and IL-2.
+
+## Experiments
+
+### Experiment: Jan15_CD45_enriched
+**Objective**: Establish CD45+ cell enrichment protocol for downstream T-cell isolation
+**Date**: January 15, 2025
+**Status**: Completed
+
+**Methods**:
+- Ficoll-Paque PLUS density gradient (1.077 g/mL)
+- Anti-CD45 MicroBeads (Miltenyi, 20 μL per 10^7 cells)
+- LS columns on QuadroMACS separator
+- Flow validation using CD45-APC, 7-AAD viability
+
+**Key Results**:
+- Starting material: 2.3 × 10^7 PBMCs from 10mL blood
+- Post-enrichment yield: 1.8 × 10^6 CD45+ cells
+- Purity: 94.3% CD45+ (flow cytometry)
+- Viability: 82% (7-AAD negative)
+- Recovery rate: 78% (below expected 85-90%)
+
+**Conclusions**:
+Protocol successfully enriches CD45+ cells but recovery needs optimization. Cell clumping observed, 
+likely from incomplete bead removal.
+
+**Issues/Notes**:
+- Increase wash steps from 2 to 3 to reduce clumping
+- Consider using CliniMACS PBS/EDTA buffer instead of plain PBS
+- Some RBC contamination noted - may need additional lysis step
+
+### Experiment: Jan22_exhaustion_panel
+**Objective**: Optimize 8-color flow cytometry panel for T-cell exhaustion markers
+**Date**: January 22, 2025
+**Status**: In Progress
+
+[Additional experiments would be documented similarly...]
+
+## Overall Findings
+
+Initial experiments establish robust cell isolation protocols with >94% purity for CD45+ enrichment. 
+Preliminary flow cytometry data shows increased PD-1 expression on CD8+ T cells from elderly donors 
+(mean 42.3% vs 18.7% in young, p<0.01). Technical challenges include cell clumping during magnetic 
+separation and RBC contamination requiring protocol optimization.
+
+## File Organization
+
+- `/experiments/` - Individual experiment folders with raw data, protocols, and analyses
+- Each experiment contains converted markdown documents from original protocols and results
+- Flow cytometry FCS files stored in `/raw_data/` subdirectories
+- Analysis scripts and figures in `/analysis/` subdirectories
+
+## Next Steps
+
+1. Optimize enrichment protocol to achieve >85% recovery
+2. Complete titration of exhaustion marker antibodies
+3. Process samples from 5 young and 5 elderly donors for pilot study
+4. Submit samples for scRNA-seq library preparation
+
+---
+*This documentation was generated from imported experimental data on 2025-01-22*
+```
+
 ## Future Enhancements (NOT NOW)
 
 These are noted but NOT for immediate implementation:
@@ -306,6 +495,7 @@ These are noted but NOT for immediate implementation:
 - Collaborative projects (adds complexity)
 - Version control integration (later phase)
 - Project archival (when needed)
+- Multi-step wizards (unnecessary complexity)
 
 ## Implementation Status
 
@@ -317,8 +507,9 @@ These are noted but NOT for immediate implementation:
 6. ✅ Auto-convert PDF/DOCX/PPTX files
 7. ✅ Generate README for each experiment
 8. ✅ Create file registry for tracking
-9. 🚧 Add background AI analysis trigger
-10. 🚧 Test both creation paths in production
+9. 🚧 Add AI content analysis after conversion
+10. 🚧 Add real-time status tracking during import
+11. 🚧 Test both creation paths in production
 
 ## Success Metrics
 

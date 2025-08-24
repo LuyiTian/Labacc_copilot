@@ -1,0 +1,57 @@
+{
+  "project_id": "uda_pilot_3f94ff",
+  "name": "uda_pilot",
+  "created_at": "2025-08-22T11:03:46.947165",
+  "creation_mode": "data_driven",
+  "status": "analyzing",
+  "owner": "admin",
+  "imported_structure": {
+    "20250309": {
+      "files": [
+        "16index -PBMC-UDA-seq cDNA Tapestation.png",
+        "16index PBMC-UDA-seq Solo results.png",
+        "16index PBMC-UDA-seq-Knee plot.png",
+        "16index PBMC-UDA-seq.csv",
+        "20250309.pptx",
+        "20250309.txt",
+        "PBMC_20250321.QC_report.html",
+        "processed_RNA_1_fastqc.html",
+        "RNA_2_fastqc.html",
+        "udaseq_paper.pdf",
+        "udaseq_protocol.pdf"
+      ],
+      "converted": [
+        {
+          "original": "20250309.pptx",
+          "markdown": "20250309.md",
+          "path": "data/admin_projects/uda_pilot_3f94ff/experiments/20250309/20250309.md"
+        },
+        {
+          "original": "PBMC_20250321.QC_report.html",
+          "markdown": "PBMC_20250321.QC_report.md",
+          "path": "data/admin_projects/uda_pilot_3f94ff/experiments/20250309/PBMC_20250321.QC_report.md"
+        },
+        {
+          "original": "processed_RNA_1_fastqc.html",
+          "markdown": "processed_RNA_1_fastqc.md",
+          "path": "data/admin_projects/uda_pilot_3f94ff/experiments/20250309/processed_RNA_1_fastqc.md"
+        },
+        {
+          "original": "RNA_2_fastqc.html",
+          "markdown": "RNA_2_fastqc.md",
+          "path": "data/admin_projects/uda_pilot_3f94ff/experiments/20250309/RNA_2_fastqc.md"
+        },
+        {
+          "original": "udaseq_paper.pdf",
+          "markdown": "udaseq_paper.md",
+          "path": "data/admin_projects/uda_pilot_3f94ff/experiments/20250309/udaseq_paper.md"
+        },
+        {
+          "original": "udaseq_protocol.pdf",
+          "markdown": "udaseq_protocol.md",
+          "path": "data/admin_projects/uda_pilot_3f94ff/experiments/20250309/udaseq_protocol.md"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,14 @@
+实验日期：20250417
+实验目的：验证超高通量UDA-seq的可行性。
+样本名称：10sample PBMC-UDA-seq
+1）实验样本：复苏的PBMC细胞（10 人），细胞活率平均为75%。
+2）固定方法：ice-cold 甲醇固定，-20℃10min。
+3）水化试剂：1x PBS 
+4） Index数量：96种
+5）单细胞试剂：10x single cell 5’V2
+6）10x Loading 细胞数量：30w （3w /person）
+8）纯化方式：10x Clean up Mix（Dynabeads）
+7）实验方法：
+一、细胞前处理：PBMC细胞复苏后，分别取100w细胞离心，500g，5min。弃上清，100ul 1x PBS重悬细胞后，加入900ul ice-cold 甲醇，-20℃固定10min。4℃，500g 离心5min，弃上清，加入1mL 1xPBS洗涤细胞2次。细胞计数，10 sample 混合后取30w细胞载入到10x 5’single cell V2 kit。
+结论：10sample 细胞载入30w，捕获的细胞不到20%，基因数也偏低。
+

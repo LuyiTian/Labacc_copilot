@@ -1,8 +1,9 @@
-# LabAcc Copilot v2.0 - Implementation Phases
+# LabAcc Copilot - Implementation Phases (HISTORICAL)
 
-**Detailed technical roadmap for building the autonomous laboratory copilot**  
-**Timeline**: 6 months | **Approach**: Incremental enhancement  
-**Date**: 2025-08-12
+**NOTE**: This document describes the original v2.0 multi-agent plan which was replaced by the simpler v2.1 React agent architecture. Kept for historical reference.
+
+**Original Plan Date**: 2025-08-12  
+**Status**: SUPERSEDED by v2.1 single React agent approach
 
 ---
 

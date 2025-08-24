@@ -34,6 +34,40 @@ class FileConversionPipeline:
         self._mineru_cmd = "mineru"  # Default, will be updated in check
         self._check_mineru_availability()
     
+    def _resolve_experiment_path(self, experiment_id: str) -> Path:
+        """Resolve experiment path properly, avoiding duplication.
+        
+        Args:
+            experiment_id: Either a relative path or a full path
+            
+        Returns:
+            Resolved Path object for the experiment
+        """
+        exp_id_path = Path(experiment_id)
+        
+        # If it's an absolute path, use it directly
+        if exp_id_path.is_absolute():
+            return exp_id_path
+        
+        # Check if this path when resolved would be under project_root
+        # This handles cases where experiment_id is like "data/admin_projects/project_x/experiments/exp1"
+        # and project_root is "data/admin_projects"
+        try:
+            # Resolve both paths to absolute for comparison
+            potential_path = Path.cwd() / exp_id_path
+            project_root_abs = (Path.cwd() / self.project_root).resolve()
+            
+            # Check if the potential path is under the project root
+            if potential_path.resolve().is_relative_to(project_root_abs):
+                # It's already a complete path relative to cwd
+                return exp_id_path
+        except (ValueError, OSError):
+            # If we can't determine, fall through to append to project_root
+            pass
+        
+        # Otherwise, it's a simple relative path - append to project_root
+        return self.project_root / experiment_id
+    
     def _check_mineru_availability(self):
         """Check if MinerU v2 is available."""
         try:
@@ -169,7 +203,7 @@ class FileConversionPipeline:
                         cmd,
                         capture_output=True,
                         text=True,
-                        timeout=60  # 1 minute timeout should be enough
+                        timeout=120  # 2 minutes timeout for large PDFs
                     )
                     
                     if result.returncode != 0:
@@ -268,8 +302,8 @@ class FileConversionPipeline:
             raise ValueError(error_msg)
             
         # Converted files go to the experiment folder root (visible to user)
-        # Original PDFs are in originals/, converted .md goes to experiment root
-        exp_dir = self.project_root / experiment_id
+        # Use the helper method to resolve path properly
+        exp_dir = self._resolve_experiment_path(experiment_id)
         md_filename = f"{file_path.stem}.md"
         converted_path = exp_dir / md_filename
         
@@ -293,7 +327,12 @@ class FileConversionPipeline:
         if conversion_success:
             # Verify the file was actually created
             if converted_path.exists():
-                result["converted_path"] = str(converted_path.relative_to(self.project_root))
+                # Store the converted path - try to make it relative if possible
+                try:
+                    result["converted_path"] = str(converted_path.relative_to(self.project_root))
+                except ValueError:
+                    # If not relative to project_root, just use the absolute path
+                    result["converted_path"] = str(converted_path)
                 result["conversion_status"] = "success"
                 logger.info(f"Successfully created converted file: {converted_path}")
             else:
@@ -315,7 +354,8 @@ class FileConversionPipeline:
             experiment_id: ID of the experiment
             file_info: File information including conversion details
         """
-        exp_dir = self.project_root / experiment_id
+        # Use helper method to resolve path properly
+        exp_dir = self._resolve_experiment_path(experiment_id)
         registry_path = exp_dir / ".labacc" / "file_registry.json"
         
         # Load existing registry or create new
@@ -361,7 +401,8 @@ class FileConversionPipeline:
         Returns:
             File information from registry, or None if not found
         """
-        exp_dir = self.project_root / experiment_id
+        # Use helper method to resolve path properly
+        exp_dir = self._resolve_experiment_path(experiment_id)
         registry_path = exp_dir / ".labacc" / "file_registry.json"
         
         if not registry_path.exists():
@@ -381,7 +422,7 @@ class FileConversionPipeline:
             experiment_id: ID of the experiment
             filename: Name of the uploaded file
         """
-        # TODO: Implement WebSocket notification to trigger agent analysis
+        # This is handled by file_routes.py upload endpoint which calls notify_agent_of_upload
         logger.info(f"Agent notification: New file {filename} ready for analysis in {experiment_id}")
 
 

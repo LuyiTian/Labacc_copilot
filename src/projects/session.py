@@ -10,6 +10,7 @@ from typing import Dict, Optional, Any
 from dataclasses import dataclass
 import threading
 import logging
+from src.config.config import get_user_projects_path
 
 # Use real project manager
 from .project_manager import project_manager

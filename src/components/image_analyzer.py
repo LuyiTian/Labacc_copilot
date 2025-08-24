@@ -40,7 +40,7 @@ class ImageAnalysisResult:
 class ImageAnalyzer:
     """Analyzes images using vision LLM"""
     
-    def __init__(self, vision_model_name: str = "GLM-4.5V"):
+    def __init__(self, vision_model_name: str = "doubao-seed-1-6-thinking"):
         """Initialize with vision model configuration"""
         self.model_name = vision_model_name
         self._init_vision_llm()
@@ -65,13 +65,15 @@ class ImageAnalyzer:
             if not api_key:
                 raise ValueError(f"API key not found in environment: {model_config['api_key_env']}")
             
-            # Create vision LLM instance
+            # Create vision LLM instance with timeout
             self.vision_llm = ChatOpenAI(
                 api_key=api_key,
                 base_url=model_config["base_url"],
                 model=model_config["model_name"],
                 temperature=model_config.get("recommended_temperature", 0.4),
-                max_tokens=2048
+                max_tokens=2048,
+                timeout=180,  # 3 minute timeout for API calls
+                max_retries=1  # Only retry once on failure
             )
             
             logger.info(f"Initialized vision LLM: {self.model_name}")
@@ -199,23 +201,67 @@ Please analyze the image and provide:
 
 Focus on scientific/experimental relevance. Be factual and specific."""
             
-            # Create message with image
+            # Get correct MIME type based on actual image format
+            try:
+                from PIL import Image
+                with Image.open(image_path) as img:
+                    actual_format = img.format.lower()
+                
+                # Map PIL formats to MIME types that Doubao supports
+                format_mapping = {
+                    'png': 'image/png',
+                    'jpeg': 'image/jpeg', 
+                    'jpg': 'image/jpeg',
+                    'webp': 'image/webp',
+                    'bmp': 'image/bmp',
+                    'tiff': 'image/tiff',
+                    'tif': 'image/tiff'
+                }
+                
+                mime_type = format_mapping.get(actual_format, 'image/jpeg')
+                logger.info(f"Using MIME type: {mime_type} for format: {actual_format}")
+                
+            except Exception as e:
+                logger.warning(f"Could not detect image format, using jpeg: {e}")
+                mime_type = 'image/jpeg'
+            
+            # Create message with image using correct MIME type
             message = HumanMessage(
                 content=[
                     {"type": "text", "text": prompt},
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_image}",
-                            "detail": "high"
+                            "url": f"data:{mime_type};base64,{base64_image}"
                         }
                     }
                 ]
             )
             
-            # Get analysis from vision LLM
-            response = await self.vision_llm.ainvoke([message])
-            analysis_text = response.content
+            # Get analysis from vision LLM with timeout handling
+            import asyncio
+            try:
+                # Add an additional timeout wrapper
+                response = await asyncio.wait_for(
+                    self.vision_llm.ainvoke([message]), 
+                    timeout=185  # Slightly longer than the client timeout (3 min)
+                )
+                analysis_text = response.content
+            except asyncio.TimeoutError:
+                logger.warning(f"Vision model timed out analyzing {image_path.name}")
+                # Return basic info without AI analysis
+                return ImageAnalysisResult(
+                    success=True,
+                    file_path=str(image_path),
+                    file_name=image_path.name,
+                    image_size=metadata.get("size", (0, 0)),
+                    format=metadata.get("format", "unknown"),
+                    content_description=f"Image analysis timed out. This is a {metadata.get('format', 'image')} file of size {metadata.get('size', 'unknown')}.",
+                    experimental_context="Analysis unavailable due to timeout",
+                    key_features=["Image metadata available", f"Format: {metadata.get('format', 'unknown')}"],
+                    suggested_tags=["needs-manual-review"],
+                    error_message="Vision model timeout - returning basic metadata only"
+                )
             
             # Parse the response
             content_description = ""
@@ -293,7 +339,7 @@ async def analyze_lab_image(
     image_path: str,
     context: Optional[str] = None,
     experiment_id: Optional[str] = None,
-    vision_model: str = "GLM-4.5V"
+    vision_model: str = "doubao-seed-1-6-thinking"
 ) -> ImageAnalysisResult:
     """
     Convenience function to analyze a laboratory image
@@ -316,7 +362,7 @@ def analyze_lab_image_sync(
     image_path: str,
     context: Optional[str] = None,
     experiment_id: Optional[str] = None,
-    vision_model: str = "GLM-4.5V"
+    vision_model: str = "doubao-seed-1-6-thinking"
 ) -> ImageAnalysisResult:
     """
     Synchronous wrapper for image analysis

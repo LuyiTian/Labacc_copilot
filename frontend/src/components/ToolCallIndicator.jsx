@@ -172,6 +172,12 @@ const ToolCallIndicator = ({ sessionId }) => {
           <span className="tool-calls-title">🔧 Agent Tools</span>
           <span className="tool-calls-status ready">Ready</span>
         </div>
+        <div className="tool-calls-list">
+          <div className="tool-calls-empty">
+            <span className="empty-icon">⏳</span>
+            <span className="empty-message">Waiting for agent activity...</span>
+          </div>
+        </div>
       </div>
     );
   }

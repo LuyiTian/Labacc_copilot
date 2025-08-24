@@ -28,6 +28,13 @@
       "recommended_temperature": 0.4,
       "description": "zai-org/GLM-4.5V"
     },
+    "doubao-seed-1-6-thinking": {
+      "api_key_env": "VOL_API_KEY",
+      "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+      "model_name": "ep-20250719141014-lb5hh",
+      "recommended_temperature": 0.8,
+      "description": "Doubao Seed 1.6 Thinking Vision Model"
+    },
     "openrouter-gpt-oss-120b": {
       "api_key_env": "OPENROUTER_API_KEY",
       "base_url": "https://openrouter.ai/api/v1",
@@ -43,9 +50,9 @@
     "critic": "openrouter-gpt-oss-120b",
     "writer": "openrouter-gpt-oss-120b",
     "planner": "openrouter-gpt-oss-120b",
-    "react_agent": "openrouter-gpt-oss-120b",
-    "vision": "GLM-4.5V",
-    "image_analyzer": "GLM-4.5V",
+    "react_agent": "siliconflow-qwen-30b",
+    "vision": "doubao-seed-1-6-thinking",
+    "image_analyzer": "doubao-seed-1-6-thinking",
     "default": "openrouter-gpt-oss-120b"
   }
 }

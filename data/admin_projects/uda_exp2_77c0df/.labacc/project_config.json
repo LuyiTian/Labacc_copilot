@@ -1,0 +1,46 @@
+{
+  "project_id": "uda_exp2_77c0df",
+  "name": "uda_exp2",
+  "created_at": "2025-08-22T12:14:04.575184",
+  "creation_mode": "data_driven",
+  "status": "analyzing",
+  "owner": "admin",
+  "imported_structure": {
+    "20250417": {
+      "files": [
+        "10sample_pbmc.barcode_rank_plot.png",
+        "10sample_pbmc.csv",
+        "10sample_pbmc.ElbowPlot.png",
+        "10sample_pbmc.FeatureScatterPlot.png",
+        "10sample_pbmc.saturation.png",
+        "10sample_pbmc.topDEG.dotplot.png",
+        "10sample_pbmc.UMAP.png",
+        "10sample_pbmc.UMAP_umicounts.png",
+        "10sample_pbmc.VariableFeaturePlot_anntop10.png",
+        "10sample_pbmc.VlnPlot.filtered.png",
+        "10sample_pbmc.VlnPlot.raw.png",
+        "10sample_pbmc_R1_fastqc.html",
+        "10sample_pbmc_R2_fastqc.html",
+        "20250417.pptx",
+        "20250417.txt"
+      ],
+      "converted": [
+        {
+          "original": "10sample_pbmc_R1_fastqc.html",
+          "markdown": "10sample_pbmc_R1_fastqc.md",
+          "path": "/data/luyit/script/git/Labacc_copilot/data/admin_projects/uda_exp2_77c0df/experiments/20250417/10sample_pbmc_R1_fastqc.md"
+        },
+        {
+          "original": "10sample_pbmc_R2_fastqc.html",
+          "markdown": "10sample_pbmc_R2_fastqc.md",
+          "path": "/data/luyit/script/git/Labacc_copilot/data/admin_projects/uda_exp2_77c0df/experiments/20250417/10sample_pbmc_R2_fastqc.md"
+        },
+        {
+          "original": "20250417.pptx",
+          "markdown": "20250417.md",
+          "path": "/data/luyit/script/git/Labacc_copilot/data/admin_projects/uda_exp2_77c0df/experiments/20250417/20250417.md"
+        }
+      ]
+    }
+  }
+}
