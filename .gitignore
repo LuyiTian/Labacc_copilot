@@ -247,3 +247,7 @@ tmp/
 # IDE specific
 .vscode/
 .idea/
+.cursor/*
+
+.specstory/*
+
